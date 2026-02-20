@@ -1,8 +1,19 @@
-import { Header } from '@/components/Header';
-import { Hero } from '@/components/Hero';
-import { Footer } from '@/components/Footer';
-import Image from 'next/image';
-import Link from 'next/link';
+import imgHero1 from "figma:asset/afe17b47905a1f3498944aac61b527d2096478c6.png";
+import imgImage from "figma:asset/e723a3a921b7364a9fd5c9987650e639e5e37b99.png";
+import imgImage1 from "figma:asset/4c364980273eb285a6b98bd2ce5d58313866c189.png";
+import imgImage2 from "figma:asset/385737d7a5d62e174796a599ef23edf3d6bc4011.png";
+
+function Hero() {
+  return (
+    <section className="relative h-[348px] md:h-[540px] w-full overflow-hidden -mt-[214px] md:-mt-0 pt-[214px] md:pt-[214px]">
+      <img
+        alt="West Java landscape"
+        className="absolute inset-0 w-full h-full object-cover"
+        src={imgHero1}
+      />
+    </section>
+  );
+}
 
 function FeatureCard({
   image,
@@ -15,13 +26,11 @@ function FeatureCard({
 }) {
   return (
     <li className="flex flex-col gap-6 md:gap-8 flex-1 min-w-[280px] md:min-w-[336px] max-w-[388px]">
-      <div className="aspect-[327/436] md:aspect-[363/483] rounded-2xl overflow-hidden relative">
-        <Image
+      <div className="aspect-[327/436] md:aspect-[363/483] rounded-2xl overflow-hidden">
+        <img
           alt={title}
-          className="object-cover"
+          className="w-full h-full object-cover"
           src={image}
-          fill
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         />
       </div>
       <div className="flex flex-col gap-2">
@@ -39,19 +48,19 @@ function FeatureCard({
 export default function Home() {
   const features = [
     {
-      image: "/e723a3a921b7364a9fd5c9987650e639e5e37b99.png",
+      image: imgImage,
       title: "Keindahan Alam",
       description:
         "Jelajahi keindahan alam Jawa Barat dari pegunungan hingga pantai yang memukau.",
     },
     {
-      image: "/4c364980273eb285a6b98bd2ce5d58313866c189.png",
+      image: imgImage1,
       title: "Budaya & Tradisi",
       description:
         "Kenali kekayaan budaya dan tradisi yang masih lestari di Jawa Barat.",
     },
     {
-      image: "/385737d7a5d62e174796a599ef23edf3d6bc4011.png",
+      image: imgImage2,
       title: "Kuliner Khas",
       description:
         "Nikmati berbagai kuliner khas Sunda yang menggugah selera.",
@@ -59,8 +68,7 @@ export default function Home() {
   ];
 
   return (
-    <main className="min-h-screen bg-white">
-      <Header />
+    <main className="bg-white">
       <Hero />
 
       {/* Feature Cards Section */}
@@ -88,7 +96,7 @@ export default function Home() {
       </section>
 
       {/* Quick Links Section */}
-      <section className="px-6 md:px-16 py-20 mb-10">
+      <section className="px-6 md:px-16 py-20">
         <div className="max-w-7xl mx-auto">
           <h3 className="font-['Inter:Semi_Bold',sans-serif] font-semibold text-2xl md:text-3xl text-black mb-12 text-center">
             Jelajahi Lebih Lanjut
@@ -101,12 +109,12 @@ export default function Home() {
               <p className="font-['Inter:Medium',sans-serif] font-medium text-base text-[rgba(0,0,0,0.55)] mb-6">
                 Tonton video-video menarik tentang pariwisata Jawa Barat
               </p>
-              <Link
+              <a
                 href="/videos"
                 className="inline-block bg-[#2645cf] hover:bg-[#1e37a8] transition-colors text-white px-6 py-3 rounded-lg text-sm"
               >
                 Lihat Video
-              </Link>
+              </a>
             </div>
 
             <div className="bg-white border-2 border-gray-200 rounded-2xl p-8 hover:border-[#2645cf] transition-colors">
@@ -116,12 +124,12 @@ export default function Home() {
               <p className="font-['Inter:Medium',sans-serif] font-medium text-base text-[rgba(0,0,0,0.55)] mb-6">
                 Akses berbagai sumber informasi pariwisata Jawa Barat
               </p>
-              <Link
+              <a
                 href="/directory"
                 className="inline-block bg-[#2645cf] hover:bg-[#1e37a8] transition-colors text-white px-6 py-3 rounded-lg text-sm"
               >
                 Lihat Direktori
-              </Link>
+              </a>
             </div>
 
             <div className="bg-white border-2 border-gray-200 rounded-2xl p-8 hover:border-[#2645cf] transition-colors">
@@ -131,18 +139,16 @@ export default function Home() {
               <p className="font-['Inter:Medium',sans-serif] font-medium text-base text-[rgba(0,0,0,0.55)] mb-6">
                 Informasi peraturan terkait pariwisata di Jawa Barat
               </p>
-              <Link
+              <a
                 href="/regulations"
                 className="inline-block bg-[#2645cf] hover:bg-[#1e37a8] transition-colors text-white px-6 py-3 rounded-lg text-sm"
               >
                 Lihat Peraturan
-              </Link>
+              </a>
             </div>
           </div>
         </div>
       </section>
-
-      <Footer />
     </main>
   );
 }
