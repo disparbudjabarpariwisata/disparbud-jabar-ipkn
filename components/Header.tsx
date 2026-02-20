@@ -66,6 +66,7 @@ export function Header() {
                                     <Link
                                         key={item.path}
                                         href={item.path}
+                                        prefetch={false}
                                         className="font-inter font-normal text-[12px] text-black hover:text-[#2645cf] transition-colors uppercase tracking-wider"
                                     >
                                         {item.label}
@@ -99,6 +100,7 @@ export function Header() {
                                 </div>
                                 <Link
                                     href="/videos"
+                                    prefetch={false}
                                     className="bg-[#2645cf] hover:bg-[#1e37a8] transition-colors h-[37px] rounded-[15px] w-[249px] flex items-center justify-center shadow-md active:scale-95"
                                 >
                                     <span className="font-['Inter:Regular',sans-serif] font-normal text-[12px] text-white">
@@ -158,6 +160,7 @@ export function Header() {
                                 </div>
                                 <Link
                                     href="/videos"
+                                    prefetch={false}
                                     className="bg-[#2645cf] hover:bg-[#1e37a8] transition-colors h-[37px] rounded-[15px] w-full max-w-[200px] flex items-center justify-center mx-auto shadow-md active:scale-95"
                                 >
                                     <span className="font-['Inter:Regular',sans-serif] font-normal text-[12px] text-white">
@@ -177,6 +180,7 @@ export function Header() {
                                 <Link
                                     key={item.path}
                                     href={item.path}
+                                    prefetch={false}
                                     onClick={() => setIsMobileMenuOpen(false)}
                                     className="font-['Inter:Regular',sans-serif] font-normal text-[14px] text-black hover:text-[#2645cf] transition-colors py-2 uppercase tracking-wide"
                                 >

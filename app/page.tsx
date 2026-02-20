@@ -103,6 +103,7 @@ export default function Home() {
               </p>
               <Link
                 href="/videos"
+                prefetch={false}
                 className="inline-block bg-[#2645cf] hover:bg-[#1e37a8] transition-colors text-white px-6 py-3 rounded-lg text-sm"
               >
                 Lihat Video
@@ -118,6 +119,7 @@ export default function Home() {
               </p>
               <Link
                 href="/directory"
+                prefetch={false}
                 className="inline-block bg-[#2645cf] hover:bg-[#1e37a8] transition-colors text-white px-6 py-3 rounded-lg text-sm"
               >
                 Lihat Direktori
@@ -133,6 +135,7 @@ export default function Home() {
               </p>
               <Link
                 href="/regulations"
+                prefetch={false}
                 className="inline-block bg-[#2645cf] hover:bg-[#1e37a8] transition-colors text-white px-6 py-3 rounded-lg text-sm"
               >
                 Lihat Peraturan
