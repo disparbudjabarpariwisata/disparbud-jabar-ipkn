@@ -85,17 +85,27 @@ export default function AdminRespondentsPage() {
     }, [isAuthorized]);
 
     const getTableNameFromRoleName = (role: string) => {
-        switch (role) {
-            case 'Perangkat Daerah Provinsi Jawa Barat': return 'survey_perangkat_daerah';
-            case 'Instansi Pemerintah Terkait': return 'survey_pemerintah_terkait';
-            case 'Instansi / Lembaga Swasta Terkait': return 'survey_swasta_terkait';
-            case 'Komunitas / Asosiasi': return 'survey_komunitas';
-            case 'Pelaku Usaha Pariwisata / Ekraf': return 'survey_pelaku_usaha';
-            case 'Pemerintah Daerah Kota/Kabupaten Jawa Barat': return 'survey_pemda_kabkota';
-            case 'Pemerintah Pusat': return 'survey_pemerintah_pusat';
-            case 'Internasional Tourism Institution': return 'survey_international_tourism';
-            default: return null;
+        const lower = role.toLowerCase();
+
+        // Keyword-based lookup for resilience against minor naming variations
+        const mapping: { keywords: string[]; table: string }[] = [
+            { keywords: ['perangkat daerah'], table: 'survey_perangkat_daerah' },
+            { keywords: ['instansi pemerintah', 'pemerintah terkait'], table: 'survey_pemerintah_terkait' },
+            { keywords: ['swasta'], table: 'survey_swasta_terkait' },
+            { keywords: ['komunitas', 'asosiasi'], table: 'survey_komunitas' },
+            { keywords: ['pelaku usaha', 'ekraf'], table: 'survey_pelaku_usaha' },
+            { keywords: ['kota/kabupaten', 'kabupaten', 'pemda'], table: 'survey_pemda_kabkota' },
+            { keywords: ['pemerintah pusat'], table: 'survey_pemerintah_pusat' },
+            { keywords: ['internasional', 'international', 'tourism institution'], table: 'survey_international_tourism' },
+        ];
+
+        for (const entry of mapping) {
+            if (entry.keywords.some(kw => lower.includes(kw))) {
+                return entry.table;
+            }
         }
+
+        return null;
     };
 
     // Fetch Target Data when activeTab changes
