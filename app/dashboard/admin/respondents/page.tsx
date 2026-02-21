@@ -14,7 +14,8 @@ import {
     Mail,
     Globe,
     CalendarClock,
-    UserCheck
+    UserCheck,
+    KeyRound
 } from 'lucide-react';
 
 interface RoleType {
@@ -31,6 +32,7 @@ interface Respondent {
     position?: string;
     email: string;
     whatsapp: string;
+    pin: string;
     ip_address?: string;
     location?: string;
     created_at: string;
@@ -186,6 +188,7 @@ export default function AdminRespondentsPage() {
                         position: user.position || '-',
                         email: user.email,
                         whatsapp: user.whatsapp,
+                        pin: user.pin || '-',
                         ip_address: user.ip_address || 'Tidak terlacak',
                         location: user.location || 'Tidak terlacak',
                         created_at: user.created_at,
@@ -304,6 +307,7 @@ export default function AdminRespondentsPage() {
                                     <tr>
                                         <th className="px-6 py-4 whitespace-nowrap">Instansi & PIC</th>
                                         <th className="px-6 py-4 whitespace-nowrap">Kontak</th>
+                                        <th className="px-6 py-4 whitespace-nowrap">PIN</th>
                                         <th className="px-6 py-4 whitespace-nowrap">Geolokasi & Waktu</th>
                                         <th className="px-6 py-4 whitespace-nowrap">Progress Survei</th>
                                     </tr>
@@ -326,6 +330,12 @@ export default function AdminRespondentsPage() {
                                                     <a href={`https://wa.me/${user.whatsapp?.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-gray-600 hover:text-emerald-600 transition-colors">
                                                         <Smartphone size={14} /> <span>{user.whatsapp}</span>
                                                     </a>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-5">
+                                                <div className="flex items-center gap-2 text-gray-700">
+                                                    <KeyRound size={14} className="text-orange-400" />
+                                                    <span className="font-mono font-semibold tracking-wider bg-orange-50 px-2.5 py-1 rounded-lg border border-orange-100 text-orange-700">{user.pin}</span>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-5">
