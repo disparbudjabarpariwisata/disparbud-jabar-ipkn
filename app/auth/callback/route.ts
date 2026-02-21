@@ -12,7 +12,12 @@ export async function GET(request: Request) {
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
         );
 
-        await supabase.auth.exchangeCodeForSession(code);
+        const { data } = await supabase.auth.exchangeCodeForSession(code);
+
+        // Check if user has a role set, if not redirect to select-role
+        if (data?.user && !data.user.user_metadata?.role) {
+            return NextResponse.redirect(`${origin}/select-role`);
+        }
     }
 
     // Redirect to dashboard after successful auth

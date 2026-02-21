@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import {
-    UserCircle,
     Mail,
     Lock,
     Eye,
@@ -21,7 +20,6 @@ import { supabase } from '@/lib/supabaseClient';
 export default function LoginPage() {
     const router = useRouter();
     const [showPassword, setShowPassword] = useState(false);
-    const [role, setRole] = useState('Nasional');
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -44,7 +42,11 @@ export default function LoginPage() {
                 setError(error.message);
             } else {
                 console.log('Login success:', data);
-                router.push('/dashboard');
+                if (!data.user?.user_metadata?.role) {
+                    router.push('/select-role');
+                } else {
+                    router.push('/dashboard');
+                }
             }
         } catch (err) {
             setError('An unexpected error occurred.');
@@ -130,32 +132,6 @@ export default function LoginPage() {
 
                         {/* Form */}
                         <form onSubmit={handleLogin} className="space-y-6">
-                            {/* Role Select */}
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-gray-700 ml-1 flex items-center gap-2">
-                                    <UserCircle size={18} className="text-[#F8BC16]" />
-                                    Login As
-                                </label>
-                                <div className="relative">
-                                    <select
-                                        value={role}
-                                        onChange={(e) => setRole(e.target.value)}
-                                        className="w-full px-5 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-[#F8BC16] focus:ring-4 focus:ring-[#F8BC16]/10 outline-none transition-all appearance-none cursor-pointer"
-                                    >
-                                        <option value="Nasional">Nasional</option>
-                                        <option value="Provinsi">Provinsi</option>
-                                        <option value="Kota/Kabupaten">Kota/Kabupaten</option>
-                                        <option value="Mitra Pariwisata">Mitra Pariwisata</option>
-                                        <option value="Akademisi">Akademisi</option>
-                                    </select>
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <path d="m6 9 6 6 6-6" />
-                                        </svg>
-                                    </div>
-                                </div>
-                            </div>
-
                             {/* Email Input */}
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-gray-700 ml-1 flex items-center gap-2">
