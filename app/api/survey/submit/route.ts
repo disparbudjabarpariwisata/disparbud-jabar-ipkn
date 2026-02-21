@@ -39,6 +39,9 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Kategori Instansi tidak valid' }, { status: 400 });
         }
 
+        const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'Unknown IP';
+        const location = request.headers.get('x-vercel-ip-city') || 'Unknown Location';
+
         // 2. Insert into Supabase (Server-Side using Anon/Service key depending on setup)
         // Since we are operating server side, utilizing the client configured in @/lib/supabaseClient
         const insertData: any = {
@@ -49,6 +52,8 @@ export async function POST(request: Request) {
             email,
             whatsapp,
             pin,
+            ip_address: ip,
+            location: location,
             status: 'incomplete'
         };
 

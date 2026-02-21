@@ -14,6 +14,7 @@ import {
     Settings,
     Loader2,
     HelpCircle,
+    UserCheck,
 } from 'lucide-react';
 
 export default function AdminDashboardPage() {
@@ -51,6 +52,7 @@ export default function AdminDashboardPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {[
                         { label: 'Users', href: '/dashboard/admin/users', icon: <Users size={24} />, color: 'bg-blue-50 text-blue-600' },
+                        { label: 'Respondents', href: '/dashboard/admin/respondents', icon: <UserCheck size={24} />, color: 'bg-orange-50 text-orange-600' },
                         { label: 'Survey Questions', href: '/dashboard/admin/questions', icon: <HelpCircle size={24} />, color: 'bg-emerald-50 text-[#10b981]' },
                         { label: 'Role Types', href: '/dashboard/admin/role-types', icon: <Shield size={24} />, color: 'bg-rose-50 text-rose-600' },
                         { label: 'Institutions', href: '/dashboard/admin/institutions', icon: <Building2 size={24} />, color: 'bg-teal-50 text-teal-600' },
