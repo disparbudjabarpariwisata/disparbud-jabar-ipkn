@@ -20,11 +20,10 @@ export default async function Home() {
       <section className="px-6 md:px-16 py-20 bg-gray-50">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="font-['Inter:Semi_Bold',sans-serif] font-semibold text-3xl md:text-5xl text-black mb-6">
-            Selamat Datang di Portal Pariwisata Jawa Barat
+            Welcome to Smiling West Java Repository Website
           </h2>
           <p className="font-['Inter:Medium',sans-serif] font-medium text-lg md:text-xl text-[rgba(0,0,0,0.55)] leading-relaxed">
-            Temukan informasi lengkap tentang destinasi wisata, kuliner, budaya, dan berbagai
-            aktivitas menarik yang dapat Anda nikmati di Provinsi Jawa Barat.
+            Discover everything you need to know about tourism in West Java Province.
           </p>
         </div>
       </section>
