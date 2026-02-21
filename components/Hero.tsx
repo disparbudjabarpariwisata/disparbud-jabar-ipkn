@@ -6,10 +6,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import Aurora from './Aurora';
 
 const images = [
-    "/img-gallery-1-7.png",
-    "/img-gallery-2-1.png",
-    "/img-gallery-2-3.png",
-    "/img-gallery-3-2.png",
     "/img-hero-1_t7jpua.png",
     "/img-hero-2_dk8hmk.png",
     "/img-hero-3_rz0d8f.png",
