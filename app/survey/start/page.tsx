@@ -8,6 +8,7 @@ import { Loader2, AlertCircle, Save, CheckCircle2 } from 'lucide-react';
 interface SurveyQuestion {
     id: string;
     role_id: string;
+    institution_name: string | null;
     question_text: string;
     question_type: 'text' | 'textarea' | 'radio' | 'checkbox' | 'dropdown' | 'number' | 'date' | 'linear_scale' | 'file_upload' | 'section_break' | 'url_website' | 'url_youtube' | 'url_gdrive' | 'url_social_media';
     options: string[] | null;
@@ -16,6 +17,48 @@ interface SurveyQuestion {
     depends_on_question_id: string | null;
     depends_on_answer: string | null;
 }
+
+// Parse question text that contains \n and numbered/bullet points into structured JSX
+const formatQuestionText = (text: string) => {
+    if (!text) return null;
+
+    // Split by newlines
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+    if (lines.length <= 1) {
+        return <span>{text}</span>;
+    }
+
+    // First line is the main question, rest are sub-points
+    const mainQuestion = lines[0];
+    const subPoints = lines.slice(1);
+
+    // Detect if sub-points are numbered (e.g. "1. ...", "2. ...")
+    const isNumbered = subPoints.every(p => /^\d+[\.\)\-]\s/.test(p));
+
+    return (
+        <>
+            <span>{mainQuestion}</span>
+            {isNumbered ? (
+                <ol className="list-decimal list-inside mt-2 space-y-1 text-base font-normal text-slate-600 pl-1">
+                    {subPoints.map((point, i) => (
+                        <li key={i} className="leading-relaxed">
+                            {point.replace(/^\d+[\.\)\-]\s*/, '')}
+                        </li>
+                    ))}
+                </ol>
+            ) : (
+                <ul className="list-disc list-inside mt-2 space-y-1 text-base font-normal text-slate-600 pl-1">
+                    {subPoints.map((point, i) => (
+                        <li key={i} className="leading-relaxed">
+                            {point.replace(/^[\-\•\*]\s*/, '')}
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </>
+    );
+};
 
 export default function SurveyStartPage() {
     const router = useRouter();
@@ -45,13 +88,13 @@ export default function SurveyStartPage() {
                 return;
             }
             setIdentity(parsed);
-            fetchQuestionsAndRole(parsed.role);
+            fetchQuestionsAndRole(parsed.role, parsed.institution);
         } catch (e) {
             router.replace('/survey');
         }
     }, [router]);
 
-    const fetchQuestionsAndRole = async (roleName: string) => {
+    const fetchQuestionsAndRole = async (roleName: string, institutionName: string) => {
         try {
             // Get Role ID
             const { data: roleData, error: roleError } = await supabase
@@ -64,13 +107,20 @@ export default function SurveyStartPage() {
 
             setRoleId(roleData.id);
 
-            // Get Questions for this Role
-            const { data: qData, error: qError } = await supabase
+            // Get Questions for this Role AND Institution
+            let query = supabase
                 .from('survey_questions')
                 .select('*')
                 .eq('role_id', roleData.id)
                 .eq('active', true)
                 .order('sort_order', { ascending: true });
+
+            // Filter by institution_name if questions have it
+            if (institutionName) {
+                query = query.eq('institution_name', institutionName);
+            }
+
+            const { data: qData, error: qError } = await query;
 
             if (qError) throw qError;
 
@@ -246,7 +296,7 @@ export default function SurveyStartPage() {
                         type="text"
                         value={val || ''}
                         onChange={(e) => handleAnswerChange(q.id, e.target.value, 'text')}
-                        className={`w-full p-4 rounded-xl border outline-none transition-all ${errorClass}`}
+                        className={`w-full p-3 sm:p-4 rounded-xl border outline-none transition-all text-sm sm:text-base ${errorClass}`}
                         placeholder="Tuliskan jawaban Anda..."
                     />
                 );
@@ -256,7 +306,7 @@ export default function SurveyStartPage() {
                         type="number"
                         value={val || ''}
                         onChange={(e) => handleAnswerChange(q.id, e.target.value, 'number')}
-                        className={`w-full p-4 rounded-xl border outline-none transition-all ${errorClass}`}
+                        className={`w-full p-3 sm:p-4 rounded-xl border outline-none transition-all text-sm sm:text-base ${errorClass}`}
                         placeholder="0"
                     />
                 );
@@ -266,7 +316,7 @@ export default function SurveyStartPage() {
                         rows={4}
                         value={val || ''}
                         onChange={(e) => handleAnswerChange(q.id, e.target.value, 'textarea')}
-                        className={`w-full p-4 rounded-xl border outline-none transition-all ${errorClass}`}
+                        className={`w-full p-3 sm:p-4 rounded-xl border outline-none transition-all text-sm sm:text-base ${errorClass}`}
                         placeholder="Tuliskan penjelasan Anda secara detail..."
                     />
                 );
@@ -275,7 +325,7 @@ export default function SurveyStartPage() {
                     <select
                         value={val || ''}
                         onChange={(e) => handleAnswerChange(q.id, e.target.value, 'dropdown')}
-                        className={`w-full p-4 rounded-xl border bg-white outline-none transition-all ${errorClass}`}
+                        className={`w-full p-3 sm:p-4 rounded-xl border bg-white outline-none transition-all text-sm sm:text-base ${errorClass}`}
                     >
                         <option value="" disabled>Pilih salah satu...</option>
                         {q.options?.map((opt, i) => (
@@ -285,9 +335,9 @@ export default function SurveyStartPage() {
                 );
             case 'radio':
                 return (
-                    <div className="space-y-3 mt-2">
+                    <div className="space-y-2 sm:space-y-3 mt-2">
                         {q.options?.map((opt, i) => (
-                            <label key={i} className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer hover:bg-slate-50 transition-colors ${val === opt ? 'border-[#10b981] bg-emerald-50/30' : 'border-slate-200'}`}>
+                            <label key={i} className={`flex items-start gap-3 p-3 sm:p-4 rounded-xl border cursor-pointer hover:bg-slate-50 transition-colors ${val === opt ? 'border-[#10b981] bg-emerald-50/30' : 'border-slate-200'}`}>
                                 <div className="pt-0.5">
                                     <input
                                         type="radio"
@@ -298,7 +348,7 @@ export default function SurveyStartPage() {
                                         className="w-5 h-5 accent-[#10b981] cursor-pointer"
                                     />
                                 </div>
-                                <span className="text-slate-700 leading-snug">{opt}</span>
+                                <span className="text-slate-700 leading-snug text-sm sm:text-base break-words">{opt}</span>
                             </label>
                         ))}
                     </div>
@@ -318,16 +368,16 @@ export default function SurveyStartPage() {
                         type="url"
                         value={val || ''}
                         onChange={(e) => handleAnswerChange(q.id, e.target.value, q.question_type)}
-                        className={`w-full p-4 rounded-xl border outline-none transition-all ${errorClass}`}
+                        className={`w-full p-3 sm:p-4 rounded-xl border outline-none transition-all text-sm sm:text-base break-all ${errorClass}`}
                         placeholder={placeholders[q.question_type] || "https://..."}
                     />
                 );
             case 'checkbox':
                 const selectedArr = val || [];
                 return (
-                    <div className="space-y-3 mt-2">
+                    <div className="space-y-2 sm:space-y-3 mt-2">
                         {q.options?.map((opt, i) => (
-                            <label key={i} className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer hover:bg-slate-50 transition-colors ${selectedArr.includes(opt) ? 'border-[#10b981] bg-emerald-50/30' : 'border-slate-200'}`}>
+                            <label key={i} className={`flex items-start gap-3 p-3 sm:p-4 rounded-xl border cursor-pointer hover:bg-slate-50 transition-colors ${selectedArr.includes(opt) ? 'border-[#10b981] bg-emerald-50/30' : 'border-slate-200'}`}>
                                 <div className="pt-0.5">
                                     <input
                                         type="checkbox"
@@ -336,7 +386,7 @@ export default function SurveyStartPage() {
                                         className="w-5 h-5 accent-[#10b981] rounded cursor-pointer"
                                     />
                                 </div>
-                                <span className="text-slate-700 leading-snug">{opt}</span>
+                                <span className="text-slate-700 leading-snug text-sm sm:text-base break-words">{opt}</span>
                             </label>
                         ))}
                     </div>
@@ -347,7 +397,7 @@ export default function SurveyStartPage() {
                         type="date"
                         value={val || ''}
                         onChange={(e) => handleAnswerChange(q.id, e.target.value, 'date')}
-                        className={`w-full p-4 rounded-xl border outline-none transition-all max-w-sm ${errorClass}`}
+                        className={`w-full p-3 sm:p-4 rounded-xl border outline-none transition-all text-sm sm:text-base max-w-sm ${errorClass}`}
                     />
                 );
             case 'linear_scale':
@@ -363,26 +413,28 @@ export default function SurveyStartPage() {
                     }
                 }
                 return (
-                    <div className="flex flex-col sm:flex-row gap-4 items-center justify-between w-full max-w-3xl mt-4 bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                        <span className="text-sm font-semibold text-slate-500 whitespace-nowrap max-w-[100px] text-center leading-tight">{leftLabel}</span>
-                        <div className="flex gap-1.5 sm:gap-3 justify-center flex-1">
-                            {[1, 2, 3, 4, 5, 6, 7].map((score) => (
-                                <label key={score} className="flex flex-col items-center gap-2 cursor-pointer group">
-                                    <div className={`w-9 h-9 sm:w-12 sm:h-12 flex items-center justify-center rounded-full border-2 transition-all shadow-sm ${val === String(score) ? 'border-[#10b981] bg-[#10b981] text-white scale-110 shadow-md' : 'border-slate-200 text-slate-500 bg-white group-hover:border-[#10b981]/50 group-hover:text-[#10b981]'}`}>
-                                        <input
-                                            type="radio"
-                                            name={`scale-${q.id}`}
-                                            value={String(score)}
-                                            checked={val === String(score)}
-                                            onChange={() => handleAnswerChange(q.id, String(score), 'linear_scale')}
-                                            className="sr-only"
-                                        />
-                                        <span className="text-base sm:text-lg font-bold">{score}</span>
-                                    </div>
-                                </label>
-                            ))}
+                    <div className="flex flex-col gap-3 items-center w-full mt-4 bg-slate-50 p-4 sm:p-6 rounded-2xl border border-slate-100">
+                        <div className="flex items-center justify-between w-full gap-2 sm:gap-4">
+                            <span className="text-xs sm:text-sm font-semibold text-slate-500 min-w-[60px] sm:min-w-[80px] text-center leading-tight">{leftLabel}</span>
+                            <div className="flex gap-1 sm:gap-2 md:gap-3 justify-center flex-1 flex-wrap">
+                                {[1, 2, 3, 4, 5, 6, 7].map((score) => (
+                                    <label key={score} className="flex flex-col items-center cursor-pointer group">
+                                        <div className={`w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full border-2 transition-all shadow-sm ${val === String(score) ? 'border-[#10b981] bg-[#10b981] text-white scale-110 shadow-md' : 'border-slate-200 text-slate-500 bg-white group-hover:border-[#10b981]/50 group-hover:text-[#10b981]'}`}>
+                                            <input
+                                                type="radio"
+                                                name={`scale-${q.id}`}
+                                                value={String(score)}
+                                                checked={val === String(score)}
+                                                onChange={() => handleAnswerChange(q.id, String(score), 'linear_scale')}
+                                                className="sr-only"
+                                            />
+                                            <span className="text-sm sm:text-base md:text-lg font-bold">{score}</span>
+                                        </div>
+                                    </label>
+                                ))}
+                            </div>
+                            <span className="text-xs sm:text-sm font-semibold text-slate-500 min-w-[60px] sm:min-w-[80px] text-center leading-tight">{rightLabel}</span>
                         </div>
-                        <span className="text-sm font-semibold text-slate-500 whitespace-nowrap max-w-[100px] text-center leading-tight">{rightLabel}</span>
                     </div>
                 );
             case 'file_upload':
@@ -435,16 +487,16 @@ export default function SurveyStartPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#f8fafc] py-12 px-4 sm:px-6 lg:px-8 font-sans">
+        <div className="min-h-screen bg-[#f8fafc] py-6 sm:py-12 px-3 sm:px-6 lg:px-8 font-sans">
             <div className="max-w-3xl mx-auto">
 
                 {/* Header Information */}
-                <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 mb-8 mt-10 relative overflow-hidden">
+                <div className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-sm border border-slate-100 mb-6 sm:mb-8 mt-4 sm:mt-10 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#10b981] to-[#34d399]"></div>
-                    <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight mb-2 text-center">
+                    <h1 className="text-xl sm:text-3xl font-extrabold text-slate-800 tracking-tight mb-2 text-center">
                         Kuesioner Survei
                     </h1>
-                    <div className="bg-slate-50 p-4 rounded-xl mt-6 border border-slate-100">
+                    <div className="bg-slate-50 p-3 sm:p-4 rounded-xl mt-4 sm:mt-6 border border-slate-100">
                         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4 text-sm">
                             <div>
                                 <dt className="text-slate-500 mb-1">Kategori Instansi</dt>
@@ -505,15 +557,15 @@ export default function SurveyStartPage() {
                             }
 
                             return (
-                                <div key={q.id} className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-200 transition-all hover:shadow-md hover:border-emerald-300 relative group max-w-4xl mx-auto">
+                                <div key={q.id} className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 shadow-sm border border-slate-200 transition-all hover:shadow-md hover:border-emerald-300 relative group">
                                     {validationErrors[q.id] && (
                                         <div className="absolute top-0 left-0 w-1.5 h-full bg-red-500 rounded-l-3xl"></div>
                                     )}
-                                    <div className="mb-4">
-                                        <h3 className="text-lg font-bold text-slate-800 leading-relaxed">
+                                    <div className="mb-3 sm:mb-4">
+                                        <h3 className="text-sm sm:text-base md:text-lg font-bold text-slate-800 leading-relaxed">
                                             <span className="text-slate-400 mr-2 font-medium">{idx + 1}.</span>
-                                            {q.question_text}
-                                            {q.is_required && <span className="text-red-500 ml-1 text-xl leading-none" title="Wajib diisi">*</span>}
+                                            {formatQuestionText(q.question_text)}
+                                            {q.is_required && <span className="text-red-500 ml-1 text-lg sm:text-xl leading-none" title="Wajib diisi">*</span>}
                                         </h3>
                                         {validationErrors[q.id] && (
                                             <p className="text-red-600 text-sm mt-3 font-medium flex items-center gap-1.5 bg-red-50 p-2 rounded-lg inline-flex">
@@ -521,7 +573,7 @@ export default function SurveyStartPage() {
                                             </p>
                                         )}
                                     </div>
-                                    <div className="mt-4">
+                                    <div className="mt-3 sm:mt-4">
                                         {renderQuestionInput(q)}
                                     </div>
                                 </div>
