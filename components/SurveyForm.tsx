@@ -264,12 +264,41 @@ export default function SurveyForm() {
 
         setIsLoading(true);
         try {
-            await new Promise((resolve) => setTimeout(resolve, 1500));
+            // Search across ALL 8 identity tables for matching email + pin
+            const tables = [
+                'survey_perangkat_daerah',
+                'survey_pemerintah_terkait',
+                'survey_swasta_terkait',
+                'survey_komunitas',
+                'survey_pelaku_usaha',
+                'survey_pemda_kabkota',
+                'survey_pemerintah_pusat',
+                'survey_international_tourism'
+            ];
 
-            // Mock resume success
-            const identityData = { email: resumeEmail, pin: resumePin, id: 'mock-id-123' };
+            let foundIdentity: any = null;
+
+            for (const table of tables) {
+                const { data, error } = await supabase
+                    .from(table)
+                    .select('*')
+                    .eq('email', resumeEmail.trim())
+                    .eq('pin', resumePin.trim())
+                    .single();
+
+                if (data && !error) {
+                    foundIdentity = { ...data, table_source: table };
+                    break;
+                }
+            }
+
+            if (!foundIdentity) {
+                setResumeError("Kombinasi Email dan PIN tidak ditemukan. Periksa kembali data Anda.");
+                return;
+            }
+
             if (typeof window !== "undefined") {
-                localStorage.setItem("surveyIdentity", JSON.stringify(identityData));
+                localStorage.setItem("surveyIdentity", JSON.stringify(foundIdentity));
                 router.push("/survey/start");
             }
         } catch {
