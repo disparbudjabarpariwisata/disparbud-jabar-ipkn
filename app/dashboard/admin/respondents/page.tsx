@@ -15,7 +15,9 @@ import {
     Globe,
     CalendarClock,
     UserCheck,
-    KeyRound
+    KeyRound,
+    Trash2,
+    AlertTriangle,
 } from 'lucide-react';
 
 interface RoleType {
@@ -51,6 +53,10 @@ export default function AdminRespondentsPage() {
     const [isLoadingData, setIsLoadingData] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [error, setError] = useState<string | null>(null);
+
+    // Delete state
+    const [deleteTarget, setDeleteTarget] = useState<Respondent | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // Authentication Check
     useEffect(() => {
@@ -230,6 +236,40 @@ export default function AdminRespondentsPage() {
         }).format(date);
     };
 
+    // Delete handler — removes survey_answers first, then the respondent record
+    const handleDelete = async () => {
+        if (!deleteTarget) return;
+        setIsDeleting(true);
+        setError(null);
+
+        try {
+            // 1. Delete all survey answers for this respondent
+            const { error: ansError } = await supabase
+                .from('survey_answers')
+                .delete()
+                .eq('respondent_id', deleteTarget.id);
+
+            if (ansError) throw new Error(`Gagal menghapus jawaban survei: ${ansError.message}`);
+
+            // 2. Delete the respondent record from the source table
+            const { error: delError } = await supabase
+                .from(deleteTarget.table_source)
+                .delete()
+                .eq('id', deleteTarget.id);
+
+            if (delError) throw new Error(`Gagal menghapus responden: ${delError.message}`);
+
+            // 3. Remove from local state
+            setRespondents(prev => prev.filter(r => r.id !== deleteTarget.id));
+            setDeleteTarget(null);
+        } catch (err: any) {
+            console.error(err);
+            setError(err.message || 'Gagal menghapus responden.');
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
     if (!isAuthorized || isLoadingRoles) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-gray-50">
@@ -310,6 +350,7 @@ export default function AdminRespondentsPage() {
                                         <th className="px-6 py-4 whitespace-nowrap">PIN</th>
                                         <th className="px-6 py-4 whitespace-nowrap">Geolokasi & Waktu</th>
                                         <th className="px-6 py-4 whitespace-nowrap">Progress Survei</th>
+                                        <th className="px-6 py-4 whitespace-nowrap text-center">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
@@ -370,6 +411,14 @@ export default function AdminRespondentsPage() {
                                                     </div>
                                                 </div>
                                             </td>
+                                            <td className="px-6 py-5 text-center">
+                                                <button
+                                                    onClick={() => setDeleteTarget(user)}
+                                                    className="p-2 rounded-xl text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all" title="Hapus Responden"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -378,6 +427,50 @@ export default function AdminRespondentsPage() {
                     )}
                 </div>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {deleteTarget && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => !isDeleting && setDeleteTarget(null)}>
+                    <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+                                <AlertTriangle className="text-red-600" size={24} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-900">Hapus Responden</h3>
+                                <p className="text-sm text-gray-500">Tindakan ini tidak dapat dibatalkan</p>
+                            </div>
+                        </div>
+                        <div className="bg-gray-50 rounded-xl p-4 mb-6 space-y-1 text-sm">
+                            <p><span className="text-gray-500">Instansi:</span> <strong>{deleteTarget.institution}</strong></p>
+                            <p><span className="text-gray-500">PIC:</span> <strong>{deleteTarget.pic_name}</strong></p>
+                            <p><span className="text-gray-500">Email:</span> {deleteTarget.email}</p>
+                            <p><span className="text-gray-500">PIN:</span> <span className="font-mono">{deleteTarget.pin}</span></p>
+                        </div>
+                        <p className="text-sm text-red-600 mb-6">Semua data responden ini akan dihapus permanen, termasuk seluruh jawaban survei yang sudah diisi.</p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setDeleteTarget(null)}
+                                disabled={isDeleting}
+                                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                onClick={handleDelete}
+                                disabled={isDeleting}
+                                className="flex-1 px-4 py-2.5 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                            >
+                                {isDeleting ? (
+                                    <><Loader2 className="animate-spin" size={16} /> Menghapus...</>
+                                ) : (
+                                    <><Trash2 size={16} /> Hapus Permanen</>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <style jsx global>{`
                 .hide-scrollbar::-webkit-scrollbar {
