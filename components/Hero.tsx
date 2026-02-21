@@ -6,10 +6,9 @@ import { motion, AnimatePresence } from 'motion/react';
 import Aurora from './Aurora';
 
 const images = [
-    "/img-hero-1_t7jpua.png",
-    "/img-hero-2_dk8hmk.png",
-    "/img-hero-3_rz0d8f.png",
-    "/img-home-april.jpg"
+    "https://res.cloudinary.com/dsxpxdsc5/image/upload/v1771638831/img-hero-1_t7jpua_ape8jo.png",
+    "https://res.cloudinary.com/dsxpxdsc5/image/upload/v1771638831/img-hero-2_dk8hmk_prnjdb.png",
+    "https://res.cloudinary.com/dsxpxdsc5/image/upload/v1771638831/img-hero-3_rz0d8f_yxdzpb.png"
 ];
 
 export function Hero() {
