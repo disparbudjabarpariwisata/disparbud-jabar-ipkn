@@ -351,13 +351,24 @@ export default function SurveyStartPage() {
                     />
                 );
             case 'linear_scale':
+                // Extract labels from options (e.g. "1 = sangat tidak baik, 7 = sangat baik")
+                let leftLabel = 'Sangat Kurang';
+                let rightLabel = 'Sangat Baik';
+                if (q.options && q.options[0]) {
+                    const parts = q.options[0].split(',').map((s: string) => s.trim());
+                    if (parts.length >= 2) {
+                        // Extract text after "1 = " and "7 = "
+                        leftLabel = parts[0].replace(/^\d+\s*=\s*/, '');
+                        rightLabel = parts[parts.length - 1].replace(/^\d+\s*=\s*/, '');
+                    }
+                }
                 return (
-                    <div className="flex flex-col sm:flex-row gap-4 items-center justify-between w-full max-w-2xl mt-4 bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                        <span className="text-sm font-semibold text-slate-500 whitespace-nowrap">Sangat Kurang</span>
-                        <div className="flex gap-2 sm:gap-6 justify-center flex-1">
-                            {[1, 2, 3, 4, 5].map((score) => (
+                    <div className="flex flex-col sm:flex-row gap-4 items-center justify-between w-full max-w-3xl mt-4 bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                        <span className="text-sm font-semibold text-slate-500 whitespace-nowrap max-w-[100px] text-center leading-tight">{leftLabel}</span>
+                        <div className="flex gap-1.5 sm:gap-3 justify-center flex-1">
+                            {[1, 2, 3, 4, 5, 6, 7].map((score) => (
                                 <label key={score} className="flex flex-col items-center gap-2 cursor-pointer group">
-                                    <div className={`w-10 h-10 sm:w-14 sm:h-14 flex items-center justify-center rounded-full border-2 transition-all shadow-sm ${val === String(score) ? 'border-[#10b981] bg-[#10b981] text-white scale-110 shadow-md' : 'border-slate-200 text-slate-500 bg-white group-hover:border-[#10b981]/50 group-hover:text-[#10b981]'}`}>
+                                    <div className={`w-9 h-9 sm:w-12 sm:h-12 flex items-center justify-center rounded-full border-2 transition-all shadow-sm ${val === String(score) ? 'border-[#10b981] bg-[#10b981] text-white scale-110 shadow-md' : 'border-slate-200 text-slate-500 bg-white group-hover:border-[#10b981]/50 group-hover:text-[#10b981]'}`}>
                                         <input
                                             type="radio"
                                             name={`scale-${q.id}`}
@@ -366,12 +377,12 @@ export default function SurveyStartPage() {
                                             onChange={() => handleAnswerChange(q.id, String(score), 'linear_scale')}
                                             className="sr-only"
                                         />
-                                        <span className="text-lg sm:text-xl font-bold">{score}</span>
+                                        <span className="text-base sm:text-lg font-bold">{score}</span>
                                     </div>
                                 </label>
                             ))}
                         </div>
-                        <span className="text-sm font-semibold text-slate-500 whitespace-nowrap">Sangat Baik</span>
+                        <span className="text-sm font-semibold text-slate-500 whitespace-nowrap max-w-[100px] text-center leading-tight">{rightLabel}</span>
                     </div>
                 );
             case 'file_upload':

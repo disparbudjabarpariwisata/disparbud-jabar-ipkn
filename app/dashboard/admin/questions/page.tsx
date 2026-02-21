@@ -458,7 +458,7 @@ export default function AdminQuestionsPage() {
                                         <option value="checkbox">Pilihan Ganda - Banyak Jawaban (Checkbox)</option>
                                         <option value="dropdown">Dropdown Select</option>
                                         <option value="date">Tanggal (Date)</option>
-                                        <option value="linear_scale">Skala Linear 1-5 (Linear Scale)</option>
+                                        <option value="linear_scale">Skala Linear 1-7 (Linear Scale)</option>
                                         <option value="file_upload">Upload File</option>
                                         <option value="section_break">--- Pemisah Halaman (Section Break) ---</option>
                                         <option value="url_website">Link Website Umum</option>
