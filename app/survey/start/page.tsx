@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Loader2, AlertCircle, Save, CheckCircle2 } from 'lucide-react';
+import LikertSlider from '@/components/LikertSlider';
 
 interface SurveyQuestion {
     id: string;
@@ -413,28 +414,14 @@ export default function SurveyStartPage() {
                     }
                 }
                 return (
-                    <div className="flex flex-col gap-3 items-center w-full mt-4 bg-slate-50 p-4 sm:p-6 rounded-2xl border border-slate-100">
-                        <div className="flex items-center justify-between w-full gap-2 sm:gap-4">
-                            <span className="text-xs sm:text-sm font-semibold text-slate-500 min-w-[60px] sm:min-w-[80px] text-center leading-tight">{leftLabel}</span>
-                            <div className="flex gap-1 sm:gap-2 md:gap-3 justify-center flex-1 flex-wrap">
-                                {[1, 2, 3, 4, 5, 6, 7].map((score) => (
-                                    <label key={score} className="flex flex-col items-center cursor-pointer group">
-                                        <div className={`w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full border-2 transition-all shadow-sm ${val === String(score) ? 'border-[#10b981] bg-[#10b981] text-white scale-110 shadow-md' : 'border-slate-200 text-slate-500 bg-white group-hover:border-[#10b981]/50 group-hover:text-[#10b981]'}`}>
-                                            <input
-                                                type="radio"
-                                                name={`scale-${q.id}`}
-                                                value={String(score)}
-                                                checked={val === String(score)}
-                                                onChange={() => handleAnswerChange(q.id, String(score), 'linear_scale')}
-                                                className="sr-only"
-                                            />
-                                            <span className="text-sm sm:text-base md:text-lg font-bold">{score}</span>
-                                        </div>
-                                    </label>
-                                ))}
-                            </div>
-                            <span className="text-xs sm:text-sm font-semibold text-slate-500 min-w-[60px] sm:min-w-[80px] text-center leading-tight">{rightLabel}</span>
-                        </div>
+                    <div className="flex flex-col gap-3 items-center w-full mt-4 bg-slate-50 p-4 sm:p-6 sm:px-8 rounded-2xl border border-slate-100">
+                        <LikertSlider
+                            value={val ? Number(val) : undefined}
+                            onChange={(v) => handleAnswerChange(q.id, String(v), 'linear_scale')}
+                            leftLabel={leftLabel}
+                            rightLabel={rightLabel}
+                            disabled={isSubmitting}
+                        />
                     </div>
                 );
             case 'file_upload':
