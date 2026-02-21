@@ -26,16 +26,70 @@ const getTableForRole = (role: string) => {
     return null;
 };
 
+// ============================================================
+// Server-side Input Sanitization
+// ============================================================
+const sanitize = (input: string): string => {
+    if (!input || typeof input !== 'string') return '';
+    return input
+        .replace(/<[^>]*>/g, '')           // Strip HTML tags
+        .replace(/javascript:/gi, '')       // Remove javascript: protocol
+        .replace(/on\w+\s*=/gi, '')         // Remove event handlers
+        .replace(/[<>"'`;(){}]/g, '')      // Remove dangerous characters
+        .replace(/&[#\w]+;/g, '')           // Remove HTML entities
+        .replace(/\\[nrtbf"'\\]/g, '')     // Remove escape sequences
+        .trim();
+};
+
+const sanitizeName = (input: string): string => {
+    return sanitize(input).replace(/[^a-zA-Z\s.,]/g, '');
+};
+
+const sanitizePhone = (input: string): string => {
+    return (input || '').replace(/[^0-9]/g, '');
+};
+
+const sanitizeEmail = (input: string): string => {
+    return (input || '').toLowerCase().replace(/[<>"'`;(){}\s]/g, '').trim();
+};
+
 export async function POST(request: Request) {
     try {
         const body = await request.json();
         const { role, city, institution, picName, position, email, whatsapp, pin } = body;
 
+        // Server-side sanitize all inputs
+        const cleanRole = sanitize(role);
+        const cleanCity = sanitize(city || '');
+        const cleanInstitution = sanitize(institution);
+        const cleanPicName = sanitizeName(picName);
+        const cleanPosition = sanitizeName(position);
+        const cleanEmail = sanitizeEmail(email);
+        const cleanWhatsapp = sanitizePhone(whatsapp);
+        const cleanPin = (pin || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+
+        // Server-side validation
+        if (!cleanRole || !cleanInstitution || !cleanPicName || !cleanPosition || !cleanEmail || !cleanWhatsapp || !cleanPin) {
+            return NextResponse.json({ error: 'Data tidak lengkap. Semua field wajib diisi.' }, { status: 400 });
+        }
+
+        if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(cleanEmail)) {
+            return NextResponse.json({ error: 'Format email tidak valid.' }, { status: 400 });
+        }
+
+        if (!/^(62|08)[0-9]{8,13}$/.test(cleanWhatsapp)) {
+            return NextResponse.json({ error: 'Format nomor WhatsApp tidak valid.' }, { status: 400 });
+        }
+
+        if (!/^[A-Z0-9]{6}$/.test(cleanPin)) {
+            return NextResponse.json({ error: 'PIN harus 6 karakter alfanumerik.' }, { status: 400 });
+        }
+
         // 1. Identify Target Table
-        const tableName = getTableForRole(role);
+        const tableName = getTableForRole(cleanRole);
         if (!tableName) {
-            console.error('Unknown role:', role);
-            return NextResponse.json({ error: 'Kategori Instansi tidak valid: ' + role }, { status: 400 });
+            console.error('Unknown role:', cleanRole);
+            return NextResponse.json({ error: 'Kategori Instansi tidak valid: ' + cleanRole }, { status: 400 });
         }
 
         const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'Unknown IP';
@@ -43,13 +97,13 @@ export async function POST(request: Request) {
 
         // 2. Insert using supabaseAdmin (service role) to bypass RLS
         const insertData: any = {
-            role_name: role,
-            institution,
-            pic_name: picName,
-            position,
-            email,
-            whatsapp,
-            pin,
+            role_name: cleanRole,
+            institution: cleanInstitution,
+            pic_name: cleanPicName,
+            position: cleanPosition,
+            email: cleanEmail,
+            whatsapp: cleanWhatsapp,
+            pin: cleanPin,
             ip_address: ip,
             location: location,
             status: 'incomplete'
@@ -57,7 +111,7 @@ export async function POST(request: Request) {
 
         // Add city if it belongs to pemda kabkota
         if (tableName === 'survey_pemda_kabkota') {
-            insertData.city = city;
+            insertData.city = cleanCity;
         }
 
         const { data: dbData, error: dbError } = await supabaseAdmin

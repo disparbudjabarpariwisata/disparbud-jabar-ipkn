@@ -7,6 +7,37 @@ import Image from "next/image";
 import { Building2, KeyRound, Lock, LogIn, Mail } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
+// ============================================================
+// Input Sanitization Utilities
+// ============================================================
+
+// Strip HTML tags, script patterns, and dangerous characters to prevent XSS
+const sanitizeString = (input: string): string => {
+    return input
+        .replace(/<[^>]*>/g, '')          // Strip HTML tags
+        .replace(/javascript:/gi, '')      // Remove javascript: protocol
+        .replace(/on\w+\s*=/gi, '')        // Remove event handlers (onclick=, onerror=, etc)
+        .replace(/[<>"'`;(){}]/g, '')     // Remove dangerous special characters
+        .replace(/&[#\w]+;/g, '')          // Remove HTML entities like &#x27; &lt; etc
+        .replace(/\\[nrtbf"'\\]/g, '')    // Remove escape sequences
+        .trim();
+};
+
+// Allow only letters, spaces, dots, and commas (for names like "Dr. Ahmad", "S.H., M.Si.")
+const sanitizeName = (input: string): string => {
+    return sanitizeString(input).replace(/[^a-zA-Z\s.,]/g, '');
+};
+
+// Allow only digits
+const sanitizePhone = (input: string): string => {
+    return input.replace(/[^0-9]/g, '');
+};
+
+// Lowercase and basic sanitize for email
+const sanitizeEmail = (input: string): string => {
+    return input.toLowerCase().replace(/[<>"'`;(){}\s]/g, '').trim();
+};
+
 interface RoleType {
     id: string;
     name: string;
@@ -186,8 +217,22 @@ export default function SurveyForm() {
         }
 
         if (!formData.institution.trim()) newErrors.institution = "Nama instansi harus diisi";
-        if (!formData.picName.trim()) newErrors.picName = "Nama PIC harus diisi";
-        if (!formData.position.trim()) newErrors.position = "Jabatan harus diisi";
+
+        // PIC Name: only letters, spaces, dots, commas
+        if (!formData.picName.trim()) {
+            newErrors.picName = "Nama PIC harus diisi";
+        } else if (/[^a-zA-Z\s.,]/.test(formData.picName)) {
+            newErrors.picName = "Nama hanya boleh huruf, spasi, dan titik";
+        } else if (formData.picName.trim().length < 3) {
+            newErrors.picName = "Nama minimal 3 karakter";
+        }
+
+        // Position: only letters, spaces, dots, commas
+        if (!formData.position.trim()) {
+            newErrors.position = "Jabatan harus diisi";
+        } else if (/[^a-zA-Z\s.,]/.test(formData.position)) {
+            newErrors.position = "Jabatan hanya boleh huruf, spasi, dan titik";
+        }
 
         // Email Validation
         if (!formData.email.trim()) {
@@ -196,14 +241,13 @@ export default function SurveyForm() {
             newErrors.email = "Format email tidak valid";
         }
 
-        // WhatsApp Validation
+        // WhatsApp Validation (digits only)
         if (!formData.whatsapp.trim()) {
             newErrors.whatsapp = "Nomor WhatsApp harus diisi";
-        } else {
-            const cleanWA = formData.whatsapp.replace(/\D/g, '');
-            if (!/^(62|08)[0-9]{8,13}$/.test(cleanWA)) {
-                newErrors.whatsapp = "Format WhatsApp tidak valid (awali 08/62, min 10 digit)";
-            }
+        } else if (/\D/.test(formData.whatsapp)) {
+            newErrors.whatsapp = "Nomor WhatsApp hanya boleh angka";
+        } else if (!/^(62|08)[0-9]{8,13}$/.test(formData.whatsapp)) {
+            newErrors.whatsapp = "Format WhatsApp tidak valid (awali 08/62, min 10 digit)";
         }
 
         // PIN Validation
@@ -222,11 +266,22 @@ export default function SurveyForm() {
         if (validateForm()) {
             setIsLoading(true);
             try {
+                // Final sanitization before sending to server
+                const sanitizedData = {
+                    ...formData,
+                    picName: sanitizeName(formData.picName),
+                    position: sanitizeName(formData.position),
+                    email: sanitizeEmail(formData.email),
+                    whatsapp: sanitizePhone(formData.whatsapp),
+                    institution: sanitizeString(formData.institution),
+                    pin: formData.pin.replace(/[^a-zA-Z0-9]/g, '').toUpperCase(),
+                };
+
                 // Submit to backend route which handles DB insert and Resend Pin Email
                 const res = await fetch("/api/survey/submit", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(formData)
+                    body: JSON.stringify(sanitizedData)
                 });
 
                 const data = await res.json();
@@ -538,7 +593,8 @@ export default function SurveyForm() {
                                                 placeholder="Nama lengkap"
                                                 value={formData.picName}
                                                 onChange={(e) => {
-                                                    setFormData({ ...formData, picName: e.target.value });
+                                                    const val = sanitizeName(e.target.value);
+                                                    setFormData({ ...formData, picName: val });
                                                     setErrors({ ...errors, picName: "" });
                                                 }}
                                                 className={`w-full h-11 px-3 py-2 rounded-lg border bg-white text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${errors.picName ? "border-red-400" : "border-slate-300"
@@ -554,7 +610,8 @@ export default function SurveyForm() {
                                                 placeholder="Jabatan struktural/fungsional"
                                                 value={formData.position}
                                                 onChange={(e) => {
-                                                    setFormData({ ...formData, position: e.target.value });
+                                                    const val = sanitizeName(e.target.value);
+                                                    setFormData({ ...formData, position: val });
                                                     setErrors({ ...errors, position: "" });
                                                 }}
                                                 className={`w-full h-11 px-3 py-2 rounded-lg border bg-white text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${errors.position ? "border-red-400" : "border-slate-300"
@@ -574,7 +631,8 @@ export default function SurveyForm() {
                                                 placeholder="email@instansi.go.id"
                                                 value={formData.email}
                                                 onChange={(e) => {
-                                                    setFormData({ ...formData, email: e.target.value });
+                                                    const val = sanitizeEmail(e.target.value);
+                                                    setFormData({ ...formData, email: val });
                                                     setErrors({ ...errors, email: "" });
                                                 }}
                                                 onBlur={(e) => {
@@ -594,7 +652,8 @@ export default function SurveyForm() {
                                                 placeholder="08xxxxxxxxxx"
                                                 value={formData.whatsapp}
                                                 onChange={(e) => {
-                                                    setFormData({ ...formData, whatsapp: e.target.value });
+                                                    const val = sanitizePhone(e.target.value);
+                                                    setFormData({ ...formData, whatsapp: val });
                                                     setErrors({ ...errors, whatsapp: "" });
                                                 }}
                                                 className={`w-full h-11 px-3 py-2 rounded-lg border bg-white text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${errors.whatsapp ? "border-red-400" : "border-slate-300"
