@@ -333,7 +333,12 @@ export default function SurveyForm() {
             }
 
             if (typeof window !== "undefined") {
-                localStorage.setItem("surveyIdentity", JSON.stringify(responseData.data));
+                const identityData = {
+                    ...responseData.data,
+                    role: responseData.data.role_name,
+                    picName: responseData.data.pic_name,
+                };
+                localStorage.setItem("surveyIdentity", JSON.stringify(identityData));
                 router.push("/survey/start");
             }
         } catch {
@@ -357,7 +362,7 @@ export default function SurveyForm() {
                     animate={{ x: [0, -60, 0], y: [0, -40, 0] }}
                     transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
                 />
-                <div className="absolute inset-0 bg-[url('/grain.png')] opacity-20 mix-blend-overlay"></div>
+                {/* Removed missing grain.png overlay */}
             </div>
 
             <div className="relative z-10 container mx-auto px-4 py-8 md:py-16">
