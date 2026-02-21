@@ -142,12 +142,37 @@ export default function SurveyForm() {
     const isInstitutionDropdown = formData.role === "Perangkat Daerah Provinsi Jawa Barat" || formData.role === "Instansi Pemerintah Terkait";
     const isCityRole = formData.role === "Pemerintah Daerah Kota/Kabupaten Jawa Barat";
 
-    // Real-time server validation (Mocked for UI logic)
+    // Real-time server validation
     const checkConflict = async (field: 'pin' | 'email', value: string) => {
         if (!value) return;
-        // Mock conflict check
-        // if (field === 'pin' && value === 'JABAR1') setIsPinDialogOpen(true);
-        // if (field === 'email' && value === 'test@test.com') setIsEmailDialogOpen(true);
+
+        // Don't check invalid shapes
+        if (field === 'pin' && value.length !== 6) return;
+        if (field === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return;
+
+        try {
+            const res = await fetch("/api/survey/check-conflict", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ field, value })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                if (data.hasConflict) {
+                    if (field === 'pin') {
+                        setIsPinDialogOpen(true);
+                        setFormData(prev => ({ ...prev, pin: "" })); // Reset PIN
+                    }
+                    if (field === 'email') {
+                        setIsEmailDialogOpen(true);
+                        setFormData(prev => ({ ...prev, email: "" })); // Reset Email
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Failed to check conflict", error);
+        }
     };
 
     // Validation Logic
