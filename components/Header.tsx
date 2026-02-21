@@ -39,7 +39,7 @@ export function Header() {
                         {/* Top Section (Logos, Nav, Auth Buttons) */}
                         <div className="w-full flex justify-between items-start px-8 pt-6">
                             {/* Logos */}
-                            <div className="flex items-center gap-4">
+                            <Link href="/" className="flex items-center gap-4">
                                 <Image
                                     src="/smilingwestjava.png"
                                     alt="Smiling West Java"
@@ -58,7 +58,7 @@ export function Header() {
                                     style={{ width: 'auto', height: '2.5rem' }}
                                     priority
                                 />
-                            </div>
+                            </Link>
 
                             {/* Navigation Menu (Absolute centered) */}
                             <nav className="absolute left-0 right-0 flex justify-center gap-[60px] lg:gap-[100px] top-[40px] pointer-events-auto z-10">
@@ -139,7 +139,7 @@ export function Header() {
                             </button>
 
                             {/* Logos Mobile */}
-                            <div className="flex items-center gap-2">
+                            <Link href="/" className="flex items-center gap-2">
                                 <Image
                                     src="/smilingwestjava.png"
                                     alt="Smiling West Java"
@@ -148,7 +148,7 @@ export function Header() {
                                     className="h-8 w-auto"
                                     priority
                                 />
-                            </div>
+                            </Link>
                         </div>
 
                         {/* Hero Content - Mobile */}
