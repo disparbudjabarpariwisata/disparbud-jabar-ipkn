@@ -1,21 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import Image from "next/image";
 import { Building2, KeyRound, Lock, LogIn, Mail } from "lucide-react";
-import { cities } from "@/lib/data/cities";
+import { supabase } from "@/lib/supabaseClient";
+
+interface RoleType {
+    id: string;
+    name: string;
+}
+
+interface Institution {
+    id: string;
+    name: string;
+}
 
 export default function SurveyForm() {
     const router = useRouter();
     const [mode, setMode] = useState<"new" | "resume">("new");
     const [isLoading, setIsLoading] = useState(false);
 
+    // Dropdown Data States
+    const [roles, setRoles] = useState<RoleType[]>([]);
+    const [institutions, setInstitutions] = useState<Institution[]>([]);
+    const [isLoadingRoles, setIsLoadingRoles] = useState(true);
+    const [isLoadingInstitutions, setIsLoadingInstitutions] = useState(false);
+
     // Form Data
     const [formData, setFormData] = useState({
-        city: "",
-        institution: "",
+        role: "",
+        institution: "", // Free text OR Selected from dropdown
         picName: "",
         position: "",
         email: "",
@@ -30,7 +46,73 @@ export default function SurveyForm() {
     const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
     const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
 
-    // Real-time server validation (Mocked for UI version)
+    // 1. Fetch Roles on Mount
+    useEffect(() => {
+        const fetchRoles = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('role_types')
+                    .select('id, name')
+                    .eq('active', true)
+                    .order('sort_order', { ascending: true });
+
+                if (data) setRoles(data);
+                if (error) throw error;
+            } catch (error) {
+                console.error("Error fetching roles:", error);
+            } finally {
+                setIsLoadingRoles(false);
+            }
+        };
+
+        fetchRoles();
+    }, []);
+
+    // 2. Fetch Institutions dynamically based on selected role
+    useEffect(() => {
+        const fetchInstitutions = async () => {
+            // Reset institution selection when role changes
+            setFormData(prev => ({ ...prev, institution: "" }));
+            setInstitutions([]);
+
+            if (!formData.role) return;
+
+            setIsLoadingInstitutions(true);
+            try {
+                let tableName = "";
+
+                if (formData.role === "Perangkat Daerah Provinsi Jawa Barat") {
+                    tableName = "institution_names";
+                } else if (formData.role === "Instansi Pemerintah Terkait") {
+                    tableName = "institution_names2";
+                } else {
+                    // For other roles, it's a free-text input, no need to fetch
+                    setIsLoadingInstitutions(false);
+                    return;
+                }
+
+                const { data, error } = await supabase
+                    .from(tableName)
+                    .select('id, name')
+                    .eq('active', true)
+                    .order('sort_order', { ascending: true });
+
+                if (data) setInstitutions(data);
+                if (error) throw error;
+            } catch (error) {
+                console.error("Error fetching institutions:", error);
+            } finally {
+                setIsLoadingInstitutions(false);
+            }
+        };
+
+        fetchInstitutions();
+    }, [formData.role]);
+
+    // Check if current role uses a dropdown or free-text
+    const isInstitutionDropdown = formData.role === "Perangkat Daerah Provinsi Jawa Barat" || formData.role === "Instansi Pemerintah Terkait";
+
+    // Real-time server validation (Mocked for UI logic)
     const checkConflict = async (field: 'pin' | 'email', value: string) => {
         if (!value) return;
         // Mock conflict check
@@ -42,7 +124,7 @@ export default function SurveyForm() {
     const validateForm = () => {
         const newErrors: Record<string, string> = {};
 
-        if (!formData.city) newErrors.city = "Kota/Kabupaten harus dipilih";
+        if (!formData.role) newErrors.role = "Kategori/Role harus dipilih";
         if (!formData.institution.trim()) newErrors.institution = "Nama instansi harus diisi";
         if (!formData.picName.trim()) newErrors.picName = "Nama PIC harus diisi";
         if (!formData.position.trim()) newErrors.position = "Jabatan harus diisi";
@@ -256,39 +338,67 @@ export default function SurveyForm() {
                                         </div>
                                     </div>
 
-                                    {/* Kota/Kabupaten */}
+                                    {/* Role / Kategori */}
                                     <div className="space-y-2">
-                                        <label htmlFor="city" className="block text-sm font-semibold text-slate-700">Kota/Kabupaten</label>
+                                        <label htmlFor="role" className="block text-sm font-semibold text-slate-700">Kategori Instansi</label>
                                         <select
-                                            id="city"
-                                            value={formData.city}
+                                            id="role"
+                                            value={formData.role}
+                                            disabled={isLoadingRoles}
                                             onChange={(e) => {
-                                                setFormData({ ...formData, city: e.target.value });
-                                                setErrors({ ...errors, city: "" });
+                                                setFormData({ ...formData, role: e.target.value });
+                                                setErrors({ ...errors, role: "" });
                                             }}
-                                            className={`w-full h-11 px-3 py-2 rounded-lg border bg-white text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${errors.city ? "border-red-400" : "border-slate-300"
+                                            className={`w-full h-11 px-3 py-2 rounded-lg border bg-white text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/50 disabled:bg-slate-100 disabled:text-slate-400 ${errors.role ? "border-red-400" : "border-slate-300"
                                                 }`}
                                         >
-                                            <option value="" disabled>Pilih Kota/Kabupaten</option>
-                                            {cities.map((city) => (
-                                                <option key={city} value={city}>{city}</option>
+                                            <option value="" disabled>
+                                                {isLoadingRoles ? "Memuat Kategori..." : "Pilih Kategori"}
+                                            </option>
+                                            {roles.map((role) => (
+                                                <option key={role.id} value={role.name}>{role.name}</option>
                                             ))}
                                         </select>
-                                        {errors.city && <p className="text-red-500 text-sm font-medium">{errors.city}</p>}
+                                        {errors.role && <p className="text-red-500 text-sm font-medium">{errors.role}</p>}
                                     </div>
 
-                                    {/* Instansi */}
+                                    {/* Nama Instansi */}
                                     <div className="space-y-2">
                                         <label htmlFor="institution" className="block text-sm font-semibold text-slate-700">Nama Instansi</label>
-                                        <input
-                                            id="institution"
-                                            type="text"
-                                            placeholder="Nama Dinas / Instansi"
-                                            value={formData.institution}
-                                            onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
-                                            className={`w-full h-11 px-3 py-2 rounded-lg border bg-white text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${errors.institution ? "border-red-400" : "border-slate-300"
-                                                }`}
-                                        />
+                                        {isInstitutionDropdown ? (
+                                            <select
+                                                id="institution"
+                                                value={formData.institution}
+                                                disabled={isLoadingInstitutions}
+                                                onChange={(e) => {
+                                                    setFormData({ ...formData, institution: e.target.value });
+                                                    setErrors({ ...errors, institution: "" });
+                                                }}
+                                                className={`w-full h-11 px-3 py-2 rounded-lg border bg-white text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/50 disabled:bg-slate-100 disabled:text-slate-400 ${errors.institution ? "border-red-400" : "border-slate-300"
+                                                    }`}
+                                            >
+                                                <option value="" disabled>
+                                                    {isLoadingInstitutions ? "Memuat instansi..." : "Pilih Nama Instansi"}
+                                                </option>
+                                                {institutions.map((inst) => (
+                                                    <option key={inst.id} value={inst.name}>{inst.name}</option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <input
+                                                id="institution"
+                                                type="text"
+                                                placeholder={formData.role ? "Ketikkan nama instansi anda" : "Pilih Kategori Instansi terlebih dahulu"}
+                                                disabled={!formData.role}
+                                                value={formData.institution}
+                                                onChange={(e) => {
+                                                    setFormData({ ...formData, institution: e.target.value });
+                                                    setErrors({ ...errors, institution: "" });
+                                                }}
+                                                className={`w-full h-11 px-3 py-2 rounded-lg border bg-white text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/50 disabled:bg-slate-100 disabled:text-slate-400 ${errors.institution ? "border-red-400" : "border-slate-300"
+                                                    }`}
+                                            />
+                                        )}
                                         {errors.institution && <p className="text-red-500 text-sm font-medium">{errors.institution}</p>}
                                     </div>
 
@@ -301,7 +411,10 @@ export default function SurveyForm() {
                                                 type="text"
                                                 placeholder="Nama lengkap"
                                                 value={formData.picName}
-                                                onChange={(e) => setFormData({ ...formData, picName: e.target.value })}
+                                                onChange={(e) => {
+                                                    setFormData({ ...formData, picName: e.target.value });
+                                                    setErrors({ ...errors, picName: "" });
+                                                }}
                                                 className={`w-full h-11 px-3 py-2 rounded-lg border bg-white text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${errors.picName ? "border-red-400" : "border-slate-300"
                                                     }`}
                                             />
@@ -314,7 +427,10 @@ export default function SurveyForm() {
                                                 type="text"
                                                 placeholder="Jabatan struktural/fungsional"
                                                 value={formData.position}
-                                                onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                                                onChange={(e) => {
+                                                    setFormData({ ...formData, position: e.target.value });
+                                                    setErrors({ ...errors, position: "" });
+                                                }}
                                                 className={`w-full h-11 px-3 py-2 rounded-lg border bg-white text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${errors.position ? "border-red-400" : "border-slate-300"
                                                     }`}
                                             />
@@ -331,7 +447,10 @@ export default function SurveyForm() {
                                                 type="email"
                                                 placeholder="email@instansi.go.id"
                                                 value={formData.email}
-                                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                                onChange={(e) => {
+                                                    setFormData({ ...formData, email: e.target.value });
+                                                    setErrors({ ...errors, email: "" });
+                                                }}
                                                 onBlur={(e) => {
                                                     const val = e.target.value.trim();
                                                     if (val && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) checkConflict('email', val);
@@ -348,7 +467,10 @@ export default function SurveyForm() {
                                                 type="tel"
                                                 placeholder="08xxxxxxxxxx"
                                                 value={formData.whatsapp}
-                                                onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+                                                onChange={(e) => {
+                                                    setFormData({ ...formData, whatsapp: e.target.value });
+                                                    setErrors({ ...errors, whatsapp: "" });
+                                                }}
                                                 className={`w-full h-11 px-3 py-2 rounded-lg border bg-white text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${errors.whatsapp ? "border-red-400" : "border-slate-300"
                                                     }`}
                                             />
