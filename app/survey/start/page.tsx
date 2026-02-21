@@ -91,13 +91,13 @@ export default function SurveyStartPage() {
                 return;
             }
             setIdentity(parsed);
-            fetchQuestionsAndRole(parsed.role, parsed.institution);
+            fetchQuestionsAndRole(parsed.role, parsed.institution, parsed.id);
         } catch (e) {
             router.replace('/survey');
         }
     }, [router]);
 
-    const fetchQuestionsAndRole = async (roleName: string, institutionName: string) => {
+    const fetchQuestionsAndRole = async (roleName: string, institutionName: string, identityId: string) => {
         try {
             // Get Role ID
             const { data: roleData, error: roleError } = await supabase
@@ -130,7 +130,7 @@ export default function SurveyStartPage() {
             setQuestions(qData || []);
 
             // 3. Fetch specific respondent progress directly from API
-            const progressRes = await fetch(`/api/survey/get-progress?respondentId=${identity.id}`);
+            const progressRes = await fetch(`/api/survey/get-progress?respondentId=${identityId}`);
             if (progressRes.ok) {
                 const progressData = await progressRes.json();
                 if (progressData.success && progressData.data) {
