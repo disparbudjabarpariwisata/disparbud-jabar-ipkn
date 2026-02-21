@@ -52,6 +52,8 @@ export default function AdminDashboardPage() {
                         { label: 'Users', href: '/dashboard/admin/users', icon: <Users size={24} />, color: 'bg-blue-50 text-blue-600' },
                         { label: 'Role Types', href: '/dashboard/admin/role-types', icon: <Shield size={24} />, color: 'bg-rose-50 text-rose-600' },
                         { label: 'Institutions', href: '/dashboard/admin/institutions', icon: <Building2 size={24} />, color: 'bg-teal-50 text-teal-600' },
+                        { label: 'Institutions Terkait', href: '/dashboard/admin/institutions-terkait', icon: <Building2 size={24} />, color: 'bg-indigo-50 text-indigo-600' },
+                        { label: 'Cities Jabar', href: '/dashboard/admin/cities-jabar', icon: <Building2 size={24} />, color: 'bg-cyan-50 text-cyan-600' },
                         { label: 'Hero Slider', href: '/dashboard/admin/hero-slider', icon: <Image size={24} />, color: 'bg-purple-50 text-purple-600' },
                         { label: 'SEO General', href: '/dashboard/admin/seo', icon: <Search size={24} />, color: 'bg-emerald-50 text-emerald-600' },
                         { label: 'Settings', href: '/dashboard/admin/settings', icon: <Settings size={24} />, color: 'bg-amber-50 text-amber-600' },

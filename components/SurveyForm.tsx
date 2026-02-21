@@ -288,10 +288,10 @@ export default function SurveyForm() {
                     </motion.div>
 
                     <h1 className="text-3xl md:text-5xl font-extrabold mb-4 text-slate-800 tracking-tight">
-                        Survei Ekonomi Kreatif
+                        Smiling West Java Survey
                     </h1>
                     <p className="text-base md:text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
-                        Mendata potensi dan perkembangan Ekonomi Kreatif di 27 Kota/Kabupaten Jawa Barat
+                        Mendata informasi pariwisata Jawa Barat
                     </p>
                 </motion.div>
 
