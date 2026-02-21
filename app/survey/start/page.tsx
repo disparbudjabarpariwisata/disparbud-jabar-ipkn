@@ -9,7 +9,7 @@ interface SurveyQuestion {
     id: string;
     role_id: string;
     question_text: string;
-    question_type: 'text' | 'textarea' | 'radio' | 'checkbox' | 'dropdown' | 'number';
+    question_type: 'text' | 'textarea' | 'radio' | 'checkbox' | 'dropdown' | 'number' | 'date' | 'linear_scale' | 'file_upload' | 'section_break';
     options: string[] | null;
     is_required: boolean;
     sort_order: number;
@@ -103,6 +103,7 @@ export default function SurveyStartPage() {
         let isValid = true;
 
         questions.forEach(q => {
+            if (q.question_type === 'section_break') return;
             if (q.is_required) {
                 const ans = answers[q.id];
                 if (
@@ -141,12 +142,14 @@ export default function SurveyStartPage() {
             const payload = questions.map(q => {
                 const ans = answers[q.id];
                 const isJson = q.question_type === 'checkbox';
+                let stringAns = String(ans || '');
+                if (q.question_type === 'section_break') stringAns = 'SECTION_BREAK';
 
                 return {
                     respondent_id: identity.id, // ID from the specific 8 tables
                     role_id: roleId,
                     question_id: q.id,
-                    answer_text: isJson ? null : String(ans || ''),
+                    answer_text: isJson ? null : stringAns,
                     answer_json: isJson ? (ans || []) : null
                 };
             });
@@ -267,6 +270,55 @@ export default function SurveyStartPage() {
                         ))}
                     </div>
                 );
+            case 'date':
+                return (
+                    <input
+                        type="date"
+                        value={val || ''}
+                        onChange={(e) => handleAnswerChange(q.id, e.target.value, 'date')}
+                        className={`w-full p-4 rounded-xl border outline-none transition-all max-w-sm ${errorClass}`}
+                    />
+                );
+            case 'linear_scale':
+                return (
+                    <div className="flex flex-col sm:flex-row gap-4 items-center justify-between w-full max-w-2xl mt-4 bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                        <span className="text-sm font-semibold text-slate-500 whitespace-nowrap">Sangat Kurang</span>
+                        <div className="flex gap-2 sm:gap-6 justify-center flex-1">
+                            {[1, 2, 3, 4, 5].map((score) => (
+                                <label key={score} className="flex flex-col items-center gap-2 cursor-pointer group">
+                                    <div className={`w-10 h-10 sm:w-14 sm:h-14 flex items-center justify-center rounded-full border-2 transition-all shadow-sm ${val === String(score) ? 'border-[#10b981] bg-[#10b981] text-white scale-110 shadow-md' : 'border-slate-200 text-slate-500 bg-white group-hover:border-[#10b981]/50 group-hover:text-[#10b981]'}`}>
+                                        <input
+                                            type="radio"
+                                            name={`scale-${q.id}`}
+                                            value={String(score)}
+                                            checked={val === String(score)}
+                                            onChange={() => handleAnswerChange(q.id, String(score), 'linear_scale')}
+                                            className="sr-only"
+                                        />
+                                        <span className="text-lg sm:text-xl font-bold">{score}</span>
+                                    </div>
+                                </label>
+                            ))}
+                        </div>
+                        <span className="text-sm font-semibold text-slate-500 whitespace-nowrap">Sangat Baik</span>
+                    </div>
+                );
+            case 'file_upload':
+                return (
+                    <div className="space-y-2">
+                        <input
+                            type="file"
+                            onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                    handleAnswerChange(q.id, `FILE_UPLOAD_PENDING: ${file.name}`, 'file_upload');
+                                }
+                            }}
+                            className={`w-full p-3 rounded-xl border bg-white outline-none transition-all cursor-pointer file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 ${errorClass}`}
+                        />
+                        <p className="text-xs text-slate-400 font-medium">Berkas ukuran sedang akan dikirimkan serentak ke server saat tombol submit ditekan.</p>
+                    </div>
+                );
             default:
                 return null;
         }
@@ -357,28 +409,41 @@ export default function SurveyStartPage() {
                             </div>
                         )}
 
-                        {questions.map((q, idx) => (
-                            <div key={q.id} className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-200 transition-all hover:shadow-md hover:border-slate-300 relative group">
-                                {validationErrors[q.id] && (
-                                    <div className="absolute top-0 left-0 w-1.5 h-full bg-red-500 rounded-l-3xl"></div>
-                                )}
-                                <div className="mb-4">
-                                    <h3 className="text-lg font-semibold text-slate-800 leading-snug">
-                                        <span className="text-slate-400 mr-2">{idx + 1}.</span>
-                                        {q.question_text}
-                                        {q.is_required && <span className="text-red-500 ml-1" title="Wajib diisi">*</span>}
-                                    </h3>
+                        {questions.map((q, idx) => {
+                            if (q.question_type === 'section_break') {
+                                return (
+                                    <div key={q.id} className="py-10 text-center relative max-w-4xl mx-auto">
+                                        <div className="absolute left-0 top-1/2 w-full h-px bg-slate-200"></div>
+                                        <div className="relative inline-block bg-[#f8fafc] px-6 text-emerald-600 font-bold tracking-wider uppercase text-sm">
+                                            {q.question_text}
+                                        </div>
+                                    </div>
+                                );
+                            }
+
+                            return (
+                                <div key={q.id} className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-200 transition-all hover:shadow-md hover:border-emerald-300 relative group max-w-4xl mx-auto">
                                     {validationErrors[q.id] && (
-                                        <p className="text-red-600 text-sm mt-2 font-medium flex items-center gap-1.5">
-                                            <AlertCircle size={14} /> {validationErrors[q.id]}
-                                        </p>
+                                        <div className="absolute top-0 left-0 w-1.5 h-full bg-red-500 rounded-l-3xl"></div>
                                     )}
+                                    <div className="mb-4">
+                                        <h3 className="text-lg font-bold text-slate-800 leading-relaxed">
+                                            <span className="text-slate-400 mr-2 font-medium">{idx + 1}.</span>
+                                            {q.question_text}
+                                            {q.is_required && <span className="text-red-500 ml-1 text-xl leading-none" title="Wajib diisi">*</span>}
+                                        </h3>
+                                        {validationErrors[q.id] && (
+                                            <p className="text-red-600 text-sm mt-3 font-medium flex items-center gap-1.5 bg-red-50 p-2 rounded-lg inline-flex">
+                                                <AlertCircle size={14} /> {validationErrors[q.id]}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div className="mt-4">
+                                        {renderQuestionInput(q)}
+                                    </div>
                                 </div>
-                                <div className="mt-4">
-                                    {renderQuestionInput(q)}
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
 
                         <div className="pt-8 mb-20 flex flex-col sm:flex-row gap-4 items-center justify-between">
                             <p className="text-sm text-slate-500">

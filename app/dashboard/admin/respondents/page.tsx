@@ -69,13 +69,14 @@ export default function AdminRespondentsPage() {
             if (!isAuthorized) return;
             const { data, error } = await supabase
                 .from('role_types')
-                .select('id, role_name')
+                .select('id, name')
                 .eq('active', true)
                 .order('sort_order', { ascending: true });
 
             if (data && data.length > 0) {
-                setRoles(data);
-                setActiveTab(data[0].role_name); // SET DEFAULT TAB
+                const mappedRoles = data.map(r => ({ ...r, role_name: r.name }));
+                setRoles(mappedRoles);
+                setActiveTab(mappedRoles[0].role_name); // SET DEFAULT TAB
             }
             if (error) setError(error.message);
             setIsLoadingRoles(false);
@@ -243,8 +244,8 @@ export default function AdminRespondentsPage() {
                             key={role.id}
                             onClick={() => setActiveTab(role.role_name)}
                             className={`whitespace-nowrap px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${activeTab === role.role_name
-                                    ? 'bg-orange-50 text-orange-600 shadow-sm border border-orange-100'
-                                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 border border-transparent'
+                                ? 'bg-orange-50 text-orange-600 shadow-sm border border-orange-100'
+                                : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 border border-transparent'
                                 }`}
                         >
                             {role.role_name}
@@ -342,7 +343,7 @@ export default function AdminRespondentsPage() {
                                                     <div className="h-2.5 w-full bg-gray-100 rounded-full overflow-hidden">
                                                         <div
                                                             className={`h-full rounded-full transition-all duration-1000 ${user.progress_percentage === 100 ? 'bg-emerald-500' :
-                                                                    user.progress_percentage > 0 ? 'bg-orange-500' : 'bg-transparent'
+                                                                user.progress_percentage > 0 ? 'bg-orange-500' : 'bg-transparent'
                                                                 }`}
                                                             style={{ width: `${user.progress_percentage}%` }}
                                                         ></div>

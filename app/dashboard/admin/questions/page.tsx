@@ -28,7 +28,7 @@ interface SurveyQuestion {
     id: string;
     role_id: string;
     question_text: string;
-    question_type: 'text' | 'textarea' | 'radio' | 'checkbox' | 'dropdown' | 'number';
+    question_type: 'text' | 'textarea' | 'radio' | 'checkbox' | 'dropdown' | 'number' | 'date' | 'linear_scale' | 'file_upload' | 'section_break';
     options: string[] | null;
     is_required: boolean;
     sort_order: number;
@@ -96,12 +96,13 @@ export default function AdminQuestionsPage() {
         // Fetch Roles
         const { data: roleData, error: roleError } = await supabase
             .from('role_types')
-            .select('id, role_name')
+            .select('id, name')
             .eq('active', true);
 
         if (roleData) {
-            setRoles(roleData);
-            if (roleData.length > 0 && !filterRoleId) {
+            const mappedRoles = roleData.map(r => ({ ...r, role_name: r.name }));
+            setRoles(mappedRoles);
+            if (mappedRoles.length > 0 && !filterRoleId) {
                 setFilterRoleId(roleData[0].id); // Default filter
             }
         }
@@ -419,6 +420,10 @@ export default function AdminQuestionsPage() {
                                         <option value="radio">Pilihan Ganda - 1 Jawaban (Radio)</option>
                                         <option value="checkbox">Pilihan Ganda - Banyak Jawaban (Checkbox)</option>
                                         <option value="dropdown">Dropdown Select</option>
+                                        <option value="date">Tanggal (Date)</option>
+                                        <option value="linear_scale">Skala Linear 1-5 (Linear Scale)</option>
+                                        <option value="file_upload">Upload File</option>
+                                        <option value="section_break">--- Pemisah Halaman (Section Break) ---</option>
                                     </select>
                                 </div>
 
