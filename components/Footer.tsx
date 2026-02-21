@@ -50,7 +50,7 @@ export function Footer() {
 
                 {/* Copyright */}
                 <div className="mt-8 pt-6 border-t border-blue-800 text-center text-blue-300 text-sm">
-                    <p>© {new Date().getFullYear()} IPKN JABAR - Data Production. All rights reserved.</p>
+                    <p>© {new Date().getFullYear()} Smiling West Java. All rights reserved.</p>
                 </div>
             </div>
         </footer>

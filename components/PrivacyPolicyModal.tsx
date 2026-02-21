@@ -60,7 +60,7 @@ export default function PrivacyPolicyModal({ isOpen, onClose, onAccept, hasAccep
                                 Berdasarkan Undang-Undang Perlindungan Data Pribadi (UU PDP) No. 27 Tahun 2022.
                             </p>
                             <p>
-                                IPKN JABAR berkomitmen untuk melindungi privasi dan data pribadi Anda. Kebijakan ini menjelaskan bagaimana kami mengumpulkan, menggunakan, dan melindungi data Anda saat menggunakan layanan kami.
+                                Smiling West Java berkomitmen untuk melindungi privasi dan data pribadi Anda. Kebijakan ini menjelaskan bagaimana kami mengumpulkan, menggunakan, dan melindungi data Anda saat menggunakan layanan kami.
                             </p>
 
                             <h3 className="font-bold text-gray-900 mt-4">1. Pengumpulan Data</h3>
@@ -70,7 +70,7 @@ export default function PrivacyPolicyModal({ isOpen, onClose, onAccept, hasAccep
 
                             <h3 className="font-bold text-gray-900 mt-4">2. Tujuan Penggunaan</h3>
                             <p>
-                                Data Anda digunakan semata-mata untuk keperluan verifikasi identitas, akses ke dashboard Data Production, dan keperluan statistik pariwisata Jawa Barat. Kami tidak akan menjual atau membagikan data Anda ke pihak ketiga tanpa persetujuan.
+                                Data Anda digunakan semata-mata untuk keperluan verifikasi identitas, akses ke dashboard Smiling West Java, dan keperluan statistik pariwisata Jawa Barat. Kami tidak akan menjual atau membagikan data Anda ke pihak ketiga tanpa persetujuan.
                             </p>
 
                             <h3 className="font-bold text-gray-900 mt-4">3. Hak Subjek Data</h3>

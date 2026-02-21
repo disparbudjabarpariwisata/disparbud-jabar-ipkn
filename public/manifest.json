@@ -1,7 +1,7 @@
 {
-  "name": "My App",
-  "description": "My App description",
-  "short_name": "My App",
+  "name": "Smiling West Java",
+  "description": "Portal resmi pariwisata Jawa Barat",
+  "short_name": "Smiling West Java",
   "icons": [
     {
       "src": "/favicon-72x72.png",

@@ -23,8 +23,19 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "IPKN - JABAR Data Production",
-  description: "Sistem Manajemen Data Pariwisata Jawa Barat",
+  title: "Smiling West Java - Portal Pariwisata Jawa Barat",
+  description: "Portal resmi pariwisata Jawa Barat. Jelajahi keindahan alam, budaya, dan kuliner khas Jawa Barat.",
+  openGraph: {
+    title: "Smiling West Java - Portal Pariwisata Jawa Barat",
+    description: "Portal resmi pariwisata Jawa Barat. Jelajahi keindahan alam, budaya, dan kuliner khas Jawa Barat.",
+    siteName: "Smiling West Java",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Smiling West Java - Portal Pariwisata Jawa Barat",
+    description: "Portal resmi pariwisata Jawa Barat. Jelajahi keindahan alam, budaya, dan kuliner khas Jawa Barat.",
+  },
   icons: {
     icon: [
       { url: '/favicon.ico?v=2' },
