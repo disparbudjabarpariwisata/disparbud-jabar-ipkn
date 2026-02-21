@@ -17,6 +17,11 @@ interface Institution {
     name: string;
 }
 
+interface City {
+    id: string;
+    name: string;
+}
+
 export default function SurveyForm() {
     const router = useRouter();
     const [mode, setMode] = useState<"new" | "resume">("new");
@@ -25,12 +30,15 @@ export default function SurveyForm() {
     // Dropdown Data States
     const [roles, setRoles] = useState<RoleType[]>([]);
     const [institutions, setInstitutions] = useState<Institution[]>([]);
+    const [cities, setCities] = useState<City[]>([]);
     const [isLoadingRoles, setIsLoadingRoles] = useState(true);
     const [isLoadingInstitutions, setIsLoadingInstitutions] = useState(false);
+    const [isLoadingCities, setIsLoadingCities] = useState(false);
 
     // Form Data
     const [formData, setFormData] = useState({
         role: "",
+        city: "", // Selected from dropdown (only for specific role)
         institution: "", // Free text OR Selected from dropdown
         picName: "",
         position: "",
@@ -68,14 +76,35 @@ export default function SurveyForm() {
         fetchRoles();
     }, []);
 
-    // 2. Fetch Institutions dynamically based on selected role
+    // 2. Fetch Institutions or Cities based on selected role
     useEffect(() => {
-        const fetchInstitutions = async () => {
-            // Reset institution selection when role changes
-            setFormData(prev => ({ ...prev, institution: "" }));
+        const fetchDependentData = async () => {
+            // Reset dependent selection when role changes
+            setFormData(prev => ({ ...prev, institution: "", city: "" }));
             setInstitutions([]);
+            setCities([]);
+            setErrors(prev => ({ ...prev, institution: "", city: "" }));
 
             if (!formData.role) return;
+
+            if (formData.role === "Pemerintah Daerah Kota/Kabupaten Jawa Barat") {
+                setIsLoadingCities(true);
+                try {
+                    const { data, error } = await supabase
+                        .from('cities_jabar')
+                        .select('id, name')
+                        .eq('active', true)
+                        .order('sort_order', { ascending: true });
+
+                    if (data) setCities(data);
+                    if (error) throw error;
+                } catch (error) {
+                    console.error("Error fetching cities:", error);
+                } finally {
+                    setIsLoadingCities(false);
+                }
+                return; // Wait for city selection before proceeding to institution
+            }
 
             setIsLoadingInstitutions(true);
             try {
@@ -106,11 +135,12 @@ export default function SurveyForm() {
             }
         };
 
-        fetchInstitutions();
+        fetchDependentData();
     }, [formData.role]);
 
     // Check if current role uses a dropdown or free-text
     const isInstitutionDropdown = formData.role === "Perangkat Daerah Provinsi Jawa Barat" || formData.role === "Instansi Pemerintah Terkait";
+    const isCityRole = formData.role === "Pemerintah Daerah Kota/Kabupaten Jawa Barat";
 
     // Real-time server validation (Mocked for UI logic)
     const checkConflict = async (field: 'pin' | 'email', value: string) => {
@@ -125,6 +155,11 @@ export default function SurveyForm() {
         const newErrors: Record<string, string> = {};
 
         if (!formData.role) newErrors.role = "Kategori/Role harus dipilih";
+
+        if (isCityRole && !formData.city) {
+            newErrors.city = "Kota/Kabupaten harus dipilih";
+        }
+
         if (!formData.institution.trim()) newErrors.institution = "Nama instansi harus diisi";
         if (!formData.picName.trim()) newErrors.picName = "Nama PIC harus diisi";
         if (!formData.position.trim()) newErrors.position = "Jabatan harus diisi";
@@ -171,9 +206,10 @@ export default function SurveyForm() {
                     localStorage.setItem("surveyIdentity", JSON.stringify(identityWithId));
                     router.push("/survey/start"); // Route to actual survey if available
                 }
-            } catch (error: any) {
+            } catch (error: unknown) {
                 console.error("Error creating respondent:", error);
-                setErrors(prev => ({ ...prev, form: error.message || "Terjadi kesalahan saat menyimpan data." }));
+                const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan saat menyimpan data.";
+                setErrors(prev => ({ ...prev, form: errorMessage }));
             } finally {
                 setIsLoading(false);
             }
@@ -203,7 +239,7 @@ export default function SurveyForm() {
                 localStorage.setItem("surveyIdentity", JSON.stringify(identityData));
                 router.push("/survey/start");
             }
-        } catch (err) {
+        } catch {
             setResumeError("Terjadi kesalahan koneksi. Silakan coba lagi.");
         } finally {
             setIsLoading(false);
@@ -271,8 +307,8 @@ export default function SurveyForm() {
                             <button
                                 onClick={() => setMode("new")}
                                 className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all ${mode === "new"
-                                        ? "bg-white text-emerald-700 shadow-sm"
-                                        : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
+                                    ? "bg-white text-emerald-700 shadow-sm"
+                                    : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
                                     }`}
                             >
                                 Isi Survei Baru
@@ -280,8 +316,8 @@ export default function SurveyForm() {
                             <button
                                 onClick={() => setMode("resume")}
                                 className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all ${mode === "resume"
-                                        ? "bg-white text-emerald-700 shadow-sm"
-                                        : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
+                                    ? "bg-white text-emerald-700 shadow-sm"
+                                    : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
                                     }`}
                             >
                                 Lanjutkan Survei
@@ -362,45 +398,73 @@ export default function SurveyForm() {
                                         {errors.role && <p className="text-red-500 text-sm font-medium">{errors.role}</p>}
                                     </div>
 
-                                    {/* Nama Instansi */}
-                                    <div className="space-y-2">
-                                        <label htmlFor="institution" className="block text-sm font-semibold text-slate-700">Nama Instansi</label>
-                                        {isInstitutionDropdown ? (
+                                    {/* Kota/Kabupaten Options - Only for Pemerintah Daerah Kota/Kabupaten Jawa Barat */}
+                                    {isCityRole && (
+                                        <div className="space-y-2">
+                                            <label htmlFor="city" className="block text-sm font-semibold text-slate-700">Kota/Kabupaten</label>
                                             <select
-                                                id="institution"
-                                                value={formData.institution}
-                                                disabled={isLoadingInstitutions}
+                                                id="city"
+                                                value={formData.city}
+                                                disabled={isLoadingCities}
                                                 onChange={(e) => {
-                                                    setFormData({ ...formData, institution: e.target.value });
-                                                    setErrors({ ...errors, institution: "" });
+                                                    setFormData({ ...formData, city: e.target.value });
+                                                    setErrors({ ...errors, city: "" });
                                                 }}
-                                                className={`w-full h-11 px-3 py-2 rounded-lg border bg-white text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/50 disabled:bg-slate-100 disabled:text-slate-400 ${errors.institution ? "border-red-400" : "border-slate-300"
+                                                className={`w-full h-11 px-3 py-2 rounded-lg border bg-white text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/50 disabled:bg-slate-100 disabled:text-slate-400 ${errors.city ? "border-red-400" : "border-slate-300"
                                                     }`}
                                             >
                                                 <option value="" disabled>
-                                                    {isLoadingInstitutions ? "Memuat instansi..." : "Pilih Nama Instansi"}
+                                                    {isLoadingCities ? "Memuat Kota/Kabupaten..." : "Pilih Kota/Kabupaten"}
                                                 </option>
-                                                {institutions.map((inst) => (
-                                                    <option key={inst.id} value={inst.name}>{inst.name}</option>
+                                                {cities.map((city) => (
+                                                    <option key={city.id} value={city.name}>{city.name}</option>
                                                 ))}
                                             </select>
-                                        ) : (
-                                            <input
-                                                id="institution"
-                                                type="text"
-                                                placeholder={formData.role ? "Ketikkan nama instansi anda" : "Pilih Kategori Instansi terlebih dahulu"}
-                                                disabled={!formData.role}
-                                                value={formData.institution}
-                                                onChange={(e) => {
-                                                    setFormData({ ...formData, institution: e.target.value });
-                                                    setErrors({ ...errors, institution: "" });
-                                                }}
-                                                className={`w-full h-11 px-3 py-2 rounded-lg border bg-white text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/50 disabled:bg-slate-100 disabled:text-slate-400 ${errors.institution ? "border-red-400" : "border-slate-300"
-                                                    }`}
-                                            />
-                                        )}
-                                        {errors.institution && <p className="text-red-500 text-sm font-medium">{errors.institution}</p>}
-                                    </div>
+                                            {errors.city && <p className="text-red-500 text-sm font-medium">{errors.city}</p>}
+                                        </div>
+                                    )}
+
+                                    {/* Nama Instansi */}
+                                    {(!isCityRole || formData.city) && (
+                                        <div className="space-y-2">
+                                            <label htmlFor="institution" className="block text-sm font-semibold text-slate-700">Nama Instansi</label>
+                                            {isInstitutionDropdown ? (
+                                                <select
+                                                    id="institution"
+                                                    value={formData.institution}
+                                                    disabled={isLoadingInstitutions}
+                                                    onChange={(e) => {
+                                                        setFormData({ ...formData, institution: e.target.value });
+                                                        setErrors({ ...errors, institution: "" });
+                                                    }}
+                                                    className={`w-full h-11 px-3 py-2 rounded-lg border bg-white text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/50 disabled:bg-slate-100 disabled:text-slate-400 ${errors.institution ? "border-red-400" : "border-slate-300"
+                                                        }`}
+                                                >
+                                                    <option value="" disabled>
+                                                        {isLoadingInstitutions ? "Memuat instansi..." : "Pilih Nama Instansi"}
+                                                    </option>
+                                                    {institutions.map((inst) => (
+                                                        <option key={inst.id} value={inst.name}>{inst.name}</option>
+                                                    ))}
+                                                </select>
+                                            ) : (
+                                                <input
+                                                    id="institution"
+                                                    type="text"
+                                                    placeholder={formData.role ? "Ketikkan nama instansi anda" : "Pilih Kategori Instansi terlebih dahulu"}
+                                                    disabled={!formData.role}
+                                                    value={formData.institution}
+                                                    onChange={(e) => {
+                                                        setFormData({ ...formData, institution: e.target.value });
+                                                        setErrors({ ...errors, institution: "" });
+                                                    }}
+                                                    className={`w-full h-11 px-3 py-2 rounded-lg border bg-white text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/50 disabled:bg-slate-100 disabled:text-slate-400 ${errors.institution ? "border-red-400" : "border-slate-300"
+                                                        }`}
+                                                />
+                                            )}
+                                            {errors.institution && <p className="text-red-500 text-sm font-medium">{errors.institution}</p>}
+                                        </div>
+                                    )}
 
                                     {/* PIC & Position */}
                                     <div className="grid md:grid-cols-2 gap-5">
@@ -600,6 +664,7 @@ export default function SurveyForm() {
 }
 
 // Simple Dialog Component specifically for this Form
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function Dialog({ open, onOpenChange, title, icon, children, type = "danger", actionLabel, onAction }: any) {
     if (!open) return null;
 
