@@ -70,6 +70,8 @@ export default function SurveyStartPage() {
 
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSavingProgress, setIsSavingProgress] = useState(false);
+    const [lastSaved, setLastSaved] = useState<Date | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
     const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
@@ -126,6 +128,16 @@ export default function SurveyStartPage() {
             if (qError) throw qError;
 
             setQuestions(qData || []);
+
+            // 3. Fetch specific respondent progress directly from API
+            const progressRes = await fetch(`/api/survey/get-progress?respondentId=${identity.id}`);
+            if (progressRes.ok) {
+                const progressData = await progressRes.json();
+                if (progressData.success && progressData.data) {
+                    setAnswers(progressData.data);
+                }
+            }
+
         } catch (err: any) {
             setError(err.message || "Gagal memuat pertanyaan survei.");
             console.error(err);
@@ -133,6 +145,54 @@ export default function SurveyStartPage() {
             setIsLoading(false);
         }
     };
+
+    // Auto-save effect
+    useEffect(() => {
+        if (isLoading || isSubmitting || success || Object.keys(answers).length === 0 || !identity || !roleId) return;
+
+        const timer = setTimeout(async () => {
+            setIsSavingProgress(true);
+            try {
+                // Determine visible payload
+                const payload = questions
+                    .filter(q => q.question_type !== 'section_break') // Never save section breaks
+                    .map(q => {
+                        const ans = answers[q.id];
+                        const isJson = q.question_type === 'checkbox';
+                        let stringAns = String(ans || '');
+                        if (q.question_type === 'file_upload') stringAns = 'FILE_UPLOAD_PENDING';
+
+                        return {
+                            question_id: q.id,
+                            answer_text: isJson ? null : (ans ? stringAns : null),
+                            answer_json: isJson ? (ans || []) : null
+                        };
+                    })
+                    // Only save those that actually have answers
+                    .filter(ans => ans.answer_text !== null || (ans.answer_json && ans.answer_json.length > 0));
+
+                if (payload.length > 0) {
+                    await fetch("/api/survey/save-progress", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            respondent_id: identity.id,
+                            role_id: roleId,
+                            answers: payload
+                        })
+                    });
+                    setLastSaved(new Date());
+                }
+
+            } catch (err) {
+                console.error("Auto-save failed", err);
+            } finally {
+                setIsSavingProgress(false);
+            }
+        }, 2000); // 2 second debounce
+
+        return () => clearTimeout(timer);
+    }, [answers, identity, roleId, questions, isLoading, isSubmitting, success]);
 
     const handleAnswerChange = (questionId: string, value: any, type: string) => {
         setValidationErrors(prev => ({ ...prev, [questionId]: '' })); // Clear error on change
@@ -498,10 +558,24 @@ export default function SurveyStartPage() {
                                 <dd className="font-semibold text-slate-800">{identity?.picName}</dd>
                             </div>
                             <div>
-                                <dt className="text-slate-500 mb-1">Waktu Sesi</dt>
+                                <dt className="text-slate-500 mb-1">Status Penyimpanan</dt>
                                 <dd className="font-semibold text-emerald-600 flex items-center gap-1.5">
-                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                    Aktif
+                                    {isSavingProgress ? (
+                                        <>
+                                            <Loader2 size={14} className="animate-spin" />
+                                            Menyimpan...
+                                        </>
+                                    ) : lastSaved ? (
+                                        <>
+                                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                            Tersimpan {lastSaved.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span className="w-2 h-2 rounded-full bg-slate-300"></span>
+                                            Belum ada data baru
+                                        </>
+                                    )}
                                 </dd>
                             </div>
                         </dl>

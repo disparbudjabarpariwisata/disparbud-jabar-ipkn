@@ -319,41 +319,21 @@ export default function SurveyForm() {
 
         setIsLoading(true);
         try {
-            // Search across ALL 8 identity tables for matching email + pin
-            const tables = [
-                'survey_perangkat_daerah',
-                'survey_pemerintah_terkait',
-                'survey_swasta_terkait',
-                'survey_komunitas',
-                'survey_pelaku_usaha',
-                'survey_pemda_kabkota',
-                'survey_pemerintah_pusat',
-                'survey_international_tourism'
-            ];
+            const res = await fetch("/api/survey/resume", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: resumeEmail.trim(), pin: resumePin.trim() })
+            });
 
-            let foundIdentity: any = null;
+            const responseData = await res.json();
 
-            for (const table of tables) {
-                const { data, error } = await supabase
-                    .from(table)
-                    .select('*')
-                    .eq('email', resumeEmail.trim())
-                    .eq('pin', resumePin.trim())
-                    .single();
-
-                if (data && !error) {
-                    foundIdentity = { ...data, table_source: table };
-                    break;
-                }
-            }
-
-            if (!foundIdentity) {
-                setResumeError("Kombinasi Email dan PIN tidak ditemukan. Periksa kembali data Anda.");
+            if (!res.ok) {
+                setResumeError(responseData.error || "Kombinasi Email dan PIN tidak ditemukan. Periksa kembali data Anda.");
                 return;
             }
 
             if (typeof window !== "undefined") {
-                localStorage.setItem("surveyIdentity", JSON.stringify(foundIdentity));
+                localStorage.setItem("surveyIdentity", JSON.stringify(responseData.data));
                 router.push("/survey/start");
             }
         } catch {
