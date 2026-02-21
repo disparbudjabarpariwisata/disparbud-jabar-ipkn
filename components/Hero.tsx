@@ -24,7 +24,7 @@ export function Hero() {
     }, []);
 
     return (
-        <section className="relative h-screen min-h-screen w-full overflow-hidden bg-black -mt-[214px] md:-mt-[104px] pt-[214px] md:pt-[104px]">
+        <section className="relative h-screen min-h-screen w-full overflow-hidden bg-black">
             {/* Image Slider */}
             <div className="absolute inset-0 z-0">
                 <AnimatePresence mode="popLayout">
