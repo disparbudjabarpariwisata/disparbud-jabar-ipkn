@@ -1,78 +1,20 @@
 import { Header } from '@/components/Header';
 import { Hero } from '@/components/Hero';
 import { Footer } from '@/components/Footer';
-import Image from 'next/image';
+import { YouTubeCarousel } from '@/components/YouTubeCarousel';
+import { getLatestYouTubeVideos } from '@/lib/youtube';
 import Link from 'next/link';
 
-function FeatureCard({
-  image,
-  title,
-  description,
-}: {
-  image: string;
-  title: string;
-  description: string;
-}) {
-  return (
-    <li className="flex flex-col gap-6 md:gap-8 flex-1 min-w-[280px] md:min-w-[336px] max-w-[388px]">
-      <div className="aspect-[327/436] md:aspect-[363/483] rounded-2xl overflow-hidden relative">
-        <Image
-          alt={title}
-          className="object-cover"
-          src={image}
-          fill
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-        />
-      </div>
-      <div className="flex flex-col gap-2">
-        <h5 className="font-['Inter:Semi_Bold',sans-serif] font-semibold text-xl md:text-2xl text-black tracking-tight leading-tight">
-          {title}
-        </h5>
-        <p className="font-['Inter:Medium',sans-serif] font-medium text-lg text-[rgba(0,0,0,0.55)] tracking-tight leading-snug">
-          {description}
-        </p>
-      </div>
-    </li>
-  );
-}
-
-export default function Home() {
-  const features = [
-    {
-      image: "/e723a3a921b7364a9fd5c9987650e639e5e37b99.png",
-      title: "Keindahan Alam",
-      description:
-        "Jelajahi keindahan alam Jawa Barat dari pegunungan hingga pantai yang memukau.",
-    },
-    {
-      image: "/4c364980273eb285a6b98bd2ce5d58313866c189.png",
-      title: "Budaya & Tradisi",
-      description:
-        "Kenali kekayaan budaya dan tradisi yang masih lestari di Jawa Barat.",
-    },
-    {
-      image: "/385737d7a5d62e174796a599ef23edf3d6bc4011.png",
-      title: "Kuliner Khas",
-      description:
-        "Nikmati berbagai kuliner khas Sunda yang menggugah selera.",
-    },
-  ];
+export default async function Home() {
+  const videos = await getLatestYouTubeVideos(10);
 
   return (
     <main className="min-h-screen bg-white">
       <Header />
       <Hero />
 
-      {/* Feature Cards Section */}
-      <section className="px-6 md:px-16 py-20 md:py-32">
-        <div className="max-w-7xl mx-auto">
-          <ul className="flex flex-col md:flex-row gap-12 md:gap-8 justify-center items-stretch">
-            {features.map((feature, index) => (
-              <FeatureCard key={index} {...feature} />
-            ))}
-          </ul>
-        </div>
-      </section>
+      {/* YouTube Video Carousel Section */}
+      <YouTubeCarousel videos={videos} />
 
       {/* Welcome Section */}
       <section className="px-6 md:px-16 py-20 bg-gray-50">
