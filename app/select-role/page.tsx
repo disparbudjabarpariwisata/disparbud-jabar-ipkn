@@ -11,6 +11,7 @@ import {
     Store,
     MapPin,
     Crown,
+    Globe,
     Loader2,
     AlertCircle,
     CheckCircle2
@@ -74,6 +75,14 @@ const ROLES = [
         icon: Crown,
         color: 'bg-indigo-50 text-indigo-600 border-indigo-200',
         activeColor: 'bg-indigo-100 border-indigo-500 ring-2 ring-indigo-200',
+    },
+    {
+        value: 'Lembaga Internasional',
+        label: 'Lembaga Internasional',
+        description: 'Organisasi internasional, kedutaan, atau lembaga asing terkait pariwisata',
+        icon: Globe,
+        color: 'bg-cyan-50 text-cyan-600 border-cyan-200',
+        activeColor: 'bg-cyan-100 border-cyan-500 ring-2 ring-cyan-200',
     },
 ];
 
@@ -176,8 +185,8 @@ export default function SelectRolePage() {
                                         type="button"
                                         onClick={() => setSelectedRole(role.value)}
                                         className={`p-4 rounded-xl border-2 text-left transition-all duration-200 ${isSelected
-                                                ? role.activeColor
-                                                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                            ? role.activeColor
+                                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                                             }`}
                                     >
                                         <div className="flex items-start gap-3">
@@ -203,8 +212,8 @@ export default function SelectRolePage() {
                             onClick={handleSubmit}
                             disabled={!selectedRole || isLoading}
                             className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all shadow-lg ${selectedRole && !isLoading
-                                    ? 'bg-[#F8BC16] text-white hover:bg-[#F2B10C] hover:shadow-orange-100 cursor-pointer'
-                                    : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+                                ? 'bg-[#F8BC16] text-white hover:bg-[#F2B10C] hover:shadow-orange-100 cursor-pointer'
+                                : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
                                 }`}
                         >
                             {isLoading ? (

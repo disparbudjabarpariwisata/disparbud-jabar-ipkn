@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'motion/react';
 import {
-    User,
     Mail,
     Lock,
     Eye,
