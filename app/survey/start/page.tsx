@@ -184,20 +184,24 @@ export default function SurveyStartPage() {
 
         try {
             // Format payload ONLY from visible questions so we don't save hidden/skipped data
-            const payload = visibleQuestions.map(q => {
-                const ans = answers[q.id];
-                const isJson = q.question_type === 'checkbox';
-                let stringAns = String(ans || '');
-                if (q.question_type === 'section_break') stringAns = 'SECTION_BREAK';
+            const payload = visibleQuestions
+                .filter(q => q.question_type !== 'section_break') // Never save section breaks
+                .map(q => {
+                    const ans = answers[q.id];
+                    const isJson = q.question_type === 'checkbox';
+                    let stringAns = String(ans || '');
+                    if (q.question_type === 'file_upload') stringAns = 'FILE_UPLOAD_PENDING';
 
-                return {
-                    respondent_id: identity.id, // ID from the specific 8 tables
-                    role_id: roleId,
-                    question_id: q.id,
-                    answer_text: isJson ? null : stringAns,
-                    answer_json: isJson ? (ans || []) : null
-                };
-            });
+                    return {
+                        respondent_id: identity.id, // ID from the specific 8 tables
+                        role_id: roleId,
+                        question_id: q.id,
+                        answer_text: isJson ? null : stringAns,
+                        answer_json: isJson ? (ans || []) : null
+                    };
+                });
+
+            console.log('Survey payload:', JSON.stringify(payload, null, 2));
 
             // Need to insert via API route if RLS blocks direct client insert,
             // However, RLS policy `anon_insert_survey_answers` allows anon INSERT.
@@ -206,7 +210,10 @@ export default function SurveyStartPage() {
                 .from('survey_answers')
                 .insert(payload);
 
-            if (insertError) throw insertError;
+            if (insertError) {
+                console.error('Submit Error:', insertError);
+                throw insertError;
+            }
 
             // Mark completion if needed or handle navigation
             setSuccess("Terima kasih! Survei Anda berhasil disimpan.");
