@@ -197,19 +197,27 @@ export default function SurveyForm() {
         if (validateForm()) {
             setIsLoading(true);
             try {
-                // Mock submission delay
-                await new Promise((resolve) => setTimeout(resolve, 1500));
+                // Submit to backend route which handles DB insert and Resend Pin Email
+                const res = await fetch("/api/survey/submit", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(formData)
+                });
 
-                const identityWithId = { ...formData, id: 'mock-id-123' };
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.error || "Gagal menyimpan data survei");
+                }
 
                 if (typeof window !== "undefined") {
+                    const identityWithId = { ...formData, id: data.respondentId };
                     localStorage.setItem("surveyIdentity", JSON.stringify(identityWithId));
                     router.push("/survey/start"); // Route to actual survey if available
                 }
-            } catch (error: unknown) {
+            } catch (error: any) {
                 console.error("Error creating respondent:", error);
-                const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan saat menyimpan data.";
-                setErrors(prev => ({ ...prev, form: errorMessage }));
+                setErrors(prev => ({ ...prev, form: error.message }));
             } finally {
                 setIsLoading(false);
             }
