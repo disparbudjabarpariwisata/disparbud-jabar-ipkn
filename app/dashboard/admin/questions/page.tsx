@@ -17,6 +17,7 @@ import {
     CheckCircle2,
     Search,
     GripVertical,
+    Building2,
 } from 'lucide-react';
 
 interface RoleType {
@@ -27,6 +28,7 @@ interface RoleType {
 interface SurveyQuestion {
     id: string;
     role_id: string;
+    institution_name: string | null;
     question_text: string;
     question_type: 'text' | 'textarea' | 'radio' | 'checkbox' | 'dropdown' | 'number' | 'date' | 'linear_scale' | 'file_upload' | 'section_break' | 'url_website' | 'url_youtube' | 'url_gdrive' | 'url_social_media';
     options: string[] | null;
@@ -40,6 +42,7 @@ interface SurveyQuestion {
 
 interface FormData {
     role_id: string;
+    institution_name: string;
     question_text: string;
     question_type: SurveyQuestion['question_type'];
     options: string; // We'll manage options as a comma-separated string in the form
@@ -52,6 +55,7 @@ interface FormData {
 
 const defaultForm: FormData = {
     role_id: '',
+    institution_name: '',
     question_text: '',
     question_type: 'text',
     options: '',
@@ -151,6 +155,7 @@ export default function AdminQuestionsPage() {
         setEditingId(q.id);
         setForm({
             role_id: q.role_id,
+            institution_name: q.institution_name || '',
             question_text: q.question_text,
             question_type: q.question_type,
             options: q.options ? q.options.join(', ') : '',
@@ -184,6 +189,7 @@ export default function AdminQuestionsPage() {
 
         const payload = {
             role_id: form.role_id,
+            institution_name: form.institution_name.trim() || null,
             question_text: form.question_text.trim(),
             question_type: form.question_type,
             options: processedOptions,
@@ -309,13 +315,18 @@ export default function AdminQuestionsPage() {
                                         <GripVertical size={20} />
                                     </div>
                                     <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-1">
+                                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${q.is_required ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-500'}`}>
                                                 {q.is_required ? 'Wajib Isi' : 'Opsional'}
                                             </span>
                                             <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider">
                                                 {q.question_type}
                                             </span>
+                                            {q.institution_name && (
+                                                <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-700 text-[10px] font-bold tracking-wider border border-amber-200 flex items-center gap-1">
+                                                    <Building2 size={10} /> {q.institution_name}
+                                                </span>
+                                            )}
                                             {q.sort_order > 0 && <span className="text-xs text-gray-400">#Urutan {q.sort_order}</span>}
                                             {q.depends_on_question_id && (
                                                 <span className="px-2 py-0.5 rounded bg-purple-50 text-purple-600 text-[10px] font-bold uppercase tracking-wider border border-purple-200">
@@ -407,6 +418,17 @@ export default function AdminQuestionsPage() {
                                     <option value="" disabled>Pilih Role...</option>
                                     {roles.map(r => <option key={r.id} value={r.id}>{r.role_name}</option>)}
                                 </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Nama Instansi (Opsional)</label>
+                                <input
+                                    type="text"
+                                    placeholder="Contoh: Dinas Pariwisata dan Kebudayaan"
+                                    value={form.institution_name}
+                                    onChange={(e) => setForm({ ...form, institution_name: e.target.value })}
+                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[#10b981] outline-none text-sm"
+                                />
                             </div>
 
                             <div>
