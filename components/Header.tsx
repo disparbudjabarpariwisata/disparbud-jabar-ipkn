@@ -86,7 +86,7 @@ export function Header() {
                                     href="/register"
                                     className="px-5 py-2 bg-[#F8BC16] text-white rounded-xl font-semibold hover:bg-[#F2B10C] transition-all text-sm"
                                 >
-                                    Registrasi
+                                    Register
                                 </Link>
                             </div>
                         </div>
@@ -201,7 +201,7 @@ export function Header() {
                                     onClick={() => setIsMobileMenuOpen(false)}
                                     className="w-full text-center px-4 py-2 bg-[#F8BC16] text-white rounded-xl font-semibold hover:bg-[#F2B10C]"
                                 >
-                                    Registrasi
+                                    Register
                                 </Link>
                             </div>
                         </nav>
