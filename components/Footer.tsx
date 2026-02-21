@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { motion } from 'motion/react';
 
 export function Footer() {
@@ -48,8 +49,19 @@ export function Footer() {
                     </p>
                 </div>
 
+                {/* Legal Links */}
+                <div className="mt-8 pt-6 border-t border-blue-800 flex justify-center items-center gap-4 text-sm">
+                    <Link href="/privacy-policy" className="text-blue-200 hover:text-white transition-colors">
+                        Privacy Policy
+                    </Link>
+                    <span className="text-blue-700">|</span>
+                    <Link href="/terms-of-service" className="text-blue-200 hover:text-white transition-colors">
+                        Terms of Service
+                    </Link>
+                </div>
+
                 {/* Copyright */}
-                <div className="mt-8 pt-6 border-t border-blue-800 text-center text-blue-300 text-sm">
+                <div className="mt-4 text-center text-blue-300 text-sm">
                     <p>© {new Date().getFullYear()} Smiling West Java. All rights reserved.</p>
                 </div>
             </div>
