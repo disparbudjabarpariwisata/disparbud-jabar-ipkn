@@ -14,9 +14,18 @@ export async function GET(request: Request) {
 
         const { data } = await supabase.auth.exchangeCodeForSession(code);
 
-        // Check if user has a role set, if not redirect to select-role
-        if (data?.user && !data.user.user_metadata?.role) {
-            return NextResponse.redirect(`${origin}/select-role`);
+        if (data?.user) {
+            // Set auth_provider to 'google' for Google SSO users
+            if (!data.user.user_metadata?.auth_provider) {
+                await supabase.auth.updateUser({
+                    data: { auth_provider: 'google' },
+                });
+            }
+
+            // Check if user has a role set, if not redirect to select-role
+            if (!data.user.user_metadata?.role) {
+                return NextResponse.redirect(`${origin}/select-role`);
+            }
         }
     }
 

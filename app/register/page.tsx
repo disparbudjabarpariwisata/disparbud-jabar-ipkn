@@ -58,6 +58,7 @@ export default function RegisterPage() {
                 options: {
                     data: {
                         privacyAccepted: true,
+                        auth_provider: 'email',
                     },
                 },
             });

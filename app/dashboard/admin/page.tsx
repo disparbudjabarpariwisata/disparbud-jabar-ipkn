@@ -11,6 +11,7 @@ import {
     Settings,
     Loader2,
     BarChart3,
+    Shield,
 } from 'lucide-react';
 
 const ADMIN_EMAIL = 'disparbudjabarpariwisata2026@gmail.com';
@@ -18,6 +19,7 @@ const ADMIN_EMAIL = 'disparbudjabarpariwisata2026@gmail.com';
 const adminMenuItems = [
     { label: 'Overview', href: '/dashboard/admin', icon: <BarChart3 size={18} /> },
     { label: 'Users', href: '/dashboard/admin/users', icon: <Users size={18} /> },
+    { label: 'Role Types', href: '/dashboard/admin/role-types', icon: <Shield size={18} /> },
     { label: 'Hero Slider', href: '/dashboard/admin/hero-slider', icon: <Image size={18} /> },
     { label: 'SEO General', href: '/dashboard/admin/seo', icon: <Search size={18} /> },
     { label: 'Settings', href: '/dashboard/admin/settings', icon: <Settings size={18} /> },
@@ -58,6 +60,7 @@ export default function AdminDashboardPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {[
                         { label: 'Users', href: '/dashboard/admin/users', icon: <Users size={24} />, color: 'bg-blue-50 text-blue-600' },
+                        { label: 'Role Types', href: '/dashboard/admin/role-types', icon: <Shield size={24} />, color: 'bg-rose-50 text-rose-600' },
                         { label: 'Hero Slider', href: '/dashboard/admin/hero-slider', icon: <Image size={24} />, color: 'bg-purple-50 text-purple-600' },
                         { label: 'SEO General', href: '/dashboard/admin/seo', icon: <Search size={24} />, color: 'bg-emerald-50 text-emerald-600' },
                         { label: 'Settings', href: '/dashboard/admin/settings', icon: <Settings size={24} />, color: 'bg-amber-50 text-amber-600' },
