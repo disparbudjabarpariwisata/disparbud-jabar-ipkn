@@ -96,25 +96,26 @@ export default function AdminQuestionsPage() {
         checkAuth();
     }, [router]);
 
-    const fetchData = useCallback(async () => {
-        setIsLoading(true);
+    // Fetch roles ONCE on mount
+    useEffect(() => {
+        if (!isAuthorized) return;
+        const fetchRoles = async () => {
+            const { data: roleData, error: roleError } = await supabase
+                .from('role_types')
+                .select('id, name')
+                .eq('active', true);
 
-        // Fetch Roles
-        const { data: roleData, error: roleError } = await supabase
-            .from('role_types')
-            .select('id, name')
-            .eq('active', true);
-
-        if (roleData) {
-            const mappedRoles = roleData.map(r => ({ ...r, role_name: r.name }));
-            setRoles(mappedRoles);
-            if (mappedRoles.length > 0 && !filterRoleId) {
-                setFilterRoleId(roleData[0].id); // Default filter
+            if (roleData) {
+                const mappedRoles = roleData.map(r => ({ ...r, role_name: r.name }));
+                setRoles(mappedRoles);
             }
-        }
-        if (roleError) console.error(roleError);
+            if (roleError) console.error(roleError);
+        };
+        fetchRoles();
+    }, [isAuthorized]);
 
-        // Fetch Questions
+    const fetchQuestions = useCallback(async () => {
+        setIsLoading(true);
         const { data: qData, error: qError } = await supabase
             .from('survey_questions')
             .select('*')
@@ -125,13 +126,12 @@ export default function AdminQuestionsPage() {
         } else {
             setQuestions(qData || []);
         }
-
         setIsLoading(false);
-    }, [filterRoleId]);
+    }, []);
 
     useEffect(() => {
-        if (isAuthorized) fetchData();
-    }, [isAuthorized, fetchData]);
+        if (isAuthorized) fetchQuestions();
+    }, [isAuthorized, fetchQuestions]);
 
     // Filtering
     const displayQuestions = questions.filter(q => {
@@ -203,7 +203,7 @@ export default function AdminQuestionsPage() {
         } else {
             setSuccess(editingId ? 'Pertanyaan diperbarui!' : 'Pertanyaan ditambahkan!');
             setIsModalOpen(false);
-            fetchData();
+            fetchQuestions();
         }
         setIsSaving(false);
         setTimeout(() => setSuccess(null), 3000);
@@ -216,14 +216,14 @@ export default function AdminQuestionsPage() {
         } else {
             setSuccess('Pertanyaan dihapus!');
             setDeletingId(null);
-            fetchData();
+            fetchQuestions();
         }
         setTimeout(() => setSuccess(null), 3000);
     };
 
     const toggleActive = async (q: SurveyQuestion) => {
         await supabase.from('survey_questions').update({ active: !q.active }).eq('id', q.id);
-        fetchData();
+        fetchQuestions();
     };
 
     if (!isAuthorized) {
