@@ -32,54 +32,54 @@ export default async function Home() {
       <section className="px-6 md:px-16 py-20 mb-10">
         <div className="max-w-7xl mx-auto">
           <h3 className="font-['Inter:Semi_Bold',sans-serif] font-semibold text-2xl md:text-3xl text-black mb-12 text-center">
-            Jelajahi Lebih Lanjut
+            Explore More
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="bg-white border-2 border-gray-200 rounded-2xl p-8 hover:border-[#2645cf] transition-colors">
               <h4 className="font-['Inter:Semi_Bold',sans-serif] font-semibold text-xl text-black mb-4">
-                Video Informasi
+                Video Gallery
               </h4>
               <p className="font-['Inter:Medium',sans-serif] font-medium text-base text-[rgba(0,0,0,0.55)] mb-6">
-                Tonton video-video menarik tentang pariwisata Jawa Barat
+                Watch exciting videos about West Java tourism
               </p>
               <Link
                 href="/videos"
                 prefetch={false}
                 className="inline-block bg-[#2645cf] hover:bg-[#1e37a8] transition-colors text-white px-6 py-3 rounded-lg text-sm"
               >
-                Lihat Video
+                View Videos
               </Link>
             </div>
 
             <div className="bg-white border-2 border-gray-200 rounded-2xl p-8 hover:border-[#2645cf] transition-colors">
               <h4 className="font-['Inter:Semi_Bold',sans-serif] font-semibold text-xl text-black mb-4">
-                Direktori Website
+                Website Directory
               </h4>
               <p className="font-['Inter:Medium',sans-serif] font-medium text-base text-[rgba(0,0,0,0.55)] mb-6">
-                Akses berbagai sumber informasi pariwisata Jawa Barat
+                Access various tourism information resources in West Java
               </p>
               <Link
                 href="/directory"
                 prefetch={false}
                 className="inline-block bg-[#2645cf] hover:bg-[#1e37a8] transition-colors text-white px-6 py-3 rounded-lg text-sm"
               >
-                Lihat Direktori
+                View Directory
               </Link>
             </div>
 
             <div className="bg-white border-2 border-gray-200 rounded-2xl p-8 hover:border-[#2645cf] transition-colors">
               <h4 className="font-['Inter:Semi_Bold',sans-serif] font-semibold text-xl text-black mb-4">
-                Peraturan & Regulasi
+                Rules & Regulations
               </h4>
               <p className="font-['Inter:Medium',sans-serif] font-medium text-base text-[rgba(0,0,0,0.55)] mb-6">
-                Informasi peraturan terkait pariwisata di Jawa Barat
+                Tourism-related regulations in West Java
               </p>
               <Link
                 href="/regulations"
                 prefetch={false}
                 className="inline-block bg-[#2645cf] hover:bg-[#1e37a8] transition-colors text-white px-6 py-3 rounded-lg text-sm"
               >
-                Lihat Peraturan
+                View Regulations
               </Link>
             </div>
           </div>
