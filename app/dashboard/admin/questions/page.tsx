@@ -28,11 +28,13 @@ interface SurveyQuestion {
     id: string;
     role_id: string;
     question_text: string;
-    question_type: 'text' | 'textarea' | 'radio' | 'checkbox' | 'dropdown' | 'number' | 'date' | 'linear_scale' | 'file_upload' | 'section_break';
+    question_type: 'text' | 'textarea' | 'radio' | 'checkbox' | 'dropdown' | 'number' | 'date' | 'linear_scale' | 'file_upload' | 'section_break' | 'url_website' | 'url_youtube' | 'url_gdrive' | 'url_social_media';
     options: string[] | null;
     is_required: boolean;
     sort_order: number;
     active: boolean;
+    depends_on_question_id: string | null;
+    depends_on_answer: string | null;
     created_at: string;
 }
 
@@ -44,6 +46,8 @@ interface FormData {
     is_required: boolean;
     sort_order: number;
     active: boolean;
+    depends_on_question_id: string;
+    depends_on_answer: string;
 }
 
 const defaultForm: FormData = {
@@ -54,6 +58,8 @@ const defaultForm: FormData = {
     is_required: true,
     sort_order: 0,
     active: true,
+    depends_on_question_id: '',
+    depends_on_answer: '',
 };
 
 export default function AdminQuestionsPage() {
@@ -150,7 +156,9 @@ export default function AdminQuestionsPage() {
             options: q.options ? q.options.join(', ') : '',
             is_required: q.is_required,
             sort_order: q.sort_order,
-            active: q.active
+            active: q.active,
+            depends_on_question_id: q.depends_on_question_id || '',
+            depends_on_answer: q.depends_on_answer || ''
         });
         setIsModalOpen(true);
         setError(null);
@@ -182,6 +190,8 @@ export default function AdminQuestionsPage() {
             is_required: form.is_required,
             sort_order: form.sort_order,
             active: form.active,
+            depends_on_question_id: form.depends_on_question_id || null,
+            depends_on_answer: form.depends_on_question_id && form.depends_on_answer ? form.depends_on_answer.trim() : null
         };
 
         const { error: dbError } = editingId
@@ -307,6 +317,11 @@ export default function AdminQuestionsPage() {
                                                 {q.question_type}
                                             </span>
                                             {q.sort_order > 0 && <span className="text-xs text-gray-400">#Urutan {q.sort_order}</span>}
+                                            {q.depends_on_question_id && (
+                                                <span className="px-2 py-0.5 rounded bg-purple-50 text-purple-600 text-[10px] font-bold uppercase tracking-wider border border-purple-200">
+                                                    Logic Cabang
+                                                </span>
+                                            )}
                                         </div>
                                         <h4 className="text-gray-900 font-medium text-base">{q.question_text}</h4>
                                         {q.options && q.options.length > 0 && (
@@ -424,6 +439,10 @@ export default function AdminQuestionsPage() {
                                         <option value="linear_scale">Skala Linear 1-5 (Linear Scale)</option>
                                         <option value="file_upload">Upload File</option>
                                         <option value="section_break">--- Pemisah Halaman (Section Break) ---</option>
+                                        <option value="url_website">Link Website Umum</option>
+                                        <option value="url_youtube">Link YouTube Video</option>
+                                        <option value="url_gdrive">Link Google Drive</option>
+                                        <option value="url_social_media">Link Akun Social Media</option>
                                     </select>
                                 </div>
 
@@ -470,6 +489,48 @@ export default function AdminQuestionsPage() {
                                     />
                                     <span className="text-sm font-medium text-gray-700">Pertanyaan Aktif / Ditampilkan</span>
                                 </label>
+                            </div>
+
+                            {/* Conditional Logic Section */}
+                            <div className="pt-4 border-t border-gray-100">
+                                <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                                    <AlertCircle size={16} className="text-purple-500" /> Pengaturan Logika (Skip Logic)
+                                </h4>
+                                <div className="p-4 bg-purple-50/50 rounded-xl border border-purple-100 space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-600 mb-1.5">Tampilkan pertanyaan INI hanya jika pertanyaan SEBELUMNYA disi dengan...</label>
+                                        <select
+                                            value={form.depends_on_question_id}
+                                            onChange={(e) => setForm({ ...form, depends_on_question_id: e.target.value, depends_on_answer: '' })}
+                                            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-purple-400 outline-none text-sm bg-white"
+                                        >
+                                            <option value="">-- Selalu Tampilkan (Tanpa Syarat) --</option>
+                                            {questions
+                                                .filter(q => q.role_id === form.role_id && q.id !== editingId && ['radio', 'dropdown', 'checkbox'].includes(q.question_type))
+                                                .map(q => (
+                                                    <option key={q.id} value={q.id}>Jika: "{q.question_text.length > 50 ? q.question_text.substring(0, 50) + '...' : q.question_text}"</option>
+                                                ))
+                                            }
+                                        </select>
+                                        <p className="text-[10px] text-gray-400 mt-1">Hanya pertanyaan bertipe Pilihan Ganda / Dropdown yang dapat dijadikan syarat panduan trigger.</p>
+                                    </div>
+
+                                    {form.depends_on_question_id && (
+                                        <div>
+                                            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Menjawab dengan opsi yang mengandung teks persis berikut:</label>
+                                            <select
+                                                value={form.depends_on_answer}
+                                                onChange={(e) => setForm({ ...form, depends_on_answer: e.target.value })}
+                                                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-purple-400 outline-none text-sm bg-white"
+                                            >
+                                                <option value="" disabled>Pilih Opsi Syarat Jawaban...</option>
+                                                {questions.find(q => q.id === form.depends_on_question_id)?.options?.map((opt, idx) => (
+                                                    <option key={idx} value={opt}>{opt}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
 

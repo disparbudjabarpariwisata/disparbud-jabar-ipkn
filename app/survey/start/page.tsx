@@ -9,10 +9,12 @@ interface SurveyQuestion {
     id: string;
     role_id: string;
     question_text: string;
-    question_type: 'text' | 'textarea' | 'radio' | 'checkbox' | 'dropdown' | 'number' | 'date' | 'linear_scale' | 'file_upload' | 'section_break';
+    question_type: 'text' | 'textarea' | 'radio' | 'checkbox' | 'dropdown' | 'number' | 'date' | 'linear_scale' | 'file_upload' | 'section_break' | 'url_website' | 'url_youtube' | 'url_gdrive' | 'url_social_media';
     options: string[] | null;
     is_required: boolean;
     sort_order: number;
+    depends_on_question_id: string | null;
+    depends_on_answer: string | null;
 }
 
 export default function SurveyStartPage() {
@@ -98,14 +100,48 @@ export default function SurveyStartPage() {
         }
     };
 
+    // Calculate which questions are currently visible based on conditional logic
+    const visibleQuestions = questions.filter(q => {
+        if (!q.depends_on_question_id || !q.depends_on_answer) return true;
+
+        // Find the answer to the dependency question
+        const depAnswer = answers[q.depends_on_question_id];
+        if (!depAnswer) return false;
+
+        // If it's a checkbox (array), check if the required answer is included
+        if (Array.isArray(depAnswer)) {
+            return depAnswer.includes(q.depends_on_answer);
+        }
+
+        // For string answers (radio, dropdown), check exact match
+        return String(depAnswer) === q.depends_on_answer;
+    });
+
     const validateForm = () => {
         const errors: Record<string, string> = {};
         let isValid = true;
 
-        questions.forEach(q => {
+        // URL Regex Patterns
+        const urlPatterns: Record<string, RegExp> = {
+            url_website: /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/,
+            url_youtube: /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$/,
+            url_gdrive: /^(https?:\/\/)?(drive|docs)\.google\.com\/.+$/,
+            url_social_media: /^(https?:\/\/)?(www\.)?(instagram\.com|facebook\.com|twitter\.com|x\.com|linkedin\.com|tiktok\.com)\/.+$/
+        };
+
+        const typeErrorMessages: Record<string, string> = {
+            url_website: "Format URL tidak valid (Contoh: https://example.com)",
+            url_youtube: "Harus berupa link YouTube / youtu.be yang valid",
+            url_gdrive: "Harus berupa link Google Drive / Google Docs",
+            url_social_media: "Harus berupa link Social Media (Instagram/Facebook/X/LinkedIn/TikTok)"
+        };
+
+        // ONLY validate visible questions
+        visibleQuestions.forEach(q => {
             if (q.question_type === 'section_break') return;
+            const ans = answers[q.id];
+
             if (q.is_required) {
-                const ans = answers[q.id];
                 if (
                     ans === undefined ||
                     ans === null ||
@@ -113,6 +149,15 @@ export default function SurveyStartPage() {
                     (Array.isArray(ans) && ans.length === 0)
                 ) {
                     errors[q.id] = "Pertanyaan ini wajib diisi.";
+                    isValid = false;
+                }
+            }
+
+            // Type Validations (even if optional, format must be correct if filled)
+            if (q.question_type.startsWith('url_') && ans) {
+                const pattern = urlPatterns[q.question_type];
+                if (pattern && !pattern.test(String(ans))) {
+                    errors[q.id] = typeErrorMessages[q.question_type];
                     isValid = false;
                 }
             }
@@ -138,8 +183,8 @@ export default function SurveyStartPage() {
         setIsSubmitting(true);
 
         try {
-            // Format payload
-            const payload = questions.map(q => {
+            // Format payload ONLY from visible questions so we don't save hidden/skipped data
+            const payload = visibleQuestions.map(q => {
                 const ans = answers[q.id];
                 const isJson = q.question_type === 'checkbox';
                 let stringAns = String(ans || '');
@@ -250,6 +295,25 @@ export default function SurveyStartPage() {
                             </label>
                         ))}
                     </div>
+                );
+            case 'url_website':
+            case 'url_youtube':
+            case 'url_gdrive':
+            case 'url_social_media':
+                const placeholders: Record<string, string> = {
+                    url_website: "https://website.com...",
+                    url_youtube: "https://youtube.com/watch?v=...",
+                    url_gdrive: "https://drive.google.com/...",
+                    url_social_media: "https://instagram.com/..."
+                };
+                return (
+                    <input
+                        type="url"
+                        value={val || ''}
+                        onChange={(e) => handleAnswerChange(q.id, e.target.value, q.question_type)}
+                        className={`w-full p-4 rounded-xl border outline-none transition-all ${errorClass}`}
+                        placeholder={placeholders[q.question_type] || "https://..."}
+                    />
                 );
             case 'checkbox':
                 const selectedArr = val || [];
@@ -409,7 +473,8 @@ export default function SurveyStartPage() {
                             </div>
                         )}
 
-                        {questions.map((q, idx) => {
+                        {/* Only Render Visible Questions */}
+                        {visibleQuestions.map((q, idx) => {
                             if (q.question_type === 'section_break') {
                                 return (
                                     <div key={q.id} className="py-10 text-center relative max-w-4xl mx-auto">
