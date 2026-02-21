@@ -55,7 +55,7 @@ export default function SurveyStartPage() {
             const { data: roleData, error: roleError } = await supabase
                 .from('role_types')
                 .select('id')
-                .eq('role_name', roleName)
+                .eq('name', roleName)
                 .single();
 
             if (roleError || !roleData) throw new Error("Kategori Instansi tidak terdaftar di sistem.");
