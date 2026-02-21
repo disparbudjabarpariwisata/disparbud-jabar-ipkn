@@ -4,24 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { supabase } from '@/lib/supabaseClient';
+import { adminMenuItems, ADMIN_EMAIL } from '@/lib/adminConfig';
 import {
-    Users as UsersIcon,
-    Image,
     Search,
-    Settings,
     Loader2,
-    BarChart3,
 } from 'lucide-react';
-
-const ADMIN_EMAIL = 'disparbudjabarpariwisata2026@gmail.com';
-
-const adminMenuItems = [
-    { label: 'Overview', href: '/dashboard/admin', icon: <BarChart3 size={18} /> },
-    { label: 'Users', href: '/dashboard/admin/users', icon: <UsersIcon size={18} /> },
-    { label: 'Hero Slider', href: '/dashboard/admin/hero-slider', icon: <Image size={18} /> },
-    { label: 'SEO General', href: '/dashboard/admin/seo', icon: <Search size={18} /> },
-    { label: 'Settings', href: '/dashboard/admin/settings', icon: <Settings size={18} /> },
-];
 
 interface User {
     id: string;

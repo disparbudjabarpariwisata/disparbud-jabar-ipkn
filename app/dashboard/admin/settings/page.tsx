@@ -4,13 +4,9 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { supabase } from '@/lib/supabaseClient';
+import { adminMenuItems, ADMIN_EMAIL } from '@/lib/adminConfig';
 import {
-    Users,
-    Image,
-    Search,
-    Settings as SettingsIcon,
     Loader2,
-    BarChart3,
     Mail,
     Lock,
     Eye,
@@ -18,16 +14,6 @@ import {
     AlertCircle,
     CheckCircle2,
 } from 'lucide-react';
-
-const ADMIN_EMAIL = 'disparbudjabarpariwisata2026@gmail.com';
-
-const adminMenuItems = [
-    { label: 'Overview', href: '/dashboard/admin', icon: <BarChart3 size={18} /> },
-    { label: 'Users', href: '/dashboard/admin/users', icon: <Users size={18} /> },
-    { label: 'Hero Slider', href: '/dashboard/admin/hero-slider', icon: <Image size={18} /> },
-    { label: 'SEO General', href: '/dashboard/admin/seo', icon: <Search size={18} /> },
-    { label: 'Settings', href: '/dashboard/admin/settings', icon: <SettingsIcon size={18} /> },
-];
 
 export default function AdminSettingsPage() {
     const router = useRouter();

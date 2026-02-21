@@ -4,13 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { supabase } from '@/lib/supabaseClient';
+import { adminMenuItems, ADMIN_EMAIL } from '@/lib/adminConfig';
 import {
-    Users,
     Image as ImageIcon,
-    Search,
-    Settings,
     Loader2,
-    BarChart3,
     Plus,
     Trash2,
     GripVertical,
@@ -20,16 +17,6 @@ import {
     ToggleLeft,
     ToggleRight,
 } from 'lucide-react';
-
-const ADMIN_EMAIL = 'disparbudjabarpariwisata2026@gmail.com';
-
-const adminMenuItems = [
-    { label: 'Overview', href: '/dashboard/admin', icon: <BarChart3 size={18} /> },
-    { label: 'Users', href: '/dashboard/admin/users', icon: <Users size={18} /> },
-    { label: 'Hero Slider', href: '/dashboard/admin/hero-slider', icon: <ImageIcon size={18} /> },
-    { label: 'SEO General', href: '/dashboard/admin/seo', icon: <Search size={18} /> },
-    { label: 'Settings', href: '/dashboard/admin/settings', icon: <Settings size={18} /> },
-];
 
 interface HeroSlide {
     id: string;
@@ -198,8 +185,8 @@ export default function AdminHeroSliderPage() {
                             onClick={() => handleToggleMode('slider')}
                             disabled={isSavingMode}
                             className={`flex-1 flex items-center justify-center gap-3 p-4 rounded-xl border-2 font-semibold transition-all ${heroMode === 'slider'
-                                    ? 'border-[#F8BC16] bg-[#F8BC16]/10 text-[#F8BC16]'
-                                    : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                                ? 'border-[#F8BC16] bg-[#F8BC16]/10 text-[#F8BC16]'
+                                : 'border-gray-200 text-gray-500 hover:border-gray-300'
                                 }`}
                         >
                             {heroMode === 'slider' ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}
@@ -213,8 +200,8 @@ export default function AdminHeroSliderPage() {
                             onClick={() => handleToggleMode('video')}
                             disabled={isSavingMode}
                             className={`flex-1 flex items-center justify-center gap-3 p-4 rounded-xl border-2 font-semibold transition-all ${heroMode === 'video'
-                                    ? 'border-purple-500 bg-purple-50 text-purple-600'
-                                    : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                                ? 'border-purple-500 bg-purple-50 text-purple-600'
+                                : 'border-gray-200 text-gray-500 hover:border-gray-300'
                                 }`}
                         >
                             {heroMode === 'video' ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}
