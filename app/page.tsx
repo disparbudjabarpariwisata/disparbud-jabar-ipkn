@@ -32,7 +32,7 @@ export default async function Home() {
       <section className="px-6 md:px-16 py-20 mb-10">
         <div className="max-w-7xl mx-auto">
           <h3 className="font-['Inter:Semi_Bold',sans-serif] font-semibold text-2xl md:text-3xl text-black mb-12 text-center">
-            Explore More
+            Discover More
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="bg-white border-2 border-gray-200 rounded-2xl p-8 hover:border-[#2645cf] transition-colors">
