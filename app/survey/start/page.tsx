@@ -366,11 +366,32 @@ export default function SurveyStartPage() {
             case 'number':
                 return (
                     <input
-                        type="number"
+                        type="text"
+                        inputMode="decimal"
                         value={val || ''}
-                        onChange={(e) => handleAnswerChange(q.id, e.target.value, 'number')}
+                        onChange={(e) => {
+                            let inputValue = e.target.value;
+                            // Replace dot with comma
+                            inputValue = inputValue.replace(/\./g, ',');
+                            // Remove any characters other than digits and comma
+                            inputValue = inputValue.replace(/[^0-9,]/g, '');
+
+                            // Prevent multiple commas
+                            const parts = inputValue.split(',');
+                            if (parts.length > 2) {
+                                inputValue = parts[0] + ',' + parts.slice(1).join('');
+                            }
+
+                            // Limit to 2 decimal places
+                            const finalParts = inputValue.split(',');
+                            if (finalParts.length === 2 && finalParts[1].length > 2) {
+                                inputValue = finalParts[0] + ',' + finalParts[1].substring(0, 2);
+                            }
+
+                            handleAnswerChange(q.id, inputValue, 'number');
+                        }}
                         className={`w-full p-3 sm:p-4 rounded-xl border outline-none transition-all text-sm sm:text-base ${errorClass}`}
-                        placeholder="0"
+                        placeholder="Contoh: 0,00"
                     />
                 );
             case 'textarea':
