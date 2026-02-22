@@ -146,8 +146,8 @@ export default function AdminQuestionsPage() {
                 tableName = 'institution_names2';
                 columnName = 'name';
             } else if (roleName.includes('kota') || roleName.includes('kabupaten')) {
-                tableName = 'cities_jabar';
-                columnName = 'city_name';
+                setRoleInstitutions(cities);
+                return;
             } else {
                 setRoleInstitutions([]);
                 return;
@@ -164,9 +164,6 @@ export default function AdminQuestionsPage() {
                 } else {
                     setRoleInstitutions([]);
                 }
-            } else if (roleName.includes('kota') || roleName.includes('kabupaten')) {
-                // Use hardcoded cities array for Kota/Kabupaten
-                setRoleInstitutions(cities);
             } else {
                 setRoleInstitutions([]);
             }
