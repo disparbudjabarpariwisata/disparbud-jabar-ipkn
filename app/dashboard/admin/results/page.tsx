@@ -79,8 +79,11 @@ export default function AdminResultsPage() {
             let tableName = '';
             let columnName = '';
 
-            if (rName.includes('perangkat daerah') || rName.includes('instansi pemerintah') || rName.includes('pemerintah terkait')) {
+            if (rName.includes('perangkat daerah')) {
                 tableName = 'institution_names';
+                columnName = 'name';
+            } else if (rName.includes('instansi pemerintah terkait') || rName.includes('pemerintah terkait')) {
+                tableName = 'institution_names2';
                 columnName = 'name';
             } else if (rName.includes('kota') || rName.includes('kabupaten')) {
                 tableName = 'cities_jabar';

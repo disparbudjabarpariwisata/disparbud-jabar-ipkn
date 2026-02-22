@@ -138,8 +138,11 @@ export default function AdminQuestionsPage() {
             let tableName = '';
             let columnName = '';
 
-            if (roleName.includes('perangkat daerah') || roleName.includes('instansi pemerintah') || roleName.includes('pemerintah terkait')) {
+            if (roleName.includes('perangkat daerah')) {
                 tableName = 'institution_names';
+                columnName = 'name';
+            } else if (roleName.includes('instansi pemerintah terkait') || roleName.includes('pemerintah terkait')) {
+                tableName = 'institution_names2';
                 columnName = 'name';
             } else if (roleName.includes('kota') || roleName.includes('kabupaten')) {
                 tableName = 'cities_jabar';
