@@ -106,26 +106,57 @@ export default function AdminResultsPage() {
         const fetchData = async () => {
             setIsLoading(true);
 
-            // Step A: Build query for Respondents matching the role/institution filters
-            let identityQuery = supabase.from('identities').select('*').order('created_at', { ascending: false });
+            // Step A: Determine table name based on active role
+            const getTableNameFromRoleName = (roleStr: string) => {
+                const lower = roleStr.toLowerCase();
+                const mapping = [
+                    { keywords: ['perangkat daerah'], table: 'survey_perangkat_daerah' },
+                    { keywords: ['instansi pemerintah', 'pemerintah terkait'], table: 'survey_pemerintah_terkait' },
+                    { keywords: ['swasta'], table: 'survey_swasta_terkait' },
+                    { keywords: ['komunitas', 'asosiasi'], table: 'survey_komunitas' },
+                    { keywords: ['pelaku usaha', 'ekraf'], table: 'survey_pelaku_usaha' },
+                    { keywords: ['kota/kabupaten', 'kabupaten', 'pemda'], table: 'survey_pemda_kabkota' },
+                    { keywords: ['pemerintah pusat'], table: 'survey_pemerintah_pusat' },
+                    { keywords: ['internasional', 'international', 'tourism institution'], table: 'survey_international_tourism' },
+                ];
+                for (const entry of mapping) {
+                    if (entry.keywords.some(kw => lower.includes(kw))) return entry.table;
+                }
+                return null;
+            };
 
+            let targetRolesToFetch = roles;
             if (selectedRole) {
-                identityQuery = identityQuery.eq('role', roles.find(r => r.id === selectedRole)?.role_name || '');
-            }
-            if (selectedInstitution) {
-                identityQuery = identityQuery.eq('institution', selectedInstitution);
+                const r = roles.find(r => r.id === selectedRole);
+                targetRolesToFetch = r ? [r] : [];
             }
 
-            const { data: respondents, error: rError } = await identityQuery;
+            let allRespondents: any[] = [];
 
-            if (rError || !respondents || respondents.length === 0) {
+            // Fetch from each relevant table
+            for (const role of targetRolesToFetch) {
+                const tableName = getTableNameFromRoleName(role.role_name);
+                if (!tableName) continue;
+
+                let q = supabase.from(tableName).select('*').order('created_at', { ascending: false });
+                if (selectedInstitution && selectedRole === role.id) {
+                    q = q.eq('institution', selectedInstitution);
+                }
+
+                const { data, error } = await q;
+                if (!error && data) {
+                    allRespondents = [...allRespondents, ...data.map(d => ({ ...d, role_name_injected: role.role_name }))];
+                }
+            }
+
+            if (allRespondents.length === 0) {
                 setResults([]);
                 setIsLoading(false);
                 return;
             }
 
             // Step B: Fetch survey answers for these respondents
-            const respondentIds = respondents.map(r => r.id);
+            const respondentIds = allRespondents.map(r => r.id);
             const { data: answers, error: aError } = await supabase
                 .from('survey_answers')
                 .select(`
@@ -148,10 +179,9 @@ export default function AdminResultsPage() {
             const formattedResults: ResultRow[] = [];
 
             answers.forEach((ans: any) => {
-                const respondent = respondents.find(r => r.id === ans.respondent_id);
+                const respondent = allRespondents.find(r => r.id === ans.respondent_id);
                 if (!respondent) return;
 
-                // Handle string or array format (checkbox vs text)
                 let actualAnswer = ans.answer_text || '';
                 if (ans.answer_json) {
                     actualAnswer = Array.isArray(ans.answer_json) ? ans.answer_json.join(', ') : JSON.stringify(ans.answer_json);
@@ -159,8 +189,8 @@ export default function AdminResultsPage() {
 
                 formattedResults.push({
                     respondent_id: respondent.id,
-                    respondent_name: respondent.full_name,
-                    role_name: respondent.role,
+                    respondent_name: respondent.full_name || respondent.name || 'NN',
+                    role_name: respondent.role_name_injected,
                     institution: respondent.institution || '-',
                     position: respondent.position || '-',
                     email: respondent.email,
@@ -173,7 +203,9 @@ export default function AdminResultsPage() {
             setIsLoading(false);
         };
 
-        fetchData();
+        if (roles.length > 0) {
+            fetchData();
+        }
     }, [isAuthorized, selectedRole, selectedInstitution, roles]);
 
     // Export to Excel handler
