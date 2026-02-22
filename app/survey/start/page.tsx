@@ -304,8 +304,6 @@ export default function SurveyStartPage() {
                     if (q.question_type === 'file_upload') stringAns = 'FILE_UPLOAD_PENDING';
 
                     return {
-                        respondent_id: identity.id, // ID from the specific 8 tables
-                        role_id: roleId,
                         question_id: q.id,
                         answer_text: isJson ? null : stringAns,
                         answer_json: isJson ? (ans || []) : null
@@ -314,16 +312,20 @@ export default function SurveyStartPage() {
 
             console.log('Survey payload:', JSON.stringify(payload, null, 2));
 
-            // Need to insert via API route if RLS blocks direct client insert,
-            // However, RLS policy `anon_insert_survey_answers` allows anon INSERT.
-            // Doing direct client insert for speed.
-            const { error: insertError } = await supabase
-                .from('survey_answers')
-                .insert(payload);
+            const response = await fetch("/api/survey/save-progress", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    respondent_id: identity.id,
+                    role_id: roleId,
+                    answers: payload
+                })
+            });
 
-            if (insertError) {
-                console.error('Submit Error:', insertError);
-                throw insertError;
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Submit Error:', errorData);
+                throw new Error(errorData?.error || 'Submit Error');
             }
 
             // Mark completion if needed or handle navigation
