@@ -19,7 +19,6 @@ import {
     GripVertical,
     Building2,
 } from 'lucide-react';
-import { cities } from '@/lib/data/cities';
 
 interface RoleType {
     id: string;
@@ -146,8 +145,8 @@ export default function AdminQuestionsPage() {
                 tableName = 'institution_names2';
                 columnName = 'name';
             } else if (roleName.includes('kota') || roleName.includes('kabupaten')) {
-                setRoleInstitutions(cities);
-                return;
+                tableName = 'cities_jabar';
+                columnName = 'name';
             } else {
                 setRoleInstitutions([]);
                 return;
