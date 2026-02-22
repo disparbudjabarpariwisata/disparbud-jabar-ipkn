@@ -7,6 +7,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { ADMIN_EMAIL, adminMenuItems } from '@/lib/adminConfig';
 import { Loader2, Download, Search } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { cities } from '@/lib/data/cities';
 
 type RoleType = {
     id: string;
@@ -86,8 +87,8 @@ export default function AdminResultsPage() {
                 tableName = 'institution_names2';
                 columnName = 'name';
             } else if (rName.includes('kota') || rName.includes('kabupaten')) {
-                tableName = 'cities_jabar';
-                columnName = 'city_name';
+                setInstitutions(cities);
+                return;
             }
 
             if (tableName) {
