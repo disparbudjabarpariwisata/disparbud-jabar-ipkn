@@ -118,9 +118,11 @@ export default function SurveyStartPage() {
                 .eq('active', true)
                 .order('sort_order', { ascending: true });
 
-            // Filter by institution_name if questions have it
+            // Filter by institution_name to only show specific and global questions
             if (institutionName) {
-                query = query.eq('institution_name', institutionName);
+                // We use .or to fetch both null (global) and exact match. 
+                // Double quotes handle spaces/special characters in PostgREST.
+                query = query.or(`institution_name.is.null,institution_name.eq."${institutionName}"`);
             }
 
             const { data: qData, error: qError } = await query;

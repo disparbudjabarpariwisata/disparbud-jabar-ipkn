@@ -143,20 +143,21 @@ export default function AdminRespondentsPage() {
                     return;
                 }
 
-                // 3. Cari Total Pertanyaan "Required" untuk Role Ini (denominator)
+                // 3. Cari Total Pertanyaan "Required" untuk Role Ini (denominator base)
                 const targetRoleObj = roles.find(r => r.role_name === activeTab);
-                let requiredCount = 0;
+                let allRequiredQuestions: any[] = [];
 
                 if (targetRoleObj) {
-                    const { count: reqCount, error: qError } = await supabase
+                    const { data: qData, error: qError } = await supabase
                         .from('survey_questions')
-                        .select('id', { count: 'exact', head: true })
+                        .select('id, institution_name')
                         .eq('role_id', targetRoleObj.id)
                         .eq('is_required', true)
-                        .eq('active', true);
+                        .eq('active', true)
+                        .neq('question_type', 'section_break');
 
-                    if (!qError && reqCount !== null) {
-                        requiredCount = reqCount;
+                    if (!qError && qData) {
+                        allRequiredQuestions = qData;
                     }
                 }
 
@@ -164,6 +165,14 @@ export default function AdminRespondentsPage() {
                 // Kita akan melakukan map Promise.all untuk mengambil jumlah jawaban tiap orang
                 const enrichedData = await Promise.all(identities.map(async (user: any) => {
                     let progress = 0;
+
+                    // Tentukan pertanyaan wajib khusus untuk user ini
+                    // User menjawab pertanyaan yang institution_name-nya NULL (berlaku semua) ATAU sesuai institution mereka
+                    const userRequiredQuestions = allRequiredQuestions.filter(q => {
+                        return !q.institution_name || q.institution_name === user.institution;
+                    });
+
+                    const requiredCount = userRequiredQuestions.length;
 
                     if (requiredCount > 0) {
                         // Get all answers from this SPECIFIC respondent
@@ -174,14 +183,24 @@ export default function AdminRespondentsPage() {
 
                         if (!aError && answers) {
                             // Find unique questions answered
-                            const uniqueQuestionIds = new Set(answers.map(a => a.question_id));
-                            progress = Math.round((uniqueQuestionIds.size / requiredCount) * 100);
+                            const answeredIds = new Set(answers.map(a => a.question_id));
 
-                            // Cap at 100% just in case they answered optional questions too
+                            // Only count answers that belong to their required questions
+                            // to avoid over-calculating if they answered questions that later changed
+                            let validAnswerCount = 0;
+                            userRequiredQuestions.forEach(q => {
+                                if (answeredIds.has(q.id)) {
+                                    validAnswerCount++;
+                                }
+                            });
+
+                            progress = Math.round((validAnswerCount / requiredCount) * 100);
+
+                            // Cap at 100% just in case
                             progress = progress > 100 ? 100 : progress;
                         }
                     } else {
-                        // If no required questions set up by admin yet, we just assume 0% or N/A
+                        // If no required questions set up by admin yet
                         progress = 0;
                     }
 
