@@ -19,6 +19,7 @@ import {
     GripVertical,
     Building2,
 } from 'lucide-react';
+import { cities } from '@/lib/data/cities';
 
 interface RoleType {
     id: string;
@@ -163,6 +164,11 @@ export default function AdminQuestionsPage() {
                 } else {
                     setRoleInstitutions([]);
                 }
+            } else if (roleName.includes('kota') || roleName.includes('kabupaten')) {
+                // Use hardcoded cities array for Kota/Kabupaten
+                setRoleInstitutions(cities);
+            } else {
+                setRoleInstitutions([]);
             }
         };
 
