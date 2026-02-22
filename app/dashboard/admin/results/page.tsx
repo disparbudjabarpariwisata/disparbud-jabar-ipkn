@@ -189,7 +189,7 @@ export default function AdminResultsPage() {
 
                 formattedResults.push({
                     respondent_id: respondent.id,
-                    respondent_name: respondent.full_name || respondent.name || 'NN',
+                    respondent_name: respondent.pic_name || 'NN',
                     role_name: respondent.role_name_injected,
                     institution: respondent.institution || '-',
                     position: respondent.position || '-',
