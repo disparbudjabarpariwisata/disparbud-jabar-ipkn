@@ -8,6 +8,7 @@ import {
     Settings,
     HelpCircle,
     UserCheck,
+    ClipboardList,
 } from 'lucide-react';
 
 export const ADMIN_EMAIL = 'disparbudjabarpariwisata2026@gmail.com';
@@ -17,6 +18,7 @@ export const adminMenuItems = [
     { label: 'Users', href: '/dashboard/admin/users', icon: <Users size={18} /> },
     { label: 'Respondents', href: '/dashboard/admin/respondents', icon: <UserCheck size={18} /> },
     { label: 'Survey Questions', href: '/dashboard/admin/questions', icon: <HelpCircle size={18} /> },
+    { label: 'Result Survey', href: '/dashboard/admin/results', icon: <ClipboardList size={18} /> },
     { label: 'Role Types', href: '/dashboard/admin/role-types', icon: <Shield size={18} /> },
     { label: 'Institutions', href: '/dashboard/admin/institutions', icon: <Building2 size={18} /> },
     { label: 'Institutions Terkait', href: '/dashboard/admin/institutions-terkait', icon: <Building2 size={18} /> },
