@@ -32,16 +32,25 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Unauthorized. Admin access required.' }, { status: 401 });
         }
 
-        // 2. Define the tables to export
         const tables = [
             'profiles',
-            'institutions',
-            'institutions_terkait',
+            'registered_users',
+            'institution_names',
+            'institution_names2',
             'cities_jabar',
             'role_types',
-            'questions',
-            'survey_responses',
-            'survey_answers'
+            'survey_questions',
+            'survey_answers',
+            'survey_international_tourism',
+            'survey_komunitas',
+            'survey_pelaku_usaha',
+            'survey_pemda_kabkota',
+            'survey_pemerintah_pusat',
+            'survey_pemerintah_terkait',
+            'survey_perangkat_daerah',
+            'survey_swasta_terkait',
+            'hero_slides',
+            'seo_settings'
         ];
 
         // 3. Create a new workbook
@@ -49,7 +58,11 @@ export async function GET(request: Request) {
 
         // 4. Fetch data for each table and append as a sheet
         for (const table of tables) {
-            const { data, error } = await supabase.from(table).select('*').order('created_at', { ascending: false, nullsFirst: false }).limit(50000); // safety limit
+            let query = supabase.from(table).select('*').limit(50000);
+            if (table !== 'profiles') {
+                query = query.order('created_at', { ascending: true, nullsFirst: false });
+            }
+            const { data, error } = await query;
 
             if (error) {
                 console.error(`Error fetching table ${table}:`, error);
