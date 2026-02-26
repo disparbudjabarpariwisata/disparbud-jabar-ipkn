@@ -15,6 +15,7 @@ import {
     Loader2,
     HelpCircle,
     UserCheck,
+    Database,
 } from 'lucide-react';
 
 export default function AdminDashboardPage() {
@@ -60,6 +61,7 @@ export default function AdminDashboardPage() {
                         { label: 'Cities Jabar', href: '/dashboard/admin/cities-jabar', icon: <Building2 size={24} />, color: 'bg-cyan-50 text-cyan-600' },
                         { label: 'Hero Slider', href: '/dashboard/admin/hero-slider', icon: <Image size={24} />, color: 'bg-purple-50 text-purple-600' },
                         { label: 'SEO General', href: '/dashboard/admin/seo', icon: <Search size={24} />, color: 'bg-emerald-50 text-emerald-600' },
+                        { label: 'Database Backup', href: '/dashboard/admin/backup', icon: <Database size={24} />, color: 'bg-blue-50 text-blue-800' },
                         { label: 'Settings', href: '/dashboard/admin/settings', icon: <Settings size={24} />, color: 'bg-amber-50 text-amber-600' },
                     ].map((item) => (
                         <a

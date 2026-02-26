@@ -9,6 +9,7 @@ import {
     HelpCircle,
     UserCheck,
     ClipboardList,
+    Database,
 } from 'lucide-react';
 
 export const ADMIN_EMAIL = 'disparbudjabarpariwisata2026@gmail.com';
@@ -25,5 +26,6 @@ export const adminMenuItems = [
     { label: 'Cities Jabar', href: '/dashboard/admin/cities-jabar', icon: <Building2 size={18} /> },
     { label: 'Hero Slider', href: '/dashboard/admin/hero-slider', icon: <Image size={18} /> },
     { label: 'SEO General', href: '/dashboard/admin/seo', icon: <Search size={18} /> },
+    { label: 'Database Backup', href: '/dashboard/admin/backup', icon: <Database size={18} /> },
     { label: 'Settings', href: '/dashboard/admin/settings', icon: <Settings size={18} /> },
 ];
