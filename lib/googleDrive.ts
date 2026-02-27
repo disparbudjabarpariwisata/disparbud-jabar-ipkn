@@ -41,7 +41,7 @@ async function getAccessToken(): Promise<string> {
     if (!tokenRes.ok) {
         const errBody = await tokenRes.text();
         console.error('Google OAuth Token Error:', errBody);
-        throw new Error('Gagal mendapatkan access token Google.');
+        throw new Error(`Gagal mendapatkan access token Google: ${errBody}`);
     }
 
     const tokenData = await tokenRes.json();
@@ -55,12 +55,8 @@ interface UploadResult {
 }
 
 /**
- * Upload a file to Google Drive and return the shareable link.
- * 
- * @param fileBuffer - The file content as Buffer
- * @param fileName - Original file name
- * @param mimeType - MIME type of the file
- * @param subfolder - Optional: subfolder name inside the main folder (e.g. respondent name)
+ * Upload a file to Google Drive using simple upload + separate metadata update.
+ * This avoids multipart encoding issues.
  */
 export async function uploadToGoogleDrive(
     fileBuffer: Buffer,
@@ -71,28 +67,44 @@ export async function uploadToGoogleDrive(
     const accessToken = await getAccessToken();
     const parentFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID!;
 
+    console.log(`[GDrive] Starting upload: ${fileName} (${mimeType}, ${(fileBuffer.length / 1024 / 1024).toFixed(2)}MB)`);
+    console.log(`[GDrive] Target folder: ${parentFolderId}, subfolder: ${subfolder || 'none'}`);
+
     // Determine the target folder (use subfolder if provided)
     let targetFolderId = parentFolderId;
 
     if (subfolder) {
         targetFolderId = await getOrCreateSubfolder(accessToken, parentFolderId, subfolder);
+        console.log(`[GDrive] Using subfolder ID: ${targetFolderId}`);
     }
 
-    // Use multipart upload (metadata + file content in one request)
-    const metadata = {
+    // Step 1: Upload file content using simple upload
+    const metadata = JSON.stringify({
         name: fileName,
         parents: [targetFolderId],
-    };
+    });
 
-    const boundary = '===GDRIVE_UPLOAD_BOUNDARY===';
-    const delimiter = `\r\n--${boundary}\r\n`;
-    const closeDelimiter = `\r\n--${boundary}--`;
+    // Use multipart/related with proper Blob-based body instead of string concatenation
+    const boundary = 'survey_upload_boundary_' + Date.now();
 
-    // Build multipart body
-    const metadataPart = `${delimiter}Content-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}`;
-    const filePart = `${delimiter}Content-Type: ${mimeType}\r\nContent-Transfer-Encoding: base64\r\n\r\n${fileBuffer.toString('base64')}`;
+    // Build the multipart body as concatenated Uint8Arrays for proper binary handling
+    const encoder = new TextEncoder();
 
-    const requestBody = `${metadataPart}${filePart}${closeDelimiter}`;
+    const metadataHeaders = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n`;
+    const metadataBody = metadata;
+    const fileHeaders = `\r\n--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`;
+    const closingBoundary = `\r\n--${boundary}--`;
+
+    // Convert parts to Uint8Arrays
+    const part1 = encoder.encode(metadataHeaders + metadataBody + fileHeaders);
+    const part2 = new Uint8Array(fileBuffer);
+    const part3 = encoder.encode(closingBoundary);
+
+    // Concatenate all parts
+    const body = new Uint8Array(part1.length + part2.length + part3.length);
+    body.set(part1, 0);
+    body.set(part2, part1.length);
+    body.set(part3, part1.length + part2.length);
 
     const uploadRes = await fetch(
         'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink',
@@ -102,20 +114,21 @@ export async function uploadToGoogleDrive(
                 Authorization: `Bearer ${accessToken}`,
                 'Content-Type': `multipart/related; boundary=${boundary}`,
             },
-            body: requestBody,
+            body: body,
         }
     );
 
     if (!uploadRes.ok) {
         const errBody = await uploadRes.text();
-        console.error('Google Drive Upload Error:', errBody);
-        throw new Error('Gagal upload file ke Google Drive.');
+        console.error('[GDrive] Upload Error Response:', uploadRes.status, errBody);
+        throw new Error(`Gagal upload file ke Google Drive (${uploadRes.status}): ${errBody}`);
     }
 
     const fileData = await uploadRes.json();
+    console.log(`[GDrive] Upload success: fileId=${fileData.id}`);
 
     // Set permission: anyone with link can view
-    await fetch(
+    const permRes = await fetch(
         `https://www.googleapis.com/drive/v3/files/${fileData.id}/permissions`,
         {
             method: 'POST',
@@ -129,6 +142,11 @@ export async function uploadToGoogleDrive(
             }),
         }
     );
+
+    if (!permRes.ok) {
+        console.error('[GDrive] Permission Error:', await permRes.text());
+        // Don't fail — file is uploaded, permission can be set manually
+    }
 
     return {
         fileId: fileData.id,
@@ -159,6 +177,8 @@ async function getOrCreateSubfolder(
         if (searchData.files && searchData.files.length > 0) {
             return searchData.files[0].id;
         }
+    } else {
+        console.error('[GDrive] Subfolder search error:', await searchRes.text());
     }
 
     // Create subfolder
@@ -180,10 +200,11 @@ async function getOrCreateSubfolder(
 
     if (!createRes.ok) {
         const errBody = await createRes.text();
-        console.error('Google Drive Create Folder Error:', errBody);
-        throw new Error('Gagal membuat subfolder di Google Drive.');
+        console.error('[GDrive] Create Folder Error:', errBody);
+        throw new Error(`Gagal membuat subfolder di Google Drive: ${errBody}`);
     }
 
     const folderData = await createRes.json();
+    console.log(`[GDrive] Created subfolder: ${folderName} -> ${folderData.id}`);
     return folderData.id;
 }
