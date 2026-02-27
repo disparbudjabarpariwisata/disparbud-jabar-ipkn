@@ -1,47 +1,34 @@
-import jwt from 'jsonwebtoken';
-
 const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
 
 /**
- * Generate an OAuth2 access token from Service Account credentials using JWT
+ * Get a fresh access token using the stored refresh token.
+ * This uses OAuth2 Client Credentials + Refresh Token flow,
+ * so files are owned by the actual Gmail user (not a Service Account).
  */
 async function getAccessToken(): Promise<string> {
-    const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL!;
-    // Handle private key: strip surrounding quotes, then convert literal \n to real newlines
-    let privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || '';
-    // Remove surrounding quotes if present (some env parsers keep them)
-    if ((privateKey.startsWith('"') && privateKey.endsWith('"')) ||
-        (privateKey.startsWith("'") && privateKey.endsWith("'"))) {
-        privateKey = privateKey.slice(1, -1);
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
+
+    if (!clientId || !clientSecret || !refreshToken) {
+        throw new Error('Google OAuth2 credentials belum dikonfigurasi. Pastikan GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, dan GOOGLE_REFRESH_TOKEN sudah ada di environment variables.');
     }
-    // Convert literal \n sequences to actual newlines
-    privateKey = privateKey.replace(/\\n/g, '\n');
-
-    const now = Math.floor(Date.now() / 1000);
-
-    const payload = {
-        iss: email,
-        scope: SCOPES.join(' '),
-        aud: 'https://oauth2.googleapis.com/token',
-        iat: now,
-        exp: now + 3600, // 1 hour
-    };
-
-    const assertion = jwt.sign(payload, privateKey, { algorithm: 'RS256' });
 
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
-            grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-            assertion,
+            client_id: clientId,
+            client_secret: clientSecret,
+            refresh_token: refreshToken,
+            grant_type: 'refresh_token',
         }),
     });
 
     if (!tokenRes.ok) {
         const errBody = await tokenRes.text();
-        console.error('Google OAuth Token Error:', errBody);
-        throw new Error(`Gagal mendapatkan access token Google: ${errBody}`);
+        console.error('[GDrive] Token Refresh Error:', errBody);
+        throw new Error(`Gagal refresh access token Google: ${errBody}`);
     }
 
     const tokenData = await tokenRes.json();
@@ -55,8 +42,7 @@ interface UploadResult {
 }
 
 /**
- * Upload a file to Google Drive using simple upload + separate metadata update.
- * This avoids multipart encoding issues.
+ * Upload a file to Google Drive and return the shareable link.
  */
 export async function uploadToGoogleDrive(
     fileBuffer: Buffer,
@@ -68,9 +54,8 @@ export async function uploadToGoogleDrive(
     const parentFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID!;
 
     console.log(`[GDrive] Starting upload: ${fileName} (${mimeType}, ${(fileBuffer.length / 1024 / 1024).toFixed(2)}MB)`);
-    console.log(`[GDrive] Target folder: ${parentFolderId}, subfolder: ${subfolder || 'none'}`);
 
-    // Determine the target folder (use subfolder if provided)
+    // Determine the target folder
     let targetFolderId = parentFolderId;
 
     if (subfolder) {
@@ -78,29 +63,23 @@ export async function uploadToGoogleDrive(
         console.log(`[GDrive] Using subfolder ID: ${targetFolderId}`);
     }
 
-    // Step 1: Upload file content using simple upload
+    // Build multipart body with proper binary handling
     const metadata = JSON.stringify({
         name: fileName,
         parents: [targetFolderId],
     });
 
-    // Use multipart/related with proper Blob-based body instead of string concatenation
     const boundary = 'survey_upload_boundary_' + Date.now();
-
-    // Build the multipart body as concatenated Uint8Arrays for proper binary handling
     const encoder = new TextEncoder();
 
     const metadataHeaders = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n`;
-    const metadataBody = metadata;
     const fileHeaders = `\r\n--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`;
     const closingBoundary = `\r\n--${boundary}--`;
 
-    // Convert parts to Uint8Arrays
-    const part1 = encoder.encode(metadataHeaders + metadataBody + fileHeaders);
+    const part1 = encoder.encode(metadataHeaders + metadata + fileHeaders);
     const part2 = new Uint8Array(fileBuffer);
     const part3 = encoder.encode(closingBoundary);
 
-    // Concatenate all parts
     const body = new Uint8Array(part1.length + part2.length + part3.length);
     body.set(part1, 0);
     body.set(part2, part1.length);
@@ -120,7 +99,7 @@ export async function uploadToGoogleDrive(
 
     if (!uploadRes.ok) {
         const errBody = await uploadRes.text();
-        console.error('[GDrive] Upload Error Response:', uploadRes.status, errBody);
+        console.error('[GDrive] Upload Error:', uploadRes.status, errBody);
         throw new Error(`Gagal upload file ke Google Drive (${uploadRes.status}): ${errBody}`);
     }
 
@@ -145,7 +124,6 @@ export async function uploadToGoogleDrive(
 
     if (!permRes.ok) {
         console.error('[GDrive] Permission Error:', await permRes.text());
-        // Don't fail — file is uploaded, permission can be set manually
     }
 
     return {
@@ -163,7 +141,6 @@ async function getOrCreateSubfolder(
     parentFolderId: string,
     folderName: string
 ): Promise<string> {
-    // Search for existing subfolder
     const query = `name='${folderName}' and '${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
     const searchRes = await fetch(
         `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name)`,
@@ -181,7 +158,6 @@ async function getOrCreateSubfolder(
         console.error('[GDrive] Subfolder search error:', await searchRes.text());
     }
 
-    // Create subfolder
     const createRes = await fetch(
         'https://www.googleapis.com/drive/v3/files?fields=id',
         {
@@ -201,7 +177,7 @@ async function getOrCreateSubfolder(
     if (!createRes.ok) {
         const errBody = await createRes.text();
         console.error('[GDrive] Create Folder Error:', errBody);
-        throw new Error(`Gagal membuat subfolder di Google Drive: ${errBody}`);
+        throw new Error(`Gagal membuat subfolder: ${errBody}`);
     }
 
     const folderData = await createRes.json();
