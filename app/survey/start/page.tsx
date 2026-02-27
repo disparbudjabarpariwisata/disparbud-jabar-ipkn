@@ -1,10 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { Loader2, AlertCircle, Save, CheckCircle2 } from 'lucide-react';
+import { Loader2, AlertCircle, Save, CheckCircle2, Upload, FileCheck, X } from 'lucide-react';
 import LikertSlider from '@/components/LikertSlider';
+
+// Allowed file types and max size
+const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.xlsx', '.pptx', '.jpeg', '.jpg', '.png'];
+const MAX_FILE_SIZE_MB = 10;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 interface SurveyQuestion {
     id: string;
@@ -67,9 +72,12 @@ export default function SurveyStartPage() {
     const [roleId, setRoleId] = useState<string | null>(null);
     const [questions, setQuestions] = useState<SurveyQuestion[]>([]);
     const [answers, setAnswers] = useState<Record<string, any>>({});
+    const [fileObjects, setFileObjects] = useState<Record<string, File>>({}); // Store actual File objects keyed by question_id
+    const [uploadProgress, setUploadProgress] = useState<Record<string, 'idle' | 'uploading' | 'done' | 'error'>>({}); // Track upload status per file
 
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isUploadingFiles, setIsUploadingFiles] = useState(false);
     const [isSavingProgress, setIsSavingProgress] = useState(false);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -157,12 +165,11 @@ export default function SurveyStartPage() {
             try {
                 // Determine visible payload
                 const payload = questions
-                    .filter(q => q.question_type !== 'section_break') // Never save section breaks
+                    .filter(q => q.question_type !== 'section_break' && q.question_type !== 'file_upload') // Never save section breaks or file uploads (handled separately)
                     .map(q => {
                         const ans = answers[q.id];
                         const isJson = q.question_type === 'checkbox';
                         let stringAns = String(ans || '');
-                        if (q.question_type === 'file_upload') stringAns = 'FILE_UPLOAD_PENDING';
 
                         return {
                             question_id: q.id,
@@ -296,14 +303,60 @@ export default function SurveyStartPage() {
         setIsSubmitting(true);
 
         try {
-            // Format payload ONLY from visible questions so we don't save hidden/skipped data
+            // Step 1: Upload all file_upload files to Google Drive first
+            const fileUploadQuestions = visibleQuestions.filter(
+                q => q.question_type === 'file_upload' && fileObjects[q.id]
+            );
+
+            if (fileUploadQuestions.length > 0) {
+                setIsUploadingFiles(true);
+
+                for (const q of fileUploadQuestions) {
+                    const file = fileObjects[q.id];
+                    if (!file) continue;
+
+                    setUploadProgress(prev => ({ ...prev, [q.id]: 'uploading' }));
+
+                    try {
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        formData.append('respondent_id', identity.id);
+                        formData.append('question_id', q.id);
+                        formData.append('role_id', roleId!);
+                        formData.append('institution_name', identity.institution || '');
+
+                        const uploadRes = await fetch('/api/survey/upload-file', {
+                            method: 'POST',
+                            body: formData,
+                        });
+
+                        if (!uploadRes.ok) {
+                            const errData = await uploadRes.json();
+                            throw new Error(errData.error || 'Upload gagal');
+                        }
+
+                        const uploadData = await uploadRes.json();
+
+                        // Update the answer with the Google Drive URL
+                        setAnswers(prev => ({ ...prev, [q.id]: uploadData.fileUrl }));
+                        setUploadProgress(prev => ({ ...prev, [q.id]: 'done' }));
+                    } catch (uploadErr: any) {
+                        console.error(`Upload failed for question ${q.id}:`, uploadErr);
+                        setUploadProgress(prev => ({ ...prev, [q.id]: 'error' }));
+                        throw new Error(`Gagal upload file "${file.name}": ${uploadErr.message}`);
+                    }
+                }
+
+                setIsUploadingFiles(false);
+            }
+
+            // Step 2: Format and save all non-file answers
             const payload = visibleQuestions
-                .filter(q => q.question_type !== 'section_break') // Never save section breaks
+                .filter(q => q.question_type !== 'section_break' && q.question_type !== 'file_upload')
                 .map(q => {
                     const ans = answers[q.id];
                     const isJson = q.question_type === 'checkbox';
                     let stringAns = String(ans || '');
-                    if (q.question_type === 'file_upload') stringAns = 'FILE_UPLOAD_PENDING';
 
                     return {
                         question_id: q.id,
@@ -330,10 +383,8 @@ export default function SurveyStartPage() {
                 throw new Error(errorData?.error || 'Submit Error');
             }
 
-            // Mark completion if needed or handle navigation
+            // Mark completion
             setSuccess("Terima kasih! Survei Anda berhasil disimpan.");
-
-            // Clear identity so they cant re-submit easily without new pin
             localStorage.removeItem('surveyIdentity');
 
             setTimeout(() => {
@@ -342,7 +393,8 @@ export default function SurveyStartPage() {
 
         } catch (err: any) {
             console.error("Submit Error:", err);
-            setError("Terjadi kesalahan sistem saat menyimpan jawaban Anda. Silakan coba lagi.");
+            setIsUploadingFiles(false);
+            setError(err.message || "Terjadi kesalahan sistem saat menyimpan jawaban Anda. Silakan coba lagi.");
         } finally {
             setIsSubmitting(false);
         }
@@ -509,22 +561,89 @@ export default function SurveyStartPage() {
                         />
                     </div>
                 );
-            case 'file_upload':
+            case 'file_upload': {
+                const currentFile = fileObjects[q.id];
+                const progress = uploadProgress[q.id];
                 return (
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                         <input
                             type="file"
+                            accept=".pdf,.docx,.xlsx,.pptx,.jpeg,.jpg,.png"
                             onChange={(e) => {
                                 const file = e.target.files?.[0];
-                                if (file) {
-                                    handleAnswerChange(q.id, `FILE_UPLOAD_PENDING: ${file.name}`, 'file_upload');
+                                if (!file) return;
+
+                                // Validate file size
+                                if (file.size > MAX_FILE_SIZE_BYTES) {
+                                    setValidationErrors(prev => ({
+                                        ...prev,
+                                        [q.id]: `Ukuran file ${(file.size / 1024 / 1024).toFixed(1)}MB melebihi batas maksimal ${MAX_FILE_SIZE_MB}MB.`
+                                    }));
+                                    e.target.value = ''; // Reset input
+                                    return;
                                 }
+
+                                // Validate file extension
+                                const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+                                if (!ALLOWED_EXTENSIONS.includes(ext)) {
+                                    setValidationErrors(prev => ({
+                                        ...prev,
+                                        [q.id]: `Tipe file "${ext}" tidak diizinkan. Gunakan: ${ALLOWED_EXTENSIONS.join(', ')}`
+                                    }));
+                                    e.target.value = '';
+                                    return;
+                                }
+
+                                // Store the File object and update answer display
+                                setFileObjects(prev => ({ ...prev, [q.id]: file }));
+                                handleAnswerChange(q.id, file.name, 'file_upload');
+                                setUploadProgress(prev => ({ ...prev, [q.id]: 'idle' }));
                             }}
                             className={`w-full p-3 rounded-xl border bg-white outline-none transition-all cursor-pointer file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 ${errorClass}`}
                         />
-                        <p className="text-xs text-slate-400 font-medium">Berkas ukuran sedang akan dikirimkan serentak ke server saat tombol submit ditekan.</p>
+                        {/* File info badge */}
+                        {currentFile && (
+                            <div className={`flex items-center gap-2 p-3 rounded-lg border text-sm ${progress === 'done' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' :
+                                    progress === 'error' ? 'bg-red-50 border-red-200 text-red-700' :
+                                        progress === 'uploading' ? 'bg-blue-50 border-blue-200 text-blue-700' :
+                                            'bg-slate-50 border-slate-200 text-slate-600'
+                                }`}>
+                                {progress === 'uploading' ? (
+                                    <Loader2 size={16} className="animate-spin shrink-0" />
+                                ) : progress === 'done' ? (
+                                    <FileCheck size={16} className="shrink-0" />
+                                ) : progress === 'error' ? (
+                                    <AlertCircle size={16} className="shrink-0" />
+                                ) : (
+                                    <Upload size={16} className="shrink-0" />
+                                )}
+                                <span className="truncate font-medium">{currentFile.name}</span>
+                                <span className="text-xs opacity-70 shrink-0">({(currentFile.size / 1024 / 1024).toFixed(1)}MB)</span>
+                                {progress === 'uploading' && <span className="text-xs">Mengupload...</span>}
+                                {progress === 'done' && <span className="text-xs">✓ Terupload</span>}
+                                {progress === 'error' && <span className="text-xs">Gagal</span>}
+                                {progress !== 'uploading' && progress !== 'done' && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setFileObjects(prev => { const copy = { ...prev }; delete copy[q.id]; return copy; });
+                                            setAnswers(prev => { const copy = { ...prev }; delete copy[q.id]; return copy; });
+                                            setUploadProgress(prev => { const copy = { ...prev }; delete copy[q.id]; return copy; });
+                                        }}
+                                        className="ml-auto text-slate-400 hover:text-red-500 transition-colors"
+                                        title="Hapus file"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                        <p className="text-xs text-slate-400 font-medium">
+                            Format: PDF, DOCX, XLSX, PPTX, JPEG, PNG. Maks {MAX_FILE_SIZE_MB}MB per file. File akan diupload saat Submit.
+                        </p>
                     </div>
                 );
+            }
             default:
                 return null;
         }
@@ -678,7 +797,7 @@ export default function SurveyStartPage() {
                                 {isSubmitting ? (
                                     <>
                                         <Loader2 className="animate-spin" size={20} />
-                                        <span>Menyimpan...</span>
+                                        <span>{isUploadingFiles ? 'Mengupload file...' : 'Menyimpan...'}</span>
                                     </>
                                 ) : (
                                     <>
