@@ -7,7 +7,15 @@ const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
  */
 async function getAccessToken(): Promise<string> {
     const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL!;
-    const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY!.replace(/\\n/g, '\n');
+    // Handle private key: strip surrounding quotes, then convert literal \n to real newlines
+    let privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || '';
+    // Remove surrounding quotes if present (some env parsers keep them)
+    if ((privateKey.startsWith('"') && privateKey.endsWith('"')) ||
+        (privateKey.startsWith("'") && privateKey.endsWith("'"))) {
+        privateKey = privateKey.slice(1, -1);
+    }
+    // Convert literal \n sequences to actual newlines
+    privateKey = privateKey.replace(/\\n/g, '\n');
 
     const now = Math.floor(Date.now() / 1000);
 
