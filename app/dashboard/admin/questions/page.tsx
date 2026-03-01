@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
+import MultipleInputBuilder from '@/components/admin/MultipleInputBuilder';
 import { supabase } from '@/lib/supabaseClient';
 import { adminMenuItems, ADMIN_EMAIL } from '@/lib/adminConfig';
 import {
@@ -575,16 +576,10 @@ export default function AdminQuestionsPage() {
                             )}
 
                             {form.question_type === 'multiple_input' && (
-                                <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl mt-4">
-                                    <label className="block text-sm font-bold text-purple-900 mb-1.5">JSON Schema Array</label>
-                                    <p className="text-xs text-purple-700 mb-2">Konfigurasi struktur objek JSON array untuk mendefinisikan layout.</p>
-                                    <textarea
-                                        rows={10}
-                                        value={form.options}
-                                        onChange={(e) => setForm({ ...form, options: e.target.value })}
-                                        className="w-full font-mono px-4 py-3 rounded-xl border border-purple-300 focus:border-purple-500 outline-none text-sm bg-white"
-                                    />
-                                </div>
+                                <MultipleInputBuilder
+                                    value={form.options}
+                                    onChange={(val) => setForm({ ...form, options: val })}
+                                />
                             )}
 
                             <div className="flex items-center gap-6 pt-2">
