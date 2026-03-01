@@ -16,7 +16,7 @@ interface SurveyQuestion {
     role_id: string;
     institution_name: string | null;
     question_text: string;
-    question_type: 'text' | 'textarea' | 'radio' | 'checkbox' | 'dropdown' | 'number' | 'date' | 'linear_scale' | 'file_upload' | 'section_break' | 'url_website' | 'url_youtube' | 'url_gdrive' | 'url_social_media';
+    question_type: 'text' | 'textarea' | 'radio' | 'checkbox' | 'dropdown' | 'number' | 'date' | 'linear_scale' | 'file_upload' | 'section_break' | 'url_website' | 'url_youtube' | 'url_gdrive' | 'url_social_media' | 'multiple_input';
     options: string[] | null;
     is_required: boolean;
     sort_order: number;
@@ -72,7 +72,8 @@ export default function SurveyStartPage() {
     const [roleId, setRoleId] = useState<string | null>(null);
     const [questions, setQuestions] = useState<SurveyQuestion[]>([]);
     const [answers, setAnswers] = useState<Record<string, any>>({});
-    const [fileObjects, setFileObjects] = useState<Record<string, File>>({}); // Store actual File objects keyed by question_id
+    const [multipleAnswers, setMultipleAnswers] = useState<Record<string, any[]>>({}); // for complex multiple inputs
+    const [fileObjects, setFileObjects] = useState<Record<string, File>>({}); // Store actual File objects keyed by question_id or composite id
     const [uploadProgress, setUploadProgress] = useState<Record<string, 'idle' | 'uploading' | 'done' | 'error'>>({}); // Track upload status per file
 
     const [isLoading, setIsLoading] = useState(true);
@@ -146,6 +147,16 @@ export default function SurveyStartPage() {
                 if (progressData.success && progressData.data) {
                     setAnswers(progressData.data);
                 }
+                if (progressData.success && progressData.multiple_data) {
+
+                    // Group the multiple answers by question_id
+                    const grouped = progressData.multiple_data.reduce((acc: any, row: any) => {
+                        if (!acc[row.question_id]) acc[row.question_id] = [];
+                        acc[row.question_id].push(row);
+                        return acc;
+                    }, {});
+                    setMultipleAnswers(grouped);
+                }
             }
 
         } catch (err: any) {
@@ -180,14 +191,22 @@ export default function SurveyStartPage() {
                     // Only save those that actually have answers
                     .filter(ans => ans.answer_text !== null || (ans.answer_json && ans.answer_json.length > 0));
 
-                if (payload.length > 0) {
+                // Determine multiple payloads
+                const multiplePayload = Object.keys(multipleAnswers).flatMap(qId => {
+                    const ansArray = multipleAnswers[qId];
+                    if (!ansArray) return [];
+                    return ansArray.filter(a => a.answer_value || fileObjects[`${qId}_${a.group_label}_${a.field_label}`]); // save if there is an answer or a file attached
+                });
+
+                if (payload.length > 0 || multiplePayload.length > 0) {
                     await fetch("/api/survey/save-progress", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
                             respondent_id: identity.id,
                             role_id: roleId,
-                            answers: payload
+                            answers: payload,
+                            multiple_answers: multiplePayload
                         })
                     });
                     setLastSaved(new Date());
@@ -218,6 +237,37 @@ export default function SurveyStartPage() {
         } else {
             setAnswers(prev => ({ ...prev, [questionId]: value }));
         }
+    };
+
+    const handleMultipleAnswerChange = (questionId: string, groupLabel: string, fieldLabel: string, fieldType: string, value: any) => {
+        setValidationErrors(prev => ({ ...prev, [questionId]: '' }));
+
+        setMultipleAnswers(prev => {
+            const currentAnswers = prev[questionId] || [];
+
+            // Check if this exact field in this group already exists
+            const existingIndex = currentAnswers.findIndex(a => a.group_label === groupLabel && a.field_label === fieldLabel);
+
+            const newAnswerObj = {
+                question_id: questionId,
+                group_label: groupLabel,
+                field_label: fieldLabel,
+                field_type: fieldType,
+                answer_value: value
+            };
+
+            const newAnswers = [...currentAnswers];
+            if (existingIndex >= 0) {
+                newAnswers[existingIndex] = newAnswerObj;
+            } else {
+                newAnswers.push(newAnswerObj);
+            }
+
+            return {
+                ...prev,
+                [questionId]: newAnswers
+            };
+        });
     };
 
     // Calculate which questions are currently visible based on conditional logic
@@ -259,6 +309,18 @@ export default function SurveyStartPage() {
         // ONLY validate visible questions
         visibleQuestions.forEach(q => {
             if (q.question_type === 'section_break') return;
+
+            if (q.question_type === 'multiple_input') {
+                if (q.is_required) {
+                    const ansArray = multipleAnswers[q.id];
+                    if (!ansArray || ansArray.length === 0) {
+                        errors[q.id] = "Pertanyaan ini wajib diisi dengan lengkap.";
+                        isValid = false;
+                    }
+                }
+                return; // complex validation can be added inside the component if needed
+            }
+
             const ans = answers[q.id];
 
             if (q.is_required) {
@@ -304,14 +366,18 @@ export default function SurveyStartPage() {
 
         try {
             // Step 1: Upload all file_upload files to Google Drive first
-            const fileUploadQuestions = visibleQuestions.filter(
+            const standardFileUploadQuestions = visibleQuestions.filter(
                 q => q.question_type === 'file_upload' && fileObjects[q.id]
             );
 
-            if (fileUploadQuestions.length > 0) {
+            // Also find all multiple input files
+            const multipleFileUploadKeys = Object.keys(fileObjects).filter(k => k.includes('_'));
+
+            if (standardFileUploadQuestions.length > 0 || multipleFileUploadKeys.length > 0) {
                 setIsUploadingFiles(true);
 
-                for (const q of fileUploadQuestions) {
+                // Handle standard uploads
+                for (const q of standardFileUploadQuestions) {
                     const file = fileObjects[q.id];
                     if (!file) continue;
 
@@ -347,6 +413,55 @@ export default function SurveyStartPage() {
                     }
                 }
 
+                // Handle multiple input uploads
+                for (const fileKey of multipleFileUploadKeys) {
+                    const file = fileObjects[fileKey];
+                    if (!file) continue;
+
+                    // Extract question_id, group_label, field_label from the composite key
+                    const firstUnderscore = fileKey.indexOf('_');
+                    const question_id = fileKey.substring(0, firstUnderscore);
+
+                    setUploadProgress(prev => ({ ...prev, [fileKey]: 'uploading' }));
+
+                    try {
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        formData.append('respondent_id', identity.id);
+                        formData.append('question_id', question_id);
+                        formData.append('role_id', roleId!);
+                        formData.append('institution_name', identity.institution || '');
+
+                        const uploadRes = await fetch('/api/survey/upload-file', {
+                            method: 'POST',
+                            body: formData,
+                        });
+
+                        if (!uploadRes.ok) throw new Error('Upload gagal');
+                        const uploadData = await uploadRes.json();
+
+                        // We need to update multipleAnswers array for this question
+                        setMultipleAnswers(prev => {
+                            const currentArr = prev[question_id] || [];
+                            return {
+                                ...prev,
+                                [question_id]: currentArr.map(ans => {
+                                    // if this answer matches the fileKey logic, update its answer_value
+                                    if (`${question_id}_${ans.group_label}_${ans.field_label}` === fileKey) {
+                                        return { ...ans, answer_value: uploadData.fileUrl };
+                                    }
+                                    return ans;
+                                })
+                            };
+                        });
+                        setUploadProgress(prev => ({ ...prev, [fileKey]: 'done' }));
+
+                    } catch (uploadErr: any) {
+                        setUploadProgress(prev => ({ ...prev, [fileKey]: 'error' }));
+                        throw new Error(`Gagal upload file "${file.name}"`);
+                    }
+                }
+
                 setIsUploadingFiles(false);
             }
 
@@ -365,6 +480,13 @@ export default function SurveyStartPage() {
                     };
                 });
 
+            const multiplePayload = Object.keys(multipleAnswers).flatMap(qId => {
+                const ansArray = multipleAnswers[qId];
+                if (!ansArray) return [];
+                // if it's a file, we should now have the google drive link inside multipleAnswers (or pending if not yet state-updated, but we'll manually attach in the next tick if needed. For now, since state updates are async, we actually construct it from the latest data)
+                return ansArray;
+            });
+
             console.log('Survey payload:', JSON.stringify(payload, null, 2));
 
             const response = await fetch("/api/survey/save-progress", {
@@ -373,7 +495,8 @@ export default function SurveyStartPage() {
                 body: JSON.stringify({
                     respondent_id: identity.id,
                     role_id: roleId,
-                    answers: payload
+                    answers: payload,
+                    multiple_answers: multiplePayload
                 })
             });
 
@@ -604,9 +727,9 @@ export default function SurveyStartPage() {
                         {/* File info badge */}
                         {currentFile && (
                             <div className={`flex items-center gap-2 p-3 rounded-lg border text-sm ${progress === 'done' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' :
-                                    progress === 'error' ? 'bg-red-50 border-red-200 text-red-700' :
-                                        progress === 'uploading' ? 'bg-blue-50 border-blue-200 text-blue-700' :
-                                            'bg-slate-50 border-slate-200 text-slate-600'
+                                progress === 'error' ? 'bg-red-50 border-red-200 text-red-700' :
+                                    progress === 'uploading' ? 'bg-blue-50 border-blue-200 text-blue-700' :
+                                        'bg-slate-50 border-slate-200 text-slate-600'
                                 }`}>
                                 {progress === 'uploading' ? (
                                     <Loader2 size={16} className="animate-spin shrink-0" />
@@ -641,6 +764,174 @@ export default function SurveyStartPage() {
                         <p className="text-xs text-slate-400 font-medium">
                             Format: PDF, DOCX, XLSX, PPTX, JPEG, PNG. Maks {MAX_FILE_SIZE_MB}MB per file. File akan diupload saat Submit.
                         </p>
+                    </div>
+                );
+            }
+            case 'multiple_input': {
+                if (!q.options || q.options.length === 0) return null;
+
+                let schemaObj: any;
+                try {
+                    // Because options in DB is a jsonb, but Supabase SDK returns it as an array if it was inserted as such,
+                    // we need to safely parse the schema out of it.
+                    if (Array.isArray(q.options) && typeof q.options[0] === 'string') {
+                        schemaObj = JSON.parse(q.options[0]);
+                    } else if (typeof q.options === 'object') {
+                        schemaObj = q.options as any;
+                    }
+                } catch (e) {
+                    console.error("Failed to parse multiple_input schema:", e);
+                    return null;
+                }
+
+                if (!schemaObj || !schemaObj.schema || !Array.isArray(schemaObj.schema)) return null;
+
+                return (
+                    <div className="space-y-6 sm:space-y-8 mt-4">
+                        {schemaObj.schema.map((group: any, gIdx: number) => {
+                            if (group.type === 'group') {
+                                return (
+                                    <div key={gIdx} className="bg-slate-50 rounded-2xl p-4 sm:p-6 border border-slate-100">
+                                        <h4 className="font-semibold text-slate-800 mb-4">{group.label}</h4>
+                                        <div className="space-y-4">
+                                            {group.fields?.map((field: any, fIdx: number) => {
+                                                const currentAnswersGroup = multipleAnswers[q.id] || [];
+                                                const ansObj = currentAnswersGroup.find(a => a.group_label === group.label && a.field_label === field.label);
+                                                const fieldVal = ansObj ? ansObj.answer_value : '';
+
+                                                const compId = `${q.id}_${group.label}_${field.label}`;
+                                                let innerInput = null;
+
+                                                if (field.type === 'file_upload') {
+                                                    const currentFile = fileObjects[compId];
+                                                    const progress = uploadProgress[compId];
+                                                    innerInput = (
+                                                        <div className="space-y-3">
+                                                            <input
+                                                                type="file"
+                                                                accept=".pdf,.docx,.xlsx,.pptx,.jpeg,.jpg,.png"
+                                                                onChange={(e) => {
+                                                                    const file = e.target.files?.[0];
+                                                                    if (!file) return;
+                                                                    if (file.size > MAX_FILE_SIZE_BYTES) {
+                                                                        alert(`Ukuran file melebihi batas maksimal ${MAX_FILE_SIZE_MB}MB.`);
+                                                                        e.target.value = ''; return;
+                                                                    }
+                                                                    setFileObjects(prev => ({ ...prev, [compId]: file }));
+                                                                    handleMultipleAnswerChange(q.id, group.label, field.label, field.type, file.name);
+                                                                    setUploadProgress(prev => ({ ...prev, [compId]: 'idle' }));
+                                                                }}
+                                                                className="w-full p-2.5 rounded-xl border bg-white outline-none transition-all cursor-pointer file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 text-sm border-slate-200"
+                                                            />
+                                                            {fieldVal && !currentFile && typeof fieldVal === 'string' && fieldVal.startsWith('http') && (
+                                                                <a href={fieldVal} target="_blank" rel="noreferrer" className="text-sm text-emerald-600 font-medium hover:underline inline-flex items-center gap-1">
+                                                                    <FileCheck size={14} /> Lihat File Tersimpan
+                                                                </a>
+                                                            )}
+                                                            {currentFile && (
+                                                                <div className="flex items-center gap-2 p-2.5 rounded-lg border text-sm bg-slate-50 border-slate-200 text-slate-600">
+                                                                    <Upload size={14} className="shrink-0" />
+                                                                    <span className="truncate font-medium flex-1">{currentFile.name} ({progress === 'uploading' ? '...' : (currentFile.size / 1024 / 1024).toFixed(1) + 'MB'})</span>
+                                                                    <button type="button" onClick={() => {
+                                                                        setFileObjects(prev => { const copy = { ...prev }; delete copy[compId]; return copy; });
+                                                                        handleMultipleAnswerChange(q.id, group.label, field.label, field.type, '');
+                                                                        setUploadProgress(prev => { const copy = { ...prev }; delete copy[compId]; return copy; });
+                                                                    }} className="text-slate-400 hover:text-red-500"><X size={14} /></button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                } else if (field.type === 'textarea') {
+                                                    innerInput = (
+                                                        <textarea rows={3} value={fieldVal || ''} onChange={(e) => handleMultipleAnswerChange(q.id, group.label, field.label, field.type, e.target.value)} className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#10b981] outline-none transition-all text-sm" placeholder="Mulai mengetik..." />
+                                                    );
+                                                }
+
+                                                return (
+                                                    <div key={fIdx}>
+                                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">{field.label}</label>
+                                                        {field.description && <p className="text-xs text-slate-400 mb-2">{field.description}</p>}
+                                                        {innerInput}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                );
+                            } else if (group.type === 'dynamic_list') {
+                                // Determine how many dynamic items exist currently by finding the max index used in group_label
+                                const currentAnswersGroup = multipleAnswers[q.id] || [];
+                                const dynamicAnswers = currentAnswersGroup.filter(a => a.group_label && a.group_label.startsWith(group.item_label));
+
+                                // Parse out the highest number, e.g., "Jawaban Bukti Konten [1]" -> 1
+                                let maxCount = 1; // Default min is 1
+                                dynamicAnswers.forEach(a => {
+                                    const match = a.group_label.match(/\[(\d+)\]/);
+                                    if (match && match[1]) {
+                                        const num = parseInt(match[1], 10);
+                                        if (num > maxCount) maxCount = num;
+                                    }
+                                });
+
+                                // We want to render maxCount number of forms
+                                const itemForms = Array.from({ length: maxCount }, (_, i) => i + 1);
+
+                                return (
+                                    <div key={gIdx} className="bg-slate-50 rounded-2xl p-4 sm:p-6 border border-slate-100">
+                                        <h4 className="font-semibold text-slate-800 mb-4 pb-3 border-b border-slate-200">{group.label}</h4>
+
+                                        <div className="space-y-6">
+                                            {itemForms.map((itemNum) => {
+                                                const activeGroupLabel = `${group.item_label} [${itemNum}]`;
+
+                                                return (
+                                                    <div key={itemNum} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative">
+                                                        <h5 className="text-sm font-bold text-slate-500 mb-3 uppercase tracking-wider">{activeGroupLabel}</h5>
+
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                            {group.fields?.map((field: any, fIdx: number) => {
+                                                                const ansObj = currentAnswersGroup.find(a => a.group_label === activeGroupLabel && a.field_label === field.label);
+                                                                const fieldVal = ansObj ? ansObj.answer_value : '';
+
+                                                                let innerInput = null;
+                                                                if (field.type === 'text') {
+                                                                    innerInput = <input type="text" value={fieldVal || ''} onChange={(e) => handleMultipleAnswerChange(q.id, activeGroupLabel, field.label, field.type, e.target.value)} className="w-full p-2.5 rounded-lg border border-slate-200 outline-none text-sm focus:border-[#10b981]" placeholder="Judul..." />;
+                                                                } else if (field.type === 'url_website') {
+                                                                    innerInput = <input type="url" value={fieldVal || ''} onChange={(e) => handleMultipleAnswerChange(q.id, activeGroupLabel, field.label, field.type, e.target.value)} className="w-full p-2.5 rounded-lg border border-slate-200 outline-none text-sm focus:border-[#10b981]" placeholder="https://..." />;
+                                                                }
+
+                                                                return (
+                                                                    <div key={fIdx}>
+                                                                        <label className="block text-xs font-semibold text-slate-600 mb-1">{field.label}</label>
+                                                                        {innerInput}
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                // Trigger a state update by just adding an empty answer for the newly grouped number
+                                                const nextNum = maxCount + 1;
+                                                const firstField = group.fields[0];
+                                                if (firstField) {
+                                                    handleMultipleAnswerChange(q.id, `${group.item_label} [${nextNum}]`, firstField.label, firstField.type, '');
+                                                }
+                                            }}
+                                            className="mt-4 px-4 py-2 bg-emerald-50 text-emerald-700 font-semibold rounded-lg text-sm hover:bg-emerald-100 transition-colors border border-emerald-200"
+                                        >
+                                            + Tambah {group.item_label}
+                                        </button>
+                                    </div>
+                                );
+                            }
+                            return null;
+                        })}
                     </div>
                 );
             }

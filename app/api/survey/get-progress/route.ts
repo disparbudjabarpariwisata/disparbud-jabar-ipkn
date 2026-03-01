@@ -10,6 +10,7 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'ID Responden wajib diisi.' }, { status: 400 });
         }
 
+        // Fetch standard answers
         const { data, error } = await supabaseAdmin
             .from('survey_answers')
             .select('question_id, answer_text, answer_json')
@@ -18,6 +19,17 @@ export async function GET(request: Request) {
         if (error) {
             console.error('Fetch Error:', error);
             throw error;
+        }
+
+        // Fetch multiple answers
+        const { data: multipleData, error: multipleError } = await supabaseAdmin
+            .from('survey_multiple_answers')
+            .select('question_id, group_label, field_label, field_type, answer_value')
+            .eq('respondent_id', respondentId);
+
+        if (multipleError) {
+            console.error('Fetch Multiple Error:', multipleError);
+            throw multipleError;
         }
 
         // Transform results back into a Record<question_id, any value> map shape expected by SurveyStartPage
@@ -30,7 +42,7 @@ export async function GET(request: Request) {
             }
         });
 
-        return NextResponse.json({ success: true, data: formatted });
+        return NextResponse.json({ success: true, data: formatted, multiple_data: multipleData || [] });
 
     } catch (error) {
         console.error("API Route Error:", error);
