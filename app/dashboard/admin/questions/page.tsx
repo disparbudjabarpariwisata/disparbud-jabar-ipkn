@@ -78,6 +78,8 @@ export default function AdminQuestionsPage() {
     // Filters
     const [searchQuery, setSearchQuery] = useState('');
     const [filterRoleId, setFilterRoleId] = useState('');
+    const [filterInstitutionName, setFilterInstitutionName] = useState('');
+    const [filterInstitutionsList, setFilterInstitutionsList] = useState<string[]>([]);
 
     // Modal
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -191,11 +193,65 @@ export default function AdminQuestionsPage() {
         if (isAuthorized) fetchQuestions();
     }, [isAuthorized, fetchQuestions]);
 
+    // Cascading Filter: Fetch institutions dynamically when filterRoleId changes
+    useEffect(() => {
+        const fetchFilters = async () => {
+            if (!filterRoleId) {
+                setFilterInstitutionsList([]);
+                setFilterInstitutionName('');
+                return;
+            }
+
+            const selectedRole = roles.find(r => r.id === filterRoleId);
+            if (!selectedRole) {
+                setFilterInstitutionsList([]);
+                setFilterInstitutionName('');
+                return;
+            }
+
+            const roleName = selectedRole.role_name.toLowerCase();
+            let tableName = '';
+            let columnName = '';
+
+            if (roleName.includes('perangkat daerah')) {
+                tableName = 'institution_names';
+                columnName = 'name';
+            } else if (roleName.includes('instansi pemerintah terkait') || roleName.includes('pemerintah terkait')) {
+                tableName = 'institution_names2';
+                columnName = 'name';
+            } else if (roleName.includes('kota') || roleName.includes('kabupaten')) {
+                tableName = 'cities_jabar';
+                columnName = 'name';
+            } else {
+                setFilterInstitutionsList([]);
+                setFilterInstitutionName('');
+                return;
+            }
+
+            if (tableName) {
+                const { data, error } = await supabase
+                    .from(tableName)
+                    .select(columnName)
+                    .order(columnName, { ascending: true });
+
+                if (data && !error) {
+                    setFilterInstitutionsList(data.map((item: any) => item[columnName]));
+                } else {
+                    setFilterInstitutionsList([]);
+                    setFilterInstitutionName('');
+                }
+            }
+        };
+
+        fetchFilters();
+    }, [filterRoleId, roles]);
+
     // Filtering
     const displayQuestions = questions.filter(q => {
         const matchesRole = filterRoleId ? q.role_id === filterRoleId : true;
+        const matchesInstitution = filterInstitutionName ? q.institution_name === filterInstitutionName : true;
         const matchesSearch = q.question_text.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesRole && matchesSearch;
+        return matchesRole && matchesInstitution && matchesSearch;
     });
 
     const openCreateModal = () => {
@@ -325,7 +381,10 @@ export default function AdminQuestionsPage() {
                         <label className="block text-xs font-semibold text-gray-500 mb-1">Filter Kategori Instansi (Role)</label>
                         <select
                             value={filterRoleId}
-                            onChange={(e) => setFilterRoleId(e.target.value)}
+                            onChange={(e) => {
+                                setFilterRoleId(e.target.value);
+                                setFilterInstitutionName(''); // Reset child filter on parent change
+                            }}
                             className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-900 focus:border-[#10b981] outline-none"
                         >
                             <option value="">Semua Kategori (Tampilkan Semua)</option>
@@ -334,6 +393,23 @@ export default function AdminQuestionsPage() {
                             ))}
                         </select>
                     </div>
+
+                    {filterInstitutionsList.length > 0 && (
+                        <div className="flex-1">
+                            <label className="block text-xs font-semibold text-gray-500 mb-1">Nama Institusi</label>
+                            <select
+                                value={filterInstitutionName}
+                                onChange={(e) => setFilterInstitutionName(e.target.value)}
+                                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-900 focus:border-[#10b981] outline-none"
+                            >
+                                <option value="">Semua Institusi</option>
+                                {filterInstitutionsList.map((inst) => (
+                                    <option key={inst} value={inst}>{inst}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
                     <div className="flex-1">
                         <label className="block text-xs font-semibold text-gray-500 mb-1">Cari Teks Pertanyaan</label>
                         <div className="relative">
