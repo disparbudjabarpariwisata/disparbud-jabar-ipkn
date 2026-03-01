@@ -129,9 +129,10 @@ export default function SurveyStartPage() {
 
             // Filter by institution_name to only show specific and global questions
             if (institutionName) {
-                // We use .or to fetch both null (global) and exact match. 
-                // Double quotes handle spaces/special characters in PostgREST.
-                query = query.or(`institution_name.is.null,institution_name.eq."${institutionName}"`);
+                // Use robust searching to bypass parentheses inconsistencies like DPMPTSP vs (DPMPTSP)
+                // We strip special chars for a clean ilike pattern. 
+                const safeInst = institutionName.replace(/[()]/g, '').trim().split(' ').join('%');
+                query = query.or(`institution_name.is.null,institution_name.ilike.%${safeInst}%`);
             }
 
             const { data: qData, error: qError } = await query;
