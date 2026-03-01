@@ -30,8 +30,8 @@ interface SurveyQuestion {
     role_id: string;
     institution_name: string | null;
     question_text: string;
-    question_type: 'text' | 'textarea' | 'radio' | 'checkbox' | 'dropdown' | 'number' | 'date' | 'linear_scale' | 'file_upload' | 'section_break' | 'url_website' | 'url_youtube' | 'url_gdrive' | 'url_social_media';
-    options: string[] | null;
+    question_type: 'text' | 'textarea' | 'radio' | 'checkbox' | 'dropdown' | 'number' | 'date' | 'linear_scale' | 'file_upload' | 'section_break' | 'url_website' | 'url_youtube' | 'url_gdrive' | 'url_social_media' | 'multiple_input';
+    options: any[] | null; // Keep flexible for both array of strings or schema object
     is_required: boolean;
     sort_order: number;
     active: boolean;
@@ -211,7 +211,9 @@ export default function AdminQuestionsPage() {
             institution_name: q.institution_name || '',
             question_text: q.question_text,
             question_type: q.question_type,
-            options: q.options ? q.options.join(', ') : '',
+            options: q.options
+                ? (q.question_type === 'multiple_input' ? JSON.stringify(q.options, null, 2) : q.options.join(', '))
+                : '',
             is_required: q.is_required,
             sort_order: q.sort_order,
             active: q.active,
@@ -235,10 +237,18 @@ export default function AdminQuestionsPage() {
         setIsSaving(true);
         setError(null);
 
-        // Process options from comma separated string to JSON array
-        const processedOptions = requiresOptions
-            ? form.options.split(',').map(o => o.trim()).filter(Boolean)
-            : null;
+        let processedOptions: any = null;
+        if (requiresOptions) {
+            processedOptions = form.options.split(',').map(o => o.trim()).filter(Boolean);
+        } else if (form.question_type === 'multiple_input') {
+            try {
+                processedOptions = form.options ? JSON.parse(form.options) : null;
+            } catch (e) {
+                setError('Format Opsi untuk tipe Multiple Input harus berupa JSON yang valid.');
+                setIsSaving(false);
+                return;
+            }
+        }
 
         const payload = {
             role_id: form.role_id,
@@ -388,13 +398,18 @@ export default function AdminQuestionsPage() {
                                             )}
                                         </div>
                                         <h4 className="text-gray-900 font-medium text-base">{q.question_text}</h4>
-                                        {q.options && q.options.length > 0 && (
+                                        {q.options && q.options.length > 0 && q.question_type !== 'multiple_input' && (
                                             <div className="mt-2 flex flex-wrap gap-1">
                                                 {q.options.map((opt, idx) => (
                                                     <span key={idx} className="inline-block px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-md border border-gray-200">
-                                                        {opt}
+                                                        {typeof opt === 'string' ? opt : JSON.stringify(opt)}
                                                     </span>
                                                 ))}
+                                            </div>
+                                        )}
+                                        {q.options && q.question_type === 'multiple_input' && (
+                                            <div className="mt-2 text-[10px] text-gray-500 bg-gray-50 p-2 rounded border border-gray-200 font-mono">
+                                                [Complex JSON Schema]
                                             </div>
                                         )}
                                     </div>
@@ -527,6 +542,7 @@ export default function AdminQuestionsPage() {
                                         <option value="linear_scale">Skala Linear 1-7 (Linear Scale)</option>
                                         <option value="file_upload">Upload File</option>
                                         <option value="section_break">--- Pemisah Halaman (Section Break) ---</option>
+                                        <option value="multiple_input">Multiple Input (Complex JSON Schema)</option>
                                         <option value="url_website">Link Website Umum</option>
                                         <option value="url_youtube">Link YouTube Video</option>
                                         <option value="url_gdrive">Link Google Drive</option>
@@ -554,6 +570,19 @@ export default function AdminQuestionsPage() {
                                         value={form.options}
                                         onChange={(e) => setForm({ ...form, options: e.target.value })}
                                         className="w-full px-4 py-3 rounded-xl border border-amber-300 focus:border-amber-500 outline-none text-sm"
+                                    />
+                                </div>
+                            )}
+
+                            {form.question_type === 'multiple_input' && (
+                                <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl mt-4">
+                                    <label className="block text-sm font-bold text-purple-900 mb-1.5">JSON Schema Array</label>
+                                    <p className="text-xs text-purple-700 mb-2">Konfigurasi struktur objek JSON array untuk mendefinisikan layout.</p>
+                                    <textarea
+                                        rows={10}
+                                        value={form.options}
+                                        onChange={(e) => setForm({ ...form, options: e.target.value })}
+                                        className="w-full font-mono px-4 py-3 rounded-xl border border-purple-300 focus:border-purple-500 outline-none text-sm bg-white"
                                     />
                                 </div>
                             )}
