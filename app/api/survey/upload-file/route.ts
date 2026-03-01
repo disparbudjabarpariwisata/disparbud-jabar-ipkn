@@ -23,6 +23,7 @@ export async function POST(request: Request) {
         const questionId = formData.get('question_id') as string | null;
         const roleId = formData.get('role_id') as string | null;
         const institutionName = formData.get('institution_name') as string | null;
+        const isMultiple = formData.get('is_multiple') === 'true';
 
         // Validate required fields
         if (!file || !respondentId || !questionId || !roleId) {
@@ -68,22 +69,24 @@ export async function POST(request: Request) {
             subfolder
         );
 
-        // Save the Google Drive link as the answer in survey_answers
-        const { error: dbError } = await supabaseAdmin
-            .from('survey_answers')
-            .upsert(
-                {
-                    respondent_id: respondentId,
-                    role_id: roleId,
-                    question_id: questionId,
-                    answer_text: result.fileUrl,
-                },
-                { onConflict: 'respondent_id, question_id' }
-            );
+        // Save the Google Drive link as the answer in survey_answers ONLY if it's NOT a multiple_input
+        if (!isMultiple) {
+            const { error: dbError } = await supabaseAdmin
+                .from('survey_answers')
+                .upsert(
+                    {
+                        respondent_id: respondentId,
+                        role_id: roleId,
+                        question_id: questionId,
+                        answer_text: result.fileUrl,
+                    },
+                    { onConflict: 'respondent_id, question_id' }
+                );
 
-        if (dbError) {
-            console.error('DB Error saving file link:', dbError);
-            // Don't fail the request — file is already uploaded
+            if (dbError) {
+                console.error('DB Error saving file link:', dbError);
+                // Don't fail the request — file is already uploaded
+            }
         }
 
         return NextResponse.json({

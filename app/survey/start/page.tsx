@@ -432,6 +432,7 @@ export default function SurveyStartPage() {
                         formData.append('question_id', question_id);
                         formData.append('role_id', roleId!);
                         formData.append('institution_name', identity.institution || '');
+                        formData.append('is_multiple', 'true');
 
                         const uploadRes = await fetch('/api/survey/upload-file', {
                             method: 'POST',

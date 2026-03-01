@@ -459,9 +459,9 @@ export default function AdminQuestionsPage() {
 
             {/* Create / Edit Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto">
-                    <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl my-8">
-                        <div className="flex items-center justify-between p-6 border-b border-gray-100">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl my-8 flex flex-col max-h-[90vh]">
+                        <div className="flex items-center justify-between p-6 border-b border-gray-100 shrink-0">
                             <h2 className="text-xl font-bold text-gray-900">
                                 {editingId ? 'Edit Pertanyaan' : 'Tambah Pertanyaan Baru'}
                             </h2>
@@ -470,7 +470,7 @@ export default function AdminQuestionsPage() {
                             </button>
                         </div>
 
-                        <div className="p-6 space-y-5">
+                        <div className="p-6 space-y-5 overflow-y-auto">
                             {error && (
                                 <div className="p-3 bg-red-50 text-red-600 rounded-xl flex items-center gap-2 text-sm">
                                     <AlertCircle size={16} />{error}
