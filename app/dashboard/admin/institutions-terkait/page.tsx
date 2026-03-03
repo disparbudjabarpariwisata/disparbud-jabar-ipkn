@@ -21,11 +21,10 @@ import {
 } from 'lucide-react';
 
 const CATEGORY_OPTIONS = [
-    'Unsur Pengawasan & Kesekretariatan',
-    'Badan Daerah',
-    'Dinas Daerah',
-    'Biro Sekretariat Daerah',
-    'Satuan Polisi Pamong Praja',
+    'INSTANSI VERTIKAL PEMERINTAH PUSAT',
+    'PENEGAK HUKUM & KEAMANAN',
+    'LEMBAGA PERADILAN',
+    'LEMBAGA NEGARA/OTORITAS SEKTOR',
 ];
 
 interface Institution {
@@ -45,7 +44,7 @@ interface FormData {
 }
 
 const defaultForm: FormData = {
-    category: 'Dinas Daerah',
+    category: 'INSTANSI VERTIKAL PEMERINTAH PUSAT',
     name: '',
     sort_order: 0,
     active: true,
