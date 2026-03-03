@@ -40,21 +40,21 @@ CREATE POLICY "institution_names2_admin_delete" ON institution_names2
 
 INSERT INTO institution_names2 (category, name, sort_order) VALUES
   -- 1) Instansi vertikal Pemerintah Pusat (K/L) di tingkat provinsi
-  ('Instansi vertikal Pemerintah Pusat', 'Kanwil Kementerian Agama (Kemenag) Provinsi Jawa Barat', 10),
-  ('Instansi vertikal Pemerintah Pusat', 'Kanwil Kementerian Hukum (Kemenkum) Jawa Barat', 11),
-  ('Instansi vertikal Pemerintah Pusat', 'Kanwil Kementerian ATR/BPN (BPN) Provinsi Jawa Barat', 12),
-  ('Instansi vertikal Pemerintah Pusat', 'Kanwil Direktorat Jenderal Bea dan Cukai (DJBC) Jawa Barat – Kemenkeu', 13),
-  ('Instansi vertikal Pemerintah Pusat', 'Kanwil Direktorat Jenderal Pajak (DJP) Jawa Barat I – Kemenkeu', 14),
-  ('Instansi vertikal Pemerintah Pusat', 'Kanwil Direktorat Jenderal Perbendaharaan (DJPb) Provinsi Jawa Barat – Kemenkeu', 15),
+  ('INSTANSI VERTIKAL PEMERINTAH PUSAT', 'Kanwil Kementerian Agama (Kemenag) Provinsi Jawa Barat', 10),
+  ('INSTANSI VERTIKAL PEMERINTAH PUSAT', 'Kanwil Kementerian Hukum (Kemenkum) Jawa Barat', 11),
+  ('INSTANSI VERTIKAL PEMERINTAH PUSAT', 'Kanwil Kementerian ATR/BPN (BPN) Provinsi Jawa Barat', 12),
+  ('INSTANSI VERTIKAL PEMERINTAH PUSAT', 'Kanwil Direktorat Jenderal Bea dan Cukai (DJBC) Jawa Barat – Kemenkeu', 13),
+  ('INSTANSI VERTIKAL PEMERINTAH PUSAT', 'Kanwil Direktorat Jenderal Pajak (DJP) Jawa Barat I – Kemenkeu', 14),
+  ('INSTANSI VERTIKAL PEMERINTAH PUSAT', 'Kanwil Direktorat Jenderal Perbendaharaan (DJPb) Provinsi Jawa Barat – Kemenkeu', 15),
 
   -- 2) Penegak hukum & keamanan (tingkat provinsi)
-  ('Penegak hukum & keamanan', 'Kepolisian Daerah (Polda) Jawa Barat', 20),
-  ('Penegak hukum & keamanan', 'Kejaksaan Tinggi (Kejati) Jawa Barat', 21),
-  ('Penegak hukum & keamanan', 'Komando Daerah Militer III/Siliwangi (Kodam III/Siliwangi)', 22),
+  ('PENEGAK HUKUM & KEAMANAN', 'Kepolisian Daerah (Polda) Jawa Barat', 20),
+  ('PENEGAK HUKUM & KEAMANAN', 'Kejaksaan Tinggi (Kejati) Jawa Barat', 21),
+  ('PENEGAK HUKUM & KEAMANAN', 'Komando Daerah Militer III/Siliwangi (Kodam III/Siliwangi)', 22),
 
   -- 3) Lembaga peradilan (tingkat provinsi)
-  ('Lembaga peradilan', 'Pengadilan Tinggi Bandung (wilayah Jawa Barat)', 30),
+  ('LEMBAGA PERADILAN', 'Pengadilan Tinggi Bandung (wilayah Jawa Barat)', 30),
 
   -- 4) Lembaga negara/otoritas sektor (perwakilan di daerah)
-  ('Lembaga negara/otoritas sektor', 'Kantor Perwakilan Bank Indonesia Provinsi Jawa Barat', 40),
-  ('Lembaga negara/otoritas sektor', 'Kantor OJK Provinsi Jawa Barat', 41);
+  ('LEMBAGA NEGARA/OTORITAS SEKTOR', 'Kantor Perwakilan Bank Indonesia Provinsi Jawa Barat', 40),
+  ('LEMBAGA NEGARA/OTORITAS SEKTOR', 'Kantor OJK Provinsi Jawa Barat', 41);
