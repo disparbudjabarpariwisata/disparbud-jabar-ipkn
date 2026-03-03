@@ -894,12 +894,54 @@ export default function SurveyStartPage() {
                                                             {group.fields?.map((field: any, fIdx: number) => {
                                                                 const ansObj = currentAnswersGroup.find(a => a.group_label === activeGroupLabel && a.field_label === field.label);
                                                                 const fieldVal = ansObj ? ansObj.answer_value : '';
+                                                                const compId = `${q.id}_${activeGroupLabel}_${field.label}`;
 
                                                                 let innerInput = null;
                                                                 if (field.type === 'text') {
                                                                     innerInput = <input type="text" value={fieldVal || ''} onChange={(e) => handleMultipleAnswerChange(q.id, activeGroupLabel, field.label, field.type, e.target.value)} className="w-full p-2.5 rounded-lg border border-slate-200 outline-none text-sm focus:border-[#10b981]" placeholder="Judul..." />;
                                                                 } else if (field.type === 'url_website') {
                                                                     innerInput = <input type="url" value={fieldVal || ''} onChange={(e) => handleMultipleAnswerChange(q.id, activeGroupLabel, field.label, field.type, e.target.value)} className="w-full p-2.5 rounded-lg border border-slate-200 outline-none text-sm focus:border-[#10b981]" placeholder="https://..." />;
+                                                                } else if (field.type === 'textarea') {
+                                                                    innerInput = <textarea rows={3} value={fieldVal || ''} onChange={(e) => handleMultipleAnswerChange(q.id, activeGroupLabel, field.label, field.type, e.target.value)} className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#10b981] outline-none transition-all text-sm" placeholder="Mulai mengetik..." />;
+                                                                } else if (field.type === 'file_upload') {
+                                                                    const currentFile = fileObjects[compId];
+                                                                    const progress = uploadProgress[compId];
+                                                                    innerInput = (
+                                                                        <div className="space-y-3">
+                                                                            <input
+                                                                                type="file"
+                                                                                accept=".pdf,.docx,.xlsx,.pptx,.jpeg,.jpg,.png"
+                                                                                onChange={(e) => {
+                                                                                    const file = e.target.files?.[0];
+                                                                                    if (!file) return;
+                                                                                    if (file.size > MAX_FILE_SIZE_BYTES) {
+                                                                                        alert(`Ukuran file melebihi batas maksimal ${MAX_FILE_SIZE_MB}MB.`);
+                                                                                        e.target.value = ''; return;
+                                                                                    }
+                                                                                    setFileObjects(prev => ({ ...prev, [compId]: file }));
+                                                                                    handleMultipleAnswerChange(q.id, activeGroupLabel, field.label, field.type, file.name);
+                                                                                    setUploadProgress(prev => ({ ...prev, [compId]: 'idle' }));
+                                                                                }}
+                                                                                className="w-full p-2.5 rounded-xl border bg-white outline-none transition-all cursor-pointer file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 text-sm border-slate-200"
+                                                                            />
+                                                                            {fieldVal && !currentFile && typeof fieldVal === 'string' && fieldVal.startsWith('http') && (
+                                                                                <a href={fieldVal} target="_blank" rel="noreferrer" className="text-sm text-emerald-600 font-medium hover:underline inline-flex items-center gap-1">
+                                                                                    <FileCheck size={14} /> Lihat File Tersimpan
+                                                                                </a>
+                                                                            )}
+                                                                            {currentFile && (
+                                                                                <div className="flex items-center gap-2 p-2.5 rounded-lg border text-sm bg-slate-50 border-slate-200 text-slate-600">
+                                                                                    <Upload size={14} className="shrink-0" />
+                                                                                    <span className="truncate font-medium flex-1">{currentFile.name} ({progress === 'uploading' ? '...' : (currentFile.size / 1024 / 1024).toFixed(1) + 'MB'})</span>
+                                                                                    <button type="button" onClick={() => {
+                                                                                        setFileObjects(prev => { const copy = { ...prev }; delete copy[compId]; return copy; });
+                                                                                        handleMultipleAnswerChange(q.id, activeGroupLabel, field.label, field.type, '');
+                                                                                        setUploadProgress(prev => { const copy = { ...prev }; delete copy[compId]; return copy; });
+                                                                                    }} className="text-slate-400 hover:text-red-500"><X size={14} /></button>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    );
                                                                 }
 
                                                                 return (
