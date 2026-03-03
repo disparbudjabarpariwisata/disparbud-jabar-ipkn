@@ -15,21 +15,26 @@ CREATE TABLE IF NOT EXISTS institution_names2 (
 ALTER TABLE institution_names2 ENABLE ROW LEVEL SECURITY;
 
 -- Public & authenticated can read active institutions
+DROP POLICY IF EXISTS "institution_names2_public_read" ON institution_names2;
 CREATE POLICY "institution_names2_public_read" ON institution_names2
   FOR SELECT TO anon USING (active = true);
 
+DROP POLICY IF EXISTS "institution_names2_authenticated_read" ON institution_names2;
 CREATE POLICY "institution_names2_authenticated_read" ON institution_names2
   FOR SELECT TO authenticated USING (true);
 
 -- Admin only CUD
+DROP POLICY IF EXISTS "institution_names2_admin_insert" ON institution_names2;
 CREATE POLICY "institution_names2_admin_insert" ON institution_names2
   FOR INSERT TO authenticated
   WITH CHECK (auth.jwt() ->> 'email' = 'disparbudjabarpariwisata2026@gmail.com');
 
+DROP POLICY IF EXISTS "institution_names2_admin_update" ON institution_names2;
 CREATE POLICY "institution_names2_admin_update" ON institution_names2
   FOR UPDATE TO authenticated
   USING (auth.jwt() ->> 'email' = 'disparbudjabarpariwisata2026@gmail.com');
 
+DROP POLICY IF EXISTS "institution_names2_admin_delete" ON institution_names2;
 CREATE POLICY "institution_names2_admin_delete" ON institution_names2
   FOR DELETE TO authenticated
   USING (auth.jwt() ->> 'email' = 'disparbudjabarpariwisata2026@gmail.com');
@@ -57,4 +62,7 @@ INSERT INTO institution_names2 (category, name, sort_order) VALUES
 
   -- 4) Lembaga negara/otoritas sektor (perwakilan di daerah)
   ('LEMBAGA NEGARA/OTORITAS SEKTOR', 'Kantor Perwakilan Bank Indonesia Provinsi Jawa Barat', 40),
-  ('LEMBAGA NEGARA/OTORITAS SEKTOR', 'Kantor OJK Provinsi Jawa Barat', 41);
+  ('LEMBAGA NEGARA/OTORITAS SEKTOR', 'Kantor OJK Provinsi Jawa Barat', 41)
+ON CONFLICT (name) DO UPDATE SET 
+  category = EXCLUDED.category,
+  sort_order = EXCLUDED.sort_order;
