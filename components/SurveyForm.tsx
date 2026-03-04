@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "motion/react";
 import Image from "next/image";
 import { Building2, KeyRound, Lock, LogIn, Mail } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { generateInstitutionPin } from "@/lib/pinUtils";
 
 // ============================================================
 // Input Sanitization Utilities
@@ -169,6 +170,16 @@ export default function SurveyForm() {
         fetchDependentData();
     }, [formData.role]);
 
+    useEffect(() => {
+        if (formData.institution) {
+            setFormData(prev => ({ ...prev, pin: generateInstitutionPin(formData.institution) }));
+            setResumePin(generateInstitutionPin(formData.institution));
+        } else {
+            setFormData(prev => ({ ...prev, pin: "" }));
+            setResumePin("");
+        }
+    }, [formData.institution]);
+
     // Check if current role uses a dropdown or free-text
     const isInstitutionDropdown = formData.role === "Perangkat Daerah Provinsi Jawa Barat" || formData.role === "Instansi Pemerintah Terkait";
     const isCityRole = formData.role === "Pemerintah Daerah Kota/Kabupaten Jawa Barat";
@@ -178,7 +189,7 @@ export default function SurveyForm() {
         if (!value) return;
 
         // Don't check invalid shapes
-        if (field === 'pin' && value.length !== 6) return;
+        // PIN conflict checking disabled
         if (field === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return;
 
         try {
@@ -251,10 +262,8 @@ export default function SurveyForm() {
         }
 
         // PIN Validation
-        if (!formData.pin.trim()) {
-            newErrors.pin = "PIN harus diisi";
-        } else if (!/^[a-zA-Z0-9]{6}$/.test(formData.pin)) {
-            newErrors.pin = "PIN harus 6 karakter (angka & huruf)";
+        if (!formData.pin) {
+            newErrors.pin = "Pilih Institusi terlebih dahulu untuk merekam PIN";
         }
 
         setErrors(newErrors);
@@ -453,23 +462,18 @@ export default function SurveyForm() {
                                             </div>
                                             <div className="space-y-2 w-full">
                                                 <label htmlFor="pin" className="block text-sm font-bold text-yellow-800">
-                                                    Buat PIN Akses (Wajib)
+                                                    PIN Akses (Otomatis)
                                                 </label>
                                                 <input
                                                     id="pin"
                                                     type="text"
-                                                    maxLength={6}
-                                                    placeholder="Contoh: JABAR1 (6 digit)"
+                                                    readOnly
+                                                    placeholder="Pilih Institusi Anda"
                                                     value={formData.pin}
-                                                    onChange={(e) => setFormData({ ...formData, pin: e.target.value.toUpperCase() })}
-                                                    onBlur={(e) => {
-                                                        if (e.target.value.trim().length === 6) checkConflict('pin', e.target.value.trim());
-                                                    }}
-                                                    className={`w-full h-12 rounded-lg bg-white uppercase tracking-widest text-center text-lg font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 ${errors.pin ? "border border-red-400 focus:ring-red-400" : "border border-yellow-300 focus:border-yellow-400 focus:ring-yellow-400"
-                                                        }`}
+                                                    className="w-full h-12 rounded-lg bg-yellow-50 text-slate-500 uppercase tracking-widest text-center text-lg font-bold transition-colors border border-yellow-200 focus:outline-none cursor-not-allowed"
                                                 />
                                                 <p className="text-xs text-yellow-700/80 font-medium leading-relaxed">
-                                                    PIN ini unik dan digunakan untuk <strong>melanjutkan pengisian survei</strong> jika terputus.
+                                                    PIN ini digenerate otomatis berdasarkan Instansi Anda, dan dapat digunakan bersama-sama untuk <strong>melanjutkan survei</strong>.
                                                 </p>
                                                 {errors.pin && <p className="text-red-500 text-sm font-medium">{errors.pin}</p>}
                                             </div>
@@ -684,6 +688,67 @@ export default function SurveyForm() {
                                 <div className="p-8 md:p-12 space-y-6 min-h-[400px] flex flex-col justify-center">
                                     <form onSubmit={handleResumeSubmit} className="space-y-6 max-w-md mx-auto w-full">
                                         <div className="space-y-5">
+                                            {/* Role / Kategori */}
+                                            <div className="space-y-2">
+                                                <label htmlFor="resume-role" className="block text-sm font-semibold text-slate-700">Kategori Instansi</label>
+                                                <select
+                                                    id="resume-role"
+                                                    value={formData.role}
+                                                    disabled={isLoadingRoles}
+                                                    onChange={(e) => setFormData({ ...formData, role: e.target.value, institution: "", city: "" })}
+                                                    className="w-full h-11 px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:bg-slate-100 disabled:text-slate-400"
+                                                >
+                                                    <option value="" disabled>{isLoadingRoles ? "Memuat Kategori..." : "Pilih Kategori"}</option>
+                                                    {roles.map((role) => <option key={role.id} value={role.name}>{role.name}</option>)}
+                                                </select>
+                                            </div>
+
+                                            {/* Kota/Kabupaten Options */}
+                                            {isCityRole && (
+                                                <div className="space-y-2">
+                                                    <label htmlFor="resume-city" className="block text-sm font-semibold text-slate-700">Kota/Kabupaten</label>
+                                                    <select
+                                                        id="resume-city"
+                                                        value={formData.city}
+                                                        disabled={isLoadingCities}
+                                                        onChange={(e) => setFormData({ ...formData, city: e.target.value, institution: "" })}
+                                                        className="w-full h-11 px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:bg-slate-100 disabled:text-slate-400"
+                                                    >
+                                                        <option value="" disabled>{isLoadingCities ? "Memuat Kota/Kabupaten..." : "Pilih Kota/Kabupaten"}</option>
+                                                        {cities.map((city) => <option key={city.id} value={city.name}>{city.name}</option>)}
+                                                    </select>
+                                                </div>
+                                            )}
+
+                                            {/* Nama Instansi */}
+                                            {(!isCityRole || formData.city) && (
+                                                <div className="space-y-2">
+                                                    <label htmlFor="resume-institution" className="block text-sm font-semibold text-slate-700">Nama Instansi</label>
+                                                    {isInstitutionDropdown ? (
+                                                        <select
+                                                            id="resume-institution"
+                                                            value={formData.institution}
+                                                            disabled={isLoadingInstitutions}
+                                                            onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
+                                                            className="w-full h-11 px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:bg-slate-100 disabled:text-slate-400"
+                                                        >
+                                                            <option value="" disabled>{isLoadingInstitutions ? "Memuat instansi..." : "Pilih Nama Instansi"}</option>
+                                                            {institutions.map((inst) => <option key={inst.id} value={inst.name}>{inst.name}</option>)}
+                                                        </select>
+                                                    ) : (
+                                                        <input
+                                                            id="resume-institution"
+                                                            type="text"
+                                                            placeholder={formData.role ? "Ketikkan nama instansi anda" : "Pilih Kategori"}
+                                                            disabled={!formData.role}
+                                                            value={formData.institution}
+                                                            onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
+                                                            className="w-full h-11 px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:bg-slate-100 disabled:text-slate-400"
+                                                        />
+                                                    )}
+                                                </div>
+                                            )}
+
                                             <div className="space-y-2">
                                                 <label htmlFor="resume-email" className="block text-sm font-semibold text-slate-700">Email Instansi</label>
                                                 <input
@@ -700,11 +765,10 @@ export default function SurveyForm() {
                                                 <input
                                                     id="resume-pin"
                                                     type="text"
-                                                    maxLength={6}
+                                                    readOnly
                                                     value={resumePin}
-                                                    onChange={(e) => setResumePin(e.target.value.toUpperCase())}
-                                                    placeholder="______"
-                                                    className="w-full h-14 text-center text-2xl tracking-[0.5em] uppercase font-bold rounded-lg border-2 border-slate-300 bg-white transition-colors focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+                                                    placeholder="Otomatis terisi"
+                                                    className="w-full h-14 text-center text-2xl tracking-[0.5em] uppercase font-bold rounded-lg border-2 border-slate-300 bg-slate-50 text-slate-500 cursor-not-allowed transition-colors"
                                                 />
                                             </div>
 

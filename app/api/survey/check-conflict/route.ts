@@ -25,6 +25,10 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Invalid field' }, { status: 400 });
         }
 
+        if (field === 'pin') {
+            return NextResponse.json({ hasConflict: false });
+        }
+
         // Check across all tables concurrently
         // Check across all tables concurrently
         const checks = TABLES.map((table) =>

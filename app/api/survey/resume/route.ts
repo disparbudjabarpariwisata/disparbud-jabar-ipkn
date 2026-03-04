@@ -31,21 +31,24 @@ export async function POST(request: Request) {
         let foundIdentity: any = null;
 
         for (const table of tables) {
+            // Find the oldest record for this PIN (the Anchor ID)
             const { data, error } = await supabaseAdmin
                 .from(table)
                 .select('*')
-                .eq('email', cleanEmail)
                 .eq('pin', cleanPin)
+                .order('created_at', { ascending: true })
+                .limit(1)
                 .single();
 
             if (data && !error) {
-                foundIdentity = { ...data, table_source: table };
+                // Return the Anchor identity so all progress is bound to it
+                foundIdentity = { ...data, table_source: table, session_email: cleanEmail };
                 break;
             }
         }
 
         if (!foundIdentity) {
-            return NextResponse.json({ error: 'Kombinasi Email dan PIN tidak ditemukan. Periksa kembali data Anda.' }, { status: 404 });
+            return NextResponse.json({ error: 'PIN Institusi tidak ditemukan. Silakan mendaftar (Isi Survei Baru) terlebih dahulu.' }, { status: 404 });
         }
 
         return NextResponse.json({ success: true, data: foundIdentity });

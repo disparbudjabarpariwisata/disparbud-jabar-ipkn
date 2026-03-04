@@ -39,6 +39,7 @@ interface Respondent {
     location?: string;
     created_at: string;
     progress_percentage: number;
+    sub_respondents?: any[];
 }
 
 export default function AdminRespondentsPage() {
@@ -129,19 +130,33 @@ export default function AdminRespondentsPage() {
                 if (!tableName) throw new Error("Tabel untuk role ini tidak ditemukan di sistem.");
 
                 // 1. Ambil data Identitas Responden dari tabel Role
-                const { data: identities, error: idError } = await supabase
+                const { data: rawIdentities, error: idError } = await supabase
                     .from(tableName)
                     .select('*')
-                    .order('created_at', { ascending: false });
+                    .order('created_at', { ascending: true }); // Ascending to ensure Anchor is first
 
                 if (idError) throw idError;
 
                 // 2. Jika Kosong langsung keluar
-                if (!identities || identities.length === 0) {
+                if (!rawIdentities || rawIdentities.length === 0) {
                     setRespondents([]);
                     setIsLoadingData(false);
                     return;
                 }
+
+                // Group by PIN
+                const groupedIdentities = new Map();
+                for (const user of rawIdentities) {
+                    const pin = user.pin || user.id; // fallback to id if no pin (shouldn't happen)
+                    if (!groupedIdentities.has(pin)) {
+                        groupedIdentities.set(pin, { ...user, sub_respondents: [] });
+                    } else {
+                        groupedIdentities.get(pin).sub_respondents.push(user);
+                    }
+                }
+                const identities = Array.from(groupedIdentities.values());
+                // sort by created_at descending if we want newer institutions on top
+                identities.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
                 // 3. Cari Total Pertanyaan "Required" untuk Role Ini (denominator base)
                 const targetRoleObj = roles.find(r => r.role_name === activeTab);
@@ -217,7 +232,8 @@ export default function AdminRespondentsPage() {
                         ip_address: user.ip_address || 'Tidak terlacak',
                         location: user.location || 'Tidak terlacak',
                         created_at: user.created_at,
-                        progress_percentage: progress
+                        progress_percentage: progress,
+                        sub_respondents: user.sub_respondents
                     } as Respondent;
                 }));
 
@@ -270,11 +286,11 @@ export default function AdminRespondentsPage() {
 
             if (ansError) throw new Error(`Gagal menghapus jawaban survei: ${ansError.message}`);
 
-            // 2. Delete the respondent record from the source table
+            // 2. Delete ALL respondent records from the source table for this PIN
             const { error: delError } = await supabase
                 .from(deleteTarget.table_source)
                 .delete()
-                .eq('id', deleteTarget.id);
+                .eq('pin', deleteTarget.pin);
 
             if (delError) throw new Error(`Gagal menghapus responden: ${delError.message}`);
 
@@ -381,6 +397,11 @@ export default function AdminRespondentsPage() {
                                                     <span className="font-medium text-gray-700">{user.pic_name}</span>
                                                     <span className="text-xs px-2 py-0.5 bg-gray-100 rounded-md">{user.position}</span>
                                                 </div>
+                                                {user.sub_respondents && user.sub_respondents.length > 0 && (
+                                                    <div className="mt-2 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-1 rounded inline-block">
+                                                        + {user.sub_respondents.length} Rekan Institusi 
+                                                    </div>
+                                                )}
                                             </td>
                                             <td className="px-6 py-5">
                                                 <div className="flex flex-col gap-2">

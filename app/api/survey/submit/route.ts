@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { generateInstitutionPin } from '@/lib/pinUtils';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -56,7 +57,7 @@ const sanitizeEmail = (input: string): string => {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { role, city, institution, picName, position, email, whatsapp, pin } = body;
+        const { role, city, institution, picName, position, email, whatsapp } = body;
 
         // Server-side sanitize all inputs
         const cleanRole = sanitize(role);
@@ -66,7 +67,7 @@ export async function POST(request: Request) {
         const cleanPosition = sanitizeName(position);
         const cleanEmail = sanitizeEmail(email);
         const cleanWhatsapp = sanitizePhone(whatsapp);
-        const cleanPin = (pin || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+        const cleanPin = generateInstitutionPin(cleanInstitution);
 
         // Server-side validation
         if (!cleanRole || !cleanInstitution || !cleanPicName || !cleanPosition || !cleanEmail || !cleanWhatsapp || !cleanPin) {
@@ -82,7 +83,7 @@ export async function POST(request: Request) {
         }
 
         if (!/^[A-Z0-9]{6}$/.test(cleanPin)) {
-            return NextResponse.json({ error: 'PIN harus 6 karakter alfanumerik.' }, { status: 400 });
+            return NextResponse.json({ error: 'PIN gagal dibuat.' }, { status: 500 });
         }
 
         // 1. Identify Target Table
@@ -125,6 +126,18 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Gagal merekam data ke sistem.' }, { status: 500 });
         }
 
+        // Determine Anchor ID (the oldest identity with this PIN) to unify progress 
+        // across all users from the same institution
+        const { data: anchorData } = await supabaseAdmin
+            .from(tableName)
+            .select('id')
+            .eq('pin', cleanPin)
+            .order('created_at', { ascending: true })
+            .limit(1)
+            .single();
+
+        const respondentIdToUse = anchorData?.id || dbData.id;
+
         // 3. Send Email Notification with Resend
         const { data: emailData, error: emailError } = await resend.emails.send({
             from: 'Smiling West Java Survey <survey@smilingwestjava.official.id>',
@@ -158,7 +171,7 @@ export async function POST(request: Request) {
                             <td align="center">
                                 <div style="background-color: #fefce8; border: 1px solid #fef08a; padding: 24px; border-radius: 12px; max-width: 300px; margin: 0 auto;">
                                     <p style="margin: 0; color: #854d0e; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">PIN Akses Anda</p>
-                                    <p style="margin: 0; color: #000000; font-size: 36px; font-weight: 900; letter-spacing: 8px;">${pin}</p>
+                                    <p style="margin: 0; color: #000000; font-size: 36px; font-weight: 900; letter-spacing: 8px;">${cleanPin}</p>
                                 </div>
                             </td>
                         </tr>
@@ -197,7 +210,12 @@ export async function POST(request: Request) {
         }
 
         // Return the id and data for local storage persistence if needed
-        return NextResponse.json({ success: true, respondentId: dbData.id });
+        return NextResponse.json({
+            success: true,
+            respondentId: respondentIdToUse,
+            table_source: tableName,
+            pin: cleanPin
+        });
 
     } catch (error) {
         console.error("API Route Error:", error);
