@@ -312,10 +312,19 @@ export default function SurveyStartPage() {
             if (q.question_type === 'section_break') return;
 
             if (q.question_type === 'multiple_input') {
-                if (q.is_required) {
+                const radioAns = answers[q.id];
+
+                // Requirement 1: User MUST pick either "Ada" or "Tidak Ada"
+                if (q.is_required && !radioAns) {
+                    errors[q.id] = "Silakan pilih 'Ada' atau 'Tidak Ada'.";
+                    isValid = false;
+                }
+
+                // Requirement 2: If "Ada", then check if the multiple items are filled
+                if (q.is_required && radioAns === "Ada") {
                     const ansArray = multipleAnswers[q.id];
                     if (!ansArray || ansArray.length === 0) {
-                        errors[q.id] = "Pertanyaan ini wajib diisi dengan lengkap.";
+                        errors[q.id] = "Pertanyaan ini wajib diisi dengan lengkap karena Anda memilih 'Ada'.";
                         isValid = false;
                     }
                 }
@@ -788,194 +797,243 @@ export default function SurveyStartPage() {
 
                 if (!schemaObj || !schemaObj.schema || !Array.isArray(schemaObj.schema)) return null;
 
+                // NEW UX: Ask Ada / Tidak Ada first
+                const localRadioVal = answers[q.id]; // We use answers[q.id] just for the radio state
+
                 return (
-                    <div className="space-y-6 sm:space-y-8 mt-4">
-                        {schemaObj.schema.map((group: any, gIdx: number) => {
-                            if (group.type === 'group') {
-                                return (
-                                    <div key={gIdx} className="bg-slate-50 rounded-2xl p-4 sm:p-6 border border-slate-100">
-                                        <h4 className="font-semibold text-slate-800 mb-4">{group.label}</h4>
-                                        <div className="space-y-4">
-                                            {group.fields?.map((field: any, fIdx: number) => {
-                                                const currentAnswersGroup = multipleAnswers[q.id] || [];
-                                                const ansObj = currentAnswersGroup.find(a => a.group_label === group.label && a.field_label === field.label);
-                                                const fieldVal = ansObj ? ansObj.answer_value : '';
+                    <div className="space-y-4 sm:space-y-6 mt-4">
+                        {/* Radio Options: Ada / Tidak Ada */}
+                        <div className="space-y-2 sm:space-y-3 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                            <p className="text-sm font-medium text-slate-700 mb-2">Apakah instansi Anda memiliki data untuk pertanyaan ini?</p>
+                            <label className={`flex items-start gap-3 p-3 sm:p-4 rounded-xl border cursor-pointer hover:bg-white transition-colors ${localRadioVal === 'Ada' ? 'border-[#10b981] bg-emerald-50/30' : 'border-slate-200 bg-white'}`}>
+                                <div className="pt-0.5">
+                                    <input
+                                        type="radio"
+                                        name={`multiple-radio-${q.id}`}
+                                        value="Ada"
+                                        checked={localRadioVal === 'Ada'}
+                                        onChange={() => handleAnswerChange(q.id, 'Ada', 'radio')}
+                                        className="w-5 h-5 accent-[#10b981] cursor-pointer"
+                                    />
+                                </div>
+                                <span className="text-slate-700 leading-snug text-sm sm:text-base">Ada</span>
+                            </label>
 
-                                                const compId = `${q.id}_${group.label}_${field.label}`;
-                                                let innerInput = null;
+                            <label className={`flex items-start gap-3 p-3 sm:p-4 rounded-xl border cursor-pointer hover:bg-white transition-colors ${localRadioVal === 'Tidak Ada' ? 'border-red-400 bg-red-50/30' : 'border-slate-200 bg-white'}`}>
+                                <div className="pt-0.5">
+                                    <input
+                                        type="radio"
+                                        name={`multiple-radio-${q.id}`}
+                                        value="Tidak Ada"
+                                        checked={localRadioVal === 'Tidak Ada'}
+                                        onChange={() => {
+                                            handleAnswerChange(q.id, 'Tidak Ada', 'radio');
+                                            // Reset multiple answers if they switch to "Tidak Ada"
+                                            setMultipleAnswers(prev => {
+                                                const copy = { ...prev };
+                                                delete copy[q.id];
+                                                return copy;
+                                            });
+                                        }}
+                                        className="w-5 h-5 accent-red-500 cursor-pointer"
+                                    />
+                                </div>
+                                <span className="text-slate-700 leading-snug text-sm sm:text-base">Tidak Ada</span>
+                            </label>
+                        </div>
 
-                                                if (field.type === 'file_upload') {
-                                                    const currentFile = fileObjects[compId];
-                                                    const progress = uploadProgress[compId];
-                                                    innerInput = (
-                                                        <div className="space-y-3">
-                                                            <input
-                                                                type="file"
-                                                                accept=".pdf,.docx,.xlsx,.pptx,.jpeg,.jpg,.png"
-                                                                onChange={(e) => {
-                                                                    const file = e.target.files?.[0];
-                                                                    if (!file) return;
-                                                                    if (file.size > MAX_FILE_SIZE_BYTES) {
-                                                                        alert(`Ukuran file melebihi batas maksimal ${MAX_FILE_SIZE_MB}MB.`);
-                                                                        e.target.value = ''; return;
-                                                                    }
-                                                                    setFileObjects(prev => ({ ...prev, [compId]: file }));
-                                                                    handleMultipleAnswerChange(q.id, group.label, field.label, field.type, file.name);
-                                                                    setUploadProgress(prev => ({ ...prev, [compId]: 'idle' }));
-                                                                }}
-                                                                className="w-full p-2.5 rounded-xl border bg-white outline-none transition-all cursor-pointer file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 text-sm border-slate-200"
-                                                            />
-                                                            {fieldVal && !currentFile && typeof fieldVal === 'string' && fieldVal.startsWith('http') && (
-                                                                <a href={fieldVal} target="_blank" rel="noreferrer" className="text-sm text-emerald-600 font-medium hover:underline inline-flex items-center gap-1">
-                                                                    <FileCheck size={14} /> Lihat File Tersimpan
-                                                                </a>
-                                                            )}
-                                                            {currentFile && (
-                                                                <div className="flex items-center gap-2 p-2.5 rounded-lg border text-sm bg-slate-50 border-slate-200 text-slate-600">
-                                                                    <Upload size={14} className="shrink-0" />
-                                                                    <span className="truncate font-medium flex-1">{currentFile.name} ({progress === 'uploading' ? '...' : (currentFile.size / 1024 / 1024).toFixed(1) + 'MB'})</span>
-                                                                    <button type="button" onClick={() => {
-                                                                        setFileObjects(prev => { const copy = { ...prev }; delete copy[compId]; return copy; });
-                                                                        handleMultipleAnswerChange(q.id, group.label, field.label, field.type, '');
-                                                                        setUploadProgress(prev => { const copy = { ...prev }; delete copy[compId]; return copy; });
-                                                                    }} className="text-slate-400 hover:text-red-500"><X size={14} /></button>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    );
-                                                } else if (field.type === 'textarea') {
-                                                    innerInput = (
-                                                        <textarea rows={3} value={fieldVal || ''} onChange={(e) => handleMultipleAnswerChange(q.id, group.label, field.label, field.type, e.target.value)} className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#10b981] outline-none transition-all text-sm" placeholder="Mulai mengetik..." />
-                                                    );
-                                                }
+                        {/* Complex Form: ONLY show if "Ada" is selected */}
+                        {localRadioVal === 'Ada' && (
+                            <div className="space-y-6 sm:space-y-8 pl-1 sm:pl-4 border-l-2 border-slate-200 ml-2 sm:ml-4">
+                                {schemaObj.schema.map((group: any, gIdx: number) => {
+                                    if (group.type === 'group') {
+                                        return (
+                                            <div key={gIdx} className="bg-slate-50 rounded-2xl p-4 sm:p-6 border border-slate-100">
+                                                <h4 className="font-semibold text-slate-800 mb-4">{group.label}</h4>
+                                                <div className="space-y-4">
+                                                    {group.fields?.map((field: any, fIdx: number) => {
+                                                        const currentAnswersGroup = multipleAnswers[q.id] || [];
+                                                        const ansObj = currentAnswersGroup.find(a => a.group_label === group.label && a.field_label === field.label);
+                                                        const fieldVal = ansObj ? ansObj.answer_value : '';
 
-                                                return (
-                                                    <div key={fIdx}>
-                                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">{field.label}</label>
-                                                        {field.description && <p className="text-xs text-slate-400 mb-2">{field.description}</p>}
-                                                        {innerInput}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                );
-                            } else if (group.type === 'dynamic_list') {
-                                // Determine how many dynamic items exist currently by finding the max index used in group_label
-                                const currentAnswersGroup = multipleAnswers[q.id] || [];
-                                const dynamicAnswers = currentAnswersGroup.filter(a => a.group_label && a.group_label.startsWith(group.item_label));
+                                                        const compId = `${q.id}_${group.label}_${field.label}`;
+                                                        let innerInput = null;
 
-                                // Parse out the highest number, e.g., "Jawaban Bukti Konten [1]" -> 1
-                                let maxCount = 1; // Default min is 1
-                                dynamicAnswers.forEach(a => {
-                                    const match = a.group_label.match(/\[(\d+)\]/);
-                                    if (match && match[1]) {
-                                        const num = parseInt(match[1], 10);
-                                        if (num > maxCount) maxCount = num;
-                                    }
-                                });
-
-                                // We want to render maxCount number of forms
-                                const itemForms = Array.from({ length: maxCount }, (_, i) => i + 1);
-
-                                return (
-                                    <div key={gIdx} className="bg-slate-50 rounded-2xl p-4 sm:p-6 border border-slate-100">
-                                        <h4 className="font-semibold text-slate-800 mb-4 pb-3 border-b border-slate-200">{group.label}</h4>
-
-                                        <div className="space-y-6">
-                                            {itemForms.map((itemNum) => {
-                                                const activeGroupLabel = `${group.item_label} [${itemNum}]`;
-
-                                                return (
-                                                    <div key={itemNum} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative">
-                                                        <h5 className="text-sm font-bold text-slate-500 mb-3 uppercase tracking-wider">{activeGroupLabel}</h5>
-
-                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                            {group.fields?.map((field: any, fIdx: number) => {
-                                                                const ansObj = currentAnswersGroup.find(a => a.group_label === activeGroupLabel && a.field_label === field.label);
-                                                                const fieldVal = ansObj ? ansObj.answer_value : '';
-                                                                const compId = `${q.id}_${activeGroupLabel}_${field.label}`;
-
-                                                                let innerInput = null;
-                                                                if (field.type === 'text') {
-                                                                    innerInput = <input type="text" value={fieldVal || ''} onChange={(e) => handleMultipleAnswerChange(q.id, activeGroupLabel, field.label, field.type, e.target.value)} className="w-full p-2.5 rounded-lg border border-slate-200 outline-none text-sm focus:border-[#10b981]" placeholder="Judul..." />;
-                                                                } else if (field.type === 'url_website') {
-                                                                    innerInput = <input type="url" value={fieldVal || ''} onChange={(e) => handleMultipleAnswerChange(q.id, activeGroupLabel, field.label, field.type, e.target.value)} className="w-full p-2.5 rounded-lg border border-slate-200 outline-none text-sm focus:border-[#10b981]" placeholder="https://..." />;
-                                                                } else if (field.type === 'textarea') {
-                                                                    innerInput = <textarea rows={3} value={fieldVal || ''} onChange={(e) => handleMultipleAnswerChange(q.id, activeGroupLabel, field.label, field.type, e.target.value)} className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#10b981] outline-none transition-all text-sm" placeholder="Mulai mengetik..." />;
-                                                                } else if (field.type === 'file_upload') {
-                                                                    const currentFile = fileObjects[compId];
-                                                                    const progress = uploadProgress[compId];
-                                                                    innerInput = (
-                                                                        <div className="space-y-3">
-                                                                            <input
-                                                                                type="file"
-                                                                                accept=".pdf,.docx,.xlsx,.pptx,.jpeg,.jpg,.png"
-                                                                                onChange={(e) => {
-                                                                                    const file = e.target.files?.[0];
-                                                                                    if (!file) return;
-                                                                                    if (file.size > MAX_FILE_SIZE_BYTES) {
-                                                                                        alert(`Ukuran file melebihi batas maksimal ${MAX_FILE_SIZE_MB}MB.`);
-                                                                                        e.target.value = ''; return;
-                                                                                    }
-                                                                                    setFileObjects(prev => ({ ...prev, [compId]: file }));
-                                                                                    handleMultipleAnswerChange(q.id, activeGroupLabel, field.label, field.type, file.name);
-                                                                                    setUploadProgress(prev => ({ ...prev, [compId]: 'idle' }));
-                                                                                }}
-                                                                                className="w-full p-2.5 rounded-xl border bg-white outline-none transition-all cursor-pointer file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 text-sm border-slate-200"
-                                                                            />
-                                                                            {fieldVal && !currentFile && typeof fieldVal === 'string' && fieldVal.startsWith('http') && (
-                                                                                <a href={fieldVal} target="_blank" rel="noreferrer" className="text-sm text-emerald-600 font-medium hover:underline inline-flex items-center gap-1">
-                                                                                    <FileCheck size={14} /> Lihat File Tersimpan
-                                                                                </a>
-                                                                            )}
-                                                                            {currentFile && (
-                                                                                <div className="flex items-center gap-2 p-2.5 rounded-lg border text-sm bg-slate-50 border-slate-200 text-slate-600">
-                                                                                    <Upload size={14} className="shrink-0" />
-                                                                                    <span className="truncate font-medium flex-1">{currentFile.name} ({progress === 'uploading' ? '...' : (currentFile.size / 1024 / 1024).toFixed(1) + 'MB'})</span>
-                                                                                    <button type="button" onClick={() => {
-                                                                                        setFileObjects(prev => { const copy = { ...prev }; delete copy[compId]; return copy; });
-                                                                                        handleMultipleAnswerChange(q.id, activeGroupLabel, field.label, field.type, '');
-                                                                                        setUploadProgress(prev => { const copy = { ...prev }; delete copy[compId]; return copy; });
-                                                                                    }} className="text-slate-400 hover:text-red-500"><X size={14} /></button>
-                                                                                </div>
-                                                                            )}
+                                                        if (field.type === 'file_upload') {
+                                                            const currentFile = fileObjects[compId];
+                                                            const progress = uploadProgress[compId];
+                                                            innerInput = (
+                                                                <div className="space-y-3">
+                                                                    <input
+                                                                        type="file"
+                                                                        accept=".pdf,.docx,.xlsx,.pptx,.jpeg,.jpg,.png"
+                                                                        onChange={(e) => {
+                                                                            const file = e.target.files?.[0];
+                                                                            if (!file) return;
+                                                                            if (file.size > MAX_FILE_SIZE_BYTES) {
+                                                                                alert(`Ukuran file melebihi batas maksimal ${MAX_FILE_SIZE_MB}MB.`);
+                                                                                e.target.value = ''; return;
+                                                                            }
+                                                                            setFileObjects(prev => ({ ...prev, [compId]: file }));
+                                                                            handleMultipleAnswerChange(q.id, group.label, field.label, field.type, file.name);
+                                                                            setUploadProgress(prev => ({ ...prev, [compId]: 'idle' }));
+                                                                        }}
+                                                                        className="w-full p-2.5 rounded-xl border bg-white outline-none transition-all cursor-pointer file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 text-sm border-slate-200"
+                                                                    />
+                                                                    {fieldVal && !currentFile && typeof fieldVal === 'string' && fieldVal.startsWith('http') && (
+                                                                        <a href={fieldVal} target="_blank" rel="noreferrer" className="text-sm text-emerald-600 font-medium hover:underline inline-flex items-center gap-1">
+                                                                            <FileCheck size={14} /> Lihat File Tersimpan
+                                                                        </a>
+                                                                    )}
+                                                                    {currentFile && (
+                                                                        <div className="flex items-center gap-2 p-2.5 rounded-lg border text-sm bg-slate-50 border-slate-200 text-slate-600">
+                                                                            <Upload size={14} className="shrink-0" />
+                                                                            <span className="truncate font-medium flex-1">{currentFile.name} ({progress === 'uploading' ? '...' : (currentFile.size / 1024 / 1024).toFixed(1) + 'MB'})</span>
+                                                                            <button type="button" onClick={() => {
+                                                                                setFileObjects(prev => { const copy = { ...prev }; delete copy[compId]; return copy; });
+                                                                                handleMultipleAnswerChange(q.id, group.label, field.label, field.type, '');
+                                                                                setUploadProgress(prev => { const copy = { ...prev }; delete copy[compId]; return copy; });
+                                                                            }} className="text-slate-400 hover:text-red-500"><X size={14} /></button>
                                                                         </div>
-                                                                    );
-                                                                }
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        } else if (field.type === 'textarea') {
+                                                            innerInput = (
+                                                                <textarea rows={3} value={fieldVal || ''} onChange={(e) => handleMultipleAnswerChange(q.id, group.label, field.label, field.type, e.target.value)} className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#10b981] outline-none transition-all text-sm" placeholder="Mulai mengetik..." />
+                                                            );
+                                                        }
 
-                                                                return (
-                                                                    <div key={fIdx}>
-                                                                        <label className="block text-xs font-semibold text-slate-600 mb-1">{field.label}</label>
-                                                                        {innerInput}
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
+                                                        return (
+                                                            <div key={fIdx}>
+                                                                <label className="block text-sm font-medium text-slate-700 mb-1.5">{field.label}</label>
+                                                                {field.description && <p className="text-xs text-slate-400 mb-2">{field.description}</p>}
+                                                                {innerInput}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        );
+                                    } else if (group.type === 'dynamic_list') {
+                                        // Determine how many dynamic items exist currently by finding the max index used in group_label
+                                        const currentAnswersGroup = multipleAnswers[q.id] || [];
+                                        const dynamicAnswers = currentAnswersGroup.filter(a => a.group_label && a.group_label.startsWith(group.item_label));
 
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                // Trigger a state update by just adding an empty answer for the newly grouped number
-                                                const nextNum = maxCount + 1;
-                                                const firstField = group.fields[0];
-                                                if (firstField) {
-                                                    handleMultipleAnswerChange(q.id, `${group.item_label} [${nextNum}]`, firstField.label, firstField.type, '');
-                                                }
-                                            }}
-                                            className="mt-4 px-4 py-2 bg-emerald-50 text-emerald-700 font-semibold rounded-lg text-sm hover:bg-emerald-100 transition-colors border border-emerald-200"
-                                        >
-                                            + Tambah {group.item_label}
-                                        </button>
-                                    </div>
-                                );
-                            }
-                            return null;
-                        })}
+                                        // Parse out the highest number, e.g., "Jawaban Bukti Konten [1]" -> 1
+                                        let maxCount = 1; // Default min is 1
+                                        dynamicAnswers.forEach(a => {
+                                            const match = a.group_label.match(/\[(\d+)\]/);
+                                            if (match && match[1]) {
+                                                const num = parseInt(match[1], 10);
+                                                if (num > maxCount) maxCount = num;
+                                            }
+                                        });
+
+                                        // We want to render maxCount number of forms
+                                        const itemForms = Array.from({ length: maxCount }, (_, i) => i + 1);
+
+
+                                        return (
+                                            <div key={gIdx} className="bg-slate-50 rounded-2xl p-4 sm:p-6 border border-slate-100">
+                                                <h4 className="font-semibold text-slate-800 mb-4 pb-3 border-b border-slate-200">{group.label}</h4>
+
+                                                <div className="space-y-6">
+                                                    {itemForms.map((itemNum) => {
+                                                        const activeGroupLabel = `${group.item_label} [${itemNum}]`;
+
+                                                        return (
+                                                            <div key={itemNum} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative">
+                                                                <h5 className="text-sm font-bold text-slate-500 mb-3 uppercase tracking-wider">{activeGroupLabel}</h5>
+
+                                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                                    {group.fields?.map((field: any, fIdx: number) => {
+                                                                        const ansObj = currentAnswersGroup.find(a => a.group_label === activeGroupLabel && a.field_label === field.label);
+                                                                        const fieldVal = ansObj ? ansObj.answer_value : '';
+                                                                        const compId = `${q.id}_${activeGroupLabel}_${field.label}`;
+
+                                                                        let innerInput = null;
+                                                                        if (field.type === 'text') {
+                                                                            innerInput = <input type="text" value={fieldVal || ''} onChange={(e) => handleMultipleAnswerChange(q.id, activeGroupLabel, field.label, field.type, e.target.value)} className="w-full p-2.5 rounded-lg border border-slate-200 outline-none text-sm focus:border-[#10b981]" placeholder="Judul..." />;
+                                                                        } else if (field.type === 'url_website') {
+                                                                            innerInput = <input type="url" value={fieldVal || ''} onChange={(e) => handleMultipleAnswerChange(q.id, activeGroupLabel, field.label, field.type, e.target.value)} className="w-full p-2.5 rounded-lg border border-slate-200 outline-none text-sm focus:border-[#10b981]" placeholder="https://..." />;
+                                                                        } else if (field.type === 'textarea') {
+                                                                            innerInput = <textarea rows={3} value={fieldVal || ''} onChange={(e) => handleMultipleAnswerChange(q.id, activeGroupLabel, field.label, field.type, e.target.value)} className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#10b981] outline-none transition-all text-sm" placeholder="Mulai mengetik..." />;
+                                                                        } else if (field.type === 'file_upload') {
+                                                                            const currentFile = fileObjects[compId];
+                                                                            const progress = uploadProgress[compId];
+                                                                            innerInput = (
+                                                                                <div className="space-y-3">
+                                                                                    <input
+                                                                                        type="file"
+                                                                                        accept=".pdf,.docx,.xlsx,.pptx,.jpeg,.jpg,.png"
+                                                                                        onChange={(e) => {
+                                                                                            const file = e.target.files?.[0];
+                                                                                            if (!file) return;
+                                                                                            if (file.size > MAX_FILE_SIZE_BYTES) {
+                                                                                                alert(`Ukuran file melebihi batas maksimal ${MAX_FILE_SIZE_MB}MB.`);
+                                                                                                e.target.value = ''; return;
+                                                                                            }
+                                                                                            setFileObjects(prev => ({ ...prev, [compId]: file }));
+                                                                                            handleMultipleAnswerChange(q.id, activeGroupLabel, field.label, field.type, file.name);
+                                                                                            setUploadProgress(prev => ({ ...prev, [compId]: 'idle' }));
+                                                                                        }}
+                                                                                        className="w-full p-2.5 rounded-xl border bg-white outline-none transition-all cursor-pointer file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 text-sm border-slate-200"
+                                                                                    />
+                                                                                    {fieldVal && !currentFile && typeof fieldVal === 'string' && fieldVal.startsWith('http') && (
+                                                                                        <a href={fieldVal} target="_blank" rel="noreferrer" className="text-sm text-emerald-600 font-medium hover:underline inline-flex items-center gap-1">
+                                                                                            <FileCheck size={14} /> Lihat File Tersimpan
+                                                                                        </a>
+                                                                                    )}
+                                                                                    {currentFile && (
+                                                                                        <div className="flex items-center gap-2 p-2.5 rounded-lg border text-sm bg-slate-50 border-slate-200 text-slate-600">
+                                                                                            <Upload size={14} className="shrink-0" />
+                                                                                            <span className="truncate font-medium flex-1">{currentFile.name} ({progress === 'uploading' ? '...' : (currentFile.size / 1024 / 1024).toFixed(1) + 'MB'})</span>
+                                                                                            <button type="button" onClick={() => {
+                                                                                                setFileObjects(prev => { const copy = { ...prev }; delete copy[compId]; return copy; });
+                                                                                                handleMultipleAnswerChange(q.id, activeGroupLabel, field.label, field.type, '');
+                                                                                                setUploadProgress(prev => { const copy = { ...prev }; delete copy[compId]; return copy; });
+                                                                                            }} className="text-slate-400 hover:text-red-500"><X size={14} /></button>
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            );
+                                                                        }
+
+                                                                        return (
+                                                                            <div key={fIdx}>
+                                                                                <label className="block text-xs font-semibold text-slate-600 mb-1">{field.label}</label>
+                                                                                {innerInput}
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        // Trigger a state update by just adding an empty answer for the newly grouped number
+                                                        const nextNum = maxCount + 1;
+                                                        const firstField = group.fields[0];
+                                                        if (firstField) {
+                                                            handleMultipleAnswerChange(q.id, `${group.item_label} [${nextNum}]`, firstField.label, firstField.type, '');
+                                                        }
+                                                    }}
+                                                    className="mt-4 px-4 py-2 bg-emerald-50 text-emerald-700 font-semibold rounded-lg text-sm hover:bg-emerald-100 transition-colors border border-emerald-200"
+                                                >
+                                                    + Tambah {group.item_label}
+                                                </button>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                })}
+                            </div>
+                        )}
                     </div>
                 );
             }
