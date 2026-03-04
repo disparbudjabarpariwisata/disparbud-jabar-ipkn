@@ -854,15 +854,24 @@ export default function SurveyStartPage() {
                             <div className="space-y-6 sm:space-y-8 pl-1 sm:pl-4 border-l-2 border-slate-200 ml-2 sm:ml-4">
                                 {schemaObj.schema.map((group: any, gIdx: number) => {
                                     if (group.type === 'group') {
+                                        // Pre-filter fields to decide if this group should render at all
+                                        const fieldsToRender = group.fields?.filter((field: any) => {
+                                            const lowerLabel = field.label.toLowerCase();
+                                            const isFieldTidakAda = lowerLabel.includes('tidak') || lowerLabel.includes('alasan') || lowerLabel.includes('belum');
+
+                                            if (localRadioVal === 'Ada' && isFieldTidakAda) return false;
+                                            if (localRadioVal === 'Tidak Ada' && !isFieldTidakAda) return false;
+                                            return true;
+                                        }) || [];
+
+                                        // If no fields to render for the chosen radio, hide the entire group container
+                                        if (fieldsToRender.length === 0) return null;
+
                                         return (
                                             <div key={gIdx} className="bg-slate-50 rounded-2xl p-4 sm:p-6 border border-slate-100">
                                                 <h4 className="font-semibold text-slate-800 mb-4">{group.label}</h4>
                                                 <div className="space-y-4">
-                                                    {group.fields?.map((field: any, fIdx: number) => {
-                                                        const isFieldTidakAda = field.label.toLowerCase().includes('tidak ada');
-                                                        if (localRadioVal === 'Ada' && isFieldTidakAda) return null;
-                                                        if (localRadioVal === 'Tidak Ada' && !isFieldTidakAda) return null;
-
+                                                    {fieldsToRender.map((field: any, fIdx: number) => {
                                                         const currentAnswersGroup = multipleAnswers[q.id] || [];
                                                         const ansObj = currentAnswersGroup.find(a => a.group_label === group.label && a.field_label === field.label);
                                                         const fieldVal = ansObj ? ansObj.answer_value : '';
@@ -927,6 +936,10 @@ export default function SurveyStartPage() {
                                             </div>
                                         );
                                     } else if (group.type === 'dynamic_list') {
+                                        // Completely hide dynamic_lists if "Tidak Ada" is selected 
+                                        // (Dynamic lists are usually "Bukti tambahan" or "Data Lain", suitable only for "Ada")
+                                        if (localRadioVal === 'Tidak Ada') return null;
+
                                         // Determine how many dynamic items exist currently by finding the max index used in group_label
                                         const currentAnswersGroup = multipleAnswers[q.id] || [];
                                         const dynamicAnswers = currentAnswersGroup.filter(a => a.group_label && a.group_label.startsWith(group.item_label));
@@ -959,7 +972,8 @@ export default function SurveyStartPage() {
 
                                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                                     {group.fields?.map((field: any, fIdx: number) => {
-                                                                        const isFieldTidakAda = field.label.toLowerCase().includes('tidak ada');
+                                                                        const lowerLabel = field.label.toLowerCase();
+                                                                        const isFieldTidakAda = lowerLabel.includes('tidak') || lowerLabel.includes('alasan') || lowerLabel.includes('belum');
                                                                         if (localRadioVal === 'Ada' && isFieldTidakAda) return null;
                                                                         if (localRadioVal === 'Tidak Ada' && !isFieldTidakAda) return null;
 
