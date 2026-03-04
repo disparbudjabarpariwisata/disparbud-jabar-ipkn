@@ -320,11 +320,11 @@ export default function SurveyStartPage() {
                     isValid = false;
                 }
 
-                // Requirement 2: If "Ada", then check if the multiple items are filled
-                if (q.is_required && radioAns === "Ada") {
+                // Requirement 2: Check if multiple items are filled
+                if (q.is_required && radioAns) {
                     const ansArray = multipleAnswers[q.id];
                     if (!ansArray || ansArray.length === 0) {
-                        errors[q.id] = "Pertanyaan ini wajib diisi dengan lengkap karena Anda memilih 'Ada'.";
+                        errors[q.id] = "Pertanyaan ini wajib diisi dengan lengkap sesuai pilihan Anda.";
                         isValid = false;
                     }
                 }
@@ -812,7 +812,14 @@ export default function SurveyStartPage() {
                                         name={`multiple-radio-${q.id}`}
                                         value="Ada"
                                         checked={localRadioVal === 'Ada'}
-                                        onChange={() => handleAnswerChange(q.id, 'Ada', 'radio')}
+                                        onChange={() => {
+                                            handleAnswerChange(q.id, 'Ada', 'radio');
+                                            setMultipleAnswers(prev => {
+                                                const copy = { ...prev };
+                                                delete copy[q.id];
+                                                return copy;
+                                            });
+                                        }}
                                         className="w-5 h-5 accent-[#10b981] cursor-pointer"
                                     />
                                 </div>
@@ -842,8 +849,8 @@ export default function SurveyStartPage() {
                             </label>
                         </div>
 
-                        {/* Complex Form: ONLY show if "Ada" is selected */}
-                        {localRadioVal === 'Ada' && (
+                        {/* Complex Form: Show if either option is selected */}
+                        {localRadioVal && (
                             <div className="space-y-6 sm:space-y-8 pl-1 sm:pl-4 border-l-2 border-slate-200 ml-2 sm:ml-4">
                                 {schemaObj.schema.map((group: any, gIdx: number) => {
                                     if (group.type === 'group') {
@@ -852,6 +859,10 @@ export default function SurveyStartPage() {
                                                 <h4 className="font-semibold text-slate-800 mb-4">{group.label}</h4>
                                                 <div className="space-y-4">
                                                     {group.fields?.map((field: any, fIdx: number) => {
+                                                        const isFieldTidakAda = field.label.toLowerCase().includes('tidak ada');
+                                                        if (localRadioVal === 'Ada' && isFieldTidakAda) return null;
+                                                        if (localRadioVal === 'Tidak Ada' && !isFieldTidakAda) return null;
+
                                                         const currentAnswersGroup = multipleAnswers[q.id] || [];
                                                         const ansObj = currentAnswersGroup.find(a => a.group_label === group.label && a.field_label === field.label);
                                                         const fieldVal = ansObj ? ansObj.answer_value : '';
@@ -948,6 +959,10 @@ export default function SurveyStartPage() {
 
                                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                                     {group.fields?.map((field: any, fIdx: number) => {
+                                                                        const isFieldTidakAda = field.label.toLowerCase().includes('tidak ada');
+                                                                        if (localRadioVal === 'Ada' && isFieldTidakAda) return null;
+                                                                        if (localRadioVal === 'Tidak Ada' && !isFieldTidakAda) return null;
+
                                                                         const ansObj = currentAnswersGroup.find(a => a.group_label === activeGroupLabel && a.field_label === field.label);
                                                                         const fieldVal = ansObj ? ansObj.answer_value : '';
                                                                         const compId = `${q.id}_${activeGroupLabel}_${field.label}`;
