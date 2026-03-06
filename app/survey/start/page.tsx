@@ -383,6 +383,10 @@ export default function SurveyStartPage() {
             // Also find all multiple input files
             const multipleFileUploadKeys = Object.keys(fileObjects).filter(k => k.includes('_'));
 
+            // Create mutable copies to synchronously track updates for the save payload
+            const localAnswers = { ...answers };
+            const localMultipleAnswers = JSON.parse(JSON.stringify(multipleAnswers)); // deep copy to ensure safe mutation
+
             if (standardFileUploadQuestions.length > 0 || multipleFileUploadKeys.length > 0) {
                 setIsUploadingFiles(true);
 
@@ -415,6 +419,8 @@ export default function SurveyStartPage() {
 
                         // Update the answer with the Google Drive URL
                         setAnswers(prev => ({ ...prev, [q.id]: uploadData.fileUrl }));
+                        localAnswers[q.id] = uploadData.fileUrl; // keep synchronous state
+
                         setUploadProgress(prev => ({ ...prev, [q.id]: 'done' }));
                     } catch (uploadErr: any) {
                         console.error(`Upload failed for question ${q.id}:`, uploadErr);
@@ -465,6 +471,17 @@ export default function SurveyStartPage() {
                                 })
                             };
                         });
+
+                        // Update our synchronous tracking object too
+                        if (localMultipleAnswers[question_id]) {
+                            localMultipleAnswers[question_id] = localMultipleAnswers[question_id].map((ans: any) => {
+                                if (`${question_id}_${ans.group_label}_${ans.field_label}` === fileKey) {
+                                    return { ...ans, answer_value: uploadData.fileUrl };
+                                }
+                                return ans;
+                            });
+                        }
+
                         setUploadProgress(prev => ({ ...prev, [fileKey]: 'done' }));
 
                     } catch (uploadErr: any) {
@@ -476,11 +493,11 @@ export default function SurveyStartPage() {
                 setIsUploadingFiles(false);
             }
 
-            // Step 2: Format and save all non-file answers
+            // Step 2: Format and save all non-file answers using local state
             const payload = visibleQuestions
                 .filter(q => q.question_type !== 'section_break' && q.question_type !== 'file_upload')
                 .map(q => {
-                    const ans = answers[q.id];
+                    const ans = localAnswers[q.id];
                     const isJson = q.question_type === 'checkbox';
                     let stringAns = String(ans || '');
 
@@ -491,10 +508,10 @@ export default function SurveyStartPage() {
                     };
                 });
 
-            const multiplePayload = Object.keys(multipleAnswers).flatMap(qId => {
-                const ansArray = multipleAnswers[qId];
+            const multiplePayload = Object.keys(localMultipleAnswers).flatMap(qId => {
+                const ansArray = localMultipleAnswers[qId];
                 if (!ansArray) return [];
-                // if it's a file, we should now have the google drive link inside multipleAnswers (or pending if not yet state-updated, but we'll manually attach in the next tick if needed. For now, since state updates are async, we actually construct it from the latest data)
+                // if it's a file, we now have the google drive link inside localMultipleAnswers
                 return ansArray;
             });
 
