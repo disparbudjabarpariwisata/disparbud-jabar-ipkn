@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { Loader2, AlertCircle, Save, CheckCircle2, Upload, FileCheck, X } from 'lucide-react';
+import { Loader2, AlertCircle, Save, CheckCircle2, Upload, FileCheck, X, ExternalLink } from 'lucide-react';
 import LikertSlider from '@/components/LikertSlider';
 
 // Allowed file types and max size
@@ -503,10 +503,12 @@ export default function SurveyStartPage() {
 
                     return {
                         question_id: q.id,
-                        answer_text: isJson ? null : stringAns,
+                        answer_text: isJson ? null : (stringAns.trim() || null),
                         answer_json: isJson ? (ans || []) : null
                     };
-                });
+                })
+                // Only save answers that actually have content (match auto-save filter)
+                .filter(ans => (ans.answer_text !== null && ans.answer_text.trim() !== '') || (ans.answer_json && ans.answer_json.length > 0));
 
             const multiplePayload = Object.keys(localMultipleAnswers).flatMap(qId => {
                 const ansArray = localMultipleAnswers[qId];
@@ -715,8 +717,18 @@ export default function SurveyStartPage() {
             case 'file_upload': {
                 const currentFile = fileObjects[q.id];
                 const progress = uploadProgress[q.id];
+                const existingFileUrl = val && typeof val === 'string' && val.startsWith('http') ? val : null;
                 return (
                     <div className="space-y-3">
+                        {/* Show link to previously uploaded file on Google Drive */}
+                        {existingFileUrl && !currentFile && (
+                            <a href={existingFileUrl} target="_blank" rel="noreferrer"
+                                className="flex items-center gap-2 p-3 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 text-sm font-medium hover:bg-emerald-100 transition-colors group">
+                                <FileCheck size={16} className="shrink-0" />
+                                <span className="flex-1">File telah diupload — Klik untuk melihat di Google Drive</span>
+                                <ExternalLink size={14} className="shrink-0 opacity-50 group-hover:opacity-100 transition-opacity" />
+                            </a>
+                        )}
                         <input
                             type="file"
                             accept=".pdf,.docx,.xlsx,.pptx,.jpeg,.jpg,.png"

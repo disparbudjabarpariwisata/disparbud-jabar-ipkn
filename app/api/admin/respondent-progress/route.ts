@@ -21,7 +21,8 @@ export async function POST(request: Request) {
             .eq('role_id', roleId)
             .eq('is_required', true)
             .eq('active', true)
-            .neq('question_type', 'section_break');
+            .neq('question_type', 'section_break')
+            .neq('question_type', 'file_upload');
 
         if (qError) throw qError;
         if (!requiredQuestions || requiredQuestions.length === 0) {
@@ -117,8 +118,19 @@ export async function POST(request: Request) {
                 let isAnswered = false;
 
                 if (q.question_type === 'multiple_input') {
-                    if (ans === 'Tidak Ada' || ans === 'Ada') {
+                    if (ans === 'Tidak Ada') {
                         isAnswered = true;
+                    } else if (ans === 'Ada') {
+                        // 'Ada' only counts if there are actual detail answers in survey_multiple_answers
+                        const detailAnswers = multiAnswersMap[q.id];
+                        if (detailAnswers && detailAnswers.length > 0) {
+                            // Check that at least one detail answer has a non-empty value
+                            const hasFilledDetail = detailAnswers.some((d: any) =>
+                                d.answer_value && String(d.answer_value).trim() !== ''
+                            );
+                            isAnswered = hasFilledDetail;
+                        }
+                        // If no detail answers, 'Ada' alone is NOT sufficient
                     }
                 } else {
                     if (Array.isArray(ans)) {
