@@ -240,13 +240,8 @@ export default function AdminRespondentsPage() {
                                     let isAnswered = false;
 
                                     if (q.question_type === 'multiple_input') {
-                                        if (ans === 'Tidak Ada') {
+                                        if (ans === 'Tidak Ada' || ans === 'Ada') {
                                             isAnswered = true;
-                                        } else if (ans === 'Ada') {
-                                            const childAnswers = multiAnswersMap[q.id];
-                                            if (childAnswers && childAnswers.some((m: any) => m.answer_value && String(m.answer_value).trim() !== '')) {
-                                                isAnswered = true;
-                                            }
                                         }
                                     } else {
                                         if (Array.isArray(ans)) {
