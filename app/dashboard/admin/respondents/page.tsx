@@ -165,7 +165,7 @@ export default function AdminRespondentsPage() {
                 if (targetRoleObj) {
                     const { data: qData, error: qError } = await supabase
                         .from('survey_questions')
-                        .select('id, institution_name')
+                        .select('id, institution_name, question_type, depends_on_question_id, depends_on_answer')
                         .eq('role_id', targetRoleObj.id)
                         .eq('is_required', true)
                         .eq('active', true)
@@ -181,38 +181,89 @@ export default function AdminRespondentsPage() {
                 const enrichedData = await Promise.all(identities.map(async (user: any) => {
                     let progress = 0;
 
-                    // Tentukan pertanyaan wajib khusus untuk user ini
-                    // User menjawab pertanyaan yang institution_name-nya NULL (berlaku semua) ATAU sesuai institution mereka
-                    const userRequiredQuestions = allRequiredQuestions.filter(q => {
-                        return !q.institution_name || q.institution_name === user.institution;
-                    });
-
-                    const requiredCount = userRequiredQuestions.length;
-
-                    if (requiredCount > 0) {
+                    if (allRequiredQuestions.length > 0) {
                         // Get all answers from this SPECIFIC respondent
                         const { data: answers, error: aError } = await supabase
                             .from('survey_answers')
-                            .select('question_id')
+                            .select('question_id, answer_text, answer_json')
+                            .eq('respondent_id', user.id);
+
+                        const { data: mAnswers, error: mError } = await supabase
+                            .from('survey_multiple_answers')
+                            .select('question_id, answer_value')
                             .eq('respondent_id', user.id);
 
                         if (!aError && answers) {
-                            // Find unique questions answered
-                            const answeredIds = new Set(answers.map(a => a.question_id));
-
-                            // Only count answers that belong to their required questions
-                            // to avoid over-calculating if they answered questions that later changed
-                            let validAnswerCount = 0;
-                            userRequiredQuestions.forEach(q => {
-                                if (answeredIds.has(q.id)) {
-                                    validAnswerCount++;
-                                }
+                            // Map base answers
+                            const answersMap: Record<string, string | any[]> = {};
+                            answers.forEach(a => {
+                                if (a.answer_json) answersMap[a.question_id] = a.answer_json;
+                                else answersMap[a.question_id] = a.answer_text;
                             });
 
-                            progress = Math.round((validAnswerCount / requiredCount) * 100);
+                            // Map multiple answers
+                            const multiAnswersMap: Record<string, any[]> = {};
+                            if (!mError && mAnswers) {
+                                mAnswers.forEach(m => {
+                                    if (!multiAnswersMap[m.question_id]) multiAnswersMap[m.question_id] = [];
+                                    multiAnswersMap[m.question_id].push(m);
+                                });
+                            }
 
-                            // Cap at 100% just in case
-                            progress = progress > 100 ? 100 : progress;
+                            // Tentukan pertanyaan wajib khusus untuk user ini (termasuk filter dependensi)
+                            const userRequiredQuestions = allRequiredQuestions.filter(q => {
+                                // 1. Check institution logic
+                                if (q.institution_name && q.institution_name !== user.institution) return false;
+
+                                // 2. Check dependency logic
+                                if (q.depends_on_question_id && q.depends_on_answer) {
+                                    const parentAns = answersMap[q.depends_on_question_id];
+                                    if (!parentAns) return false;
+
+                                    if (Array.isArray(parentAns)) {
+                                        if (!parentAns.includes(q.depends_on_answer)) return false;
+                                    } else {
+                                        if (String(parentAns) !== q.depends_on_answer) return false;
+                                    }
+                                }
+
+                                return true;
+                            });
+
+                            const requiredCount = userRequiredQuestions.length;
+
+                            if (requiredCount > 0) {
+                                let validAnswerCount = 0;
+
+                                userRequiredQuestions.forEach(q => {
+                                    const ans = answersMap[q.id];
+                                    let isAnswered = false;
+
+                                    if (q.question_type === 'multiple_input') {
+                                        if (ans === 'Tidak Ada') {
+                                            isAnswered = true;
+                                        } else if (ans === 'Ada') {
+                                            const childAnswers = multiAnswersMap[q.id];
+                                            if (childAnswers && childAnswers.some((m: any) => m.answer_value && String(m.answer_value).trim() !== '')) {
+                                                isAnswered = true;
+                                            }
+                                        }
+                                    } else {
+                                        if (Array.isArray(ans)) {
+                                            if (ans.length > 0) isAnswered = true;
+                                        } else if (ans !== null && ans !== undefined) {
+                                            if (String(ans).trim() !== '') isAnswered = true;
+                                        }
+                                    }
+
+                                    if (isAnswered) {
+                                        validAnswerCount++;
+                                    }
+                                });
+
+                                progress = Math.round((validAnswerCount / requiredCount) * 100);
+                                progress = progress > 100 ? 100 : progress;
+                            }
                         }
                     } else {
                         // If no required questions set up by admin yet
@@ -399,7 +450,7 @@ export default function AdminRespondentsPage() {
                                                 </div>
                                                 {user.sub_respondents && user.sub_respondents.length > 0 && (
                                                     <div className="mt-2 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-1 rounded inline-block">
-                                                        + {user.sub_respondents.length} Rekan Institusi 
+                                                        + {user.sub_respondents.length} Rekan Institusi
                                                     </div>
                                                 )}
                                             </td>
