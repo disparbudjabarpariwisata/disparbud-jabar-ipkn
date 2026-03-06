@@ -77,9 +77,17 @@ export async function POST(request: Request) {
                 multiAnswersMap[m.question_id].push(m);
             });
 
+            // Normalize institution names to handle parentheses inconsistencies
+            // e.g., "(ASITA)" vs "ASITA", "(DPMPTSP)" vs "DPMPTSP"
+            const normalize = (s: string) => s.replace(/[()]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+            const normalizedUserInst = normalize(userInstitution || '');
+
             // Filter required questions for this user
             const userRequiredQuestions = requiredQuestions.filter((q: any) => {
-                if (q.institution_name && q.institution_name !== userInstitution) return false;
+                if (q.institution_name) {
+                    const normalizedQInst = normalize(q.institution_name);
+                    if (normalizedQInst !== normalizedUserInst) return false;
+                }
 
                 if (q.depends_on_question_id && q.depends_on_answer) {
                     const parentAns = answersMap[q.depends_on_question_id];
