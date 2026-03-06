@@ -87,6 +87,37 @@ export async function POST(request: Request) {
                 console.error('DB Error saving file link:', dbError);
                 // Don't fail the request — file is already uploaded
             }
+        } else {
+            // For multiple_input file uploads, save directly to survey_multiple_answers
+            const groupLabel = formData.get('group_label') as string | null;
+            const fieldLabel = formData.get('field_label') as string | null;
+
+            if (groupLabel && fieldLabel) {
+                // Delete existing entry and insert new one
+                await supabaseAdmin
+                    .from('survey_multiple_answers')
+                    .delete()
+                    .eq('respondent_id', respondentId)
+                    .eq('question_id', questionId)
+                    .eq('group_label', groupLabel)
+                    .eq('field_label', fieldLabel);
+
+                const { error: multiDbError } = await supabaseAdmin
+                    .from('survey_multiple_answers')
+                    .insert({
+                        respondent_id: respondentId,
+                        role_id: roleId,
+                        question_id: questionId,
+                        group_label: groupLabel,
+                        field_label: fieldLabel,
+                        field_type: 'upload_file',
+                        answer_value: result.fileUrl,
+                    });
+
+                if (multiDbError) {
+                    console.error('DB Error saving multiple file link:', multiDbError);
+                }
+            }
         }
 
         return NextResponse.json({

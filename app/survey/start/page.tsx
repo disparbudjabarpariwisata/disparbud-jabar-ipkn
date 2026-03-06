@@ -437,6 +437,10 @@ export default function SurveyStartPage() {
                     // Extract question_id, group_label, field_label from the composite key
                     const firstUnderscore = fileKey.indexOf('_');
                     const question_id = fileKey.substring(0, firstUnderscore);
+                    const rest = fileKey.substring(firstUnderscore + 1);
+                    const lastUnderscore = rest.lastIndexOf('_');
+                    const group_label = rest.substring(0, lastUnderscore);
+                    const field_label = rest.substring(lastUnderscore + 1);
 
                     setUploadProgress(prev => ({ ...prev, [fileKey]: 'uploading' }));
 
@@ -448,6 +452,8 @@ export default function SurveyStartPage() {
                         formData.append('role_id', roleId!);
                         formData.append('institution_name', identity.institution || '');
                         formData.append('is_multiple', 'true');
+                        formData.append('group_label', group_label);
+                        formData.append('field_label', field_label);
 
                         const uploadRes = await fetch('/api/survey/upload-file', {
                             method: 'POST',
