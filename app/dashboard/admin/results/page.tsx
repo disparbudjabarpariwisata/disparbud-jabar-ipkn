@@ -172,6 +172,22 @@ export default function AdminResultsPage() {
                 `)
                 .in('respondent_id', respondentIds);
 
+            // Also fetch multiple answers (file uploads within multiple_input)
+            const { data: multiAnswers } = await supabase
+                .from('survey_multiple_answers')
+                .select(`
+                    respondent_id,
+                    question_id,
+                    group_label,
+                    field_label,
+                    field_type,
+                    answer_value,
+                    survey_questions (
+                        question_text
+                    )
+                `)
+                .in('respondent_id', respondentIds);
+
             if (aError || !answers) {
                 setResults([]);
                 setIsLoading(false);
@@ -201,6 +217,29 @@ export default function AdminResultsPage() {
                     answer: actualAnswer,
                 });
             });
+
+            // Add multiple answers (includes file upload URLs from multiple_input)
+            if (multiAnswers && multiAnswers.length > 0) {
+                multiAnswers.forEach((ma: any) => {
+                    const respondent = allRespondents.find(r => r.id === ma.respondent_id);
+                    if (!respondent) return;
+                    if (!ma.answer_value || String(ma.answer_value).trim() === '') return;
+
+                    const questionText = ma.survey_questions?.question_text || 'Unknown Question';
+                    const detailLabel = `${questionText} → ${ma.group_label} → ${ma.field_label}`;
+
+                    formattedResults.push({
+                        respondent_id: respondent.id,
+                        respondent_name: respondent.pic_name || 'NN',
+                        role_name: respondent.role_name_injected,
+                        institution: respondent.institution || '-',
+                        position: respondent.position || '-',
+                        email: respondent.email,
+                        question_text: detailLabel,
+                        answer: ma.answer_value,
+                    });
+                });
+            }
 
             setResults(formattedResults);
             setIsLoading(false);
