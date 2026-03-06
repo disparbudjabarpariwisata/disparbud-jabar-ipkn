@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { ADMIN_EMAIL, adminMenuItems } from '@/lib/adminConfig';
-import { Loader2, Download, Search } from 'lucide-react';
+import { Loader2, Download, Search, ExternalLink } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 type RoleType = {
@@ -348,7 +348,21 @@ export default function AdminResultsPage() {
                                             </td>
                                             <td className="px-5 py-3 min-w-[150px]">{row.position}</td>
                                             <td className="px-5 py-3 min-w-[300px] text-xs leading-relaxed text-gray-800 bg-amber-50/30">{row.question_text}</td>
-                                            <td className="px-5 py-3 min-w-[200px] font-medium text-emerald-700">{row.answer}</td>
+                                            <td className="px-5 py-3 min-w-[200px] font-medium text-emerald-700">
+                                                {row.answer && row.answer.startsWith('http') ? (
+                                                    <a
+                                                        href={row.answer}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold hover:bg-blue-100 border border-blue-200 transition-colors"
+                                                    >
+                                                        <ExternalLink size={13} />
+                                                        {row.answer.includes('drive.google.com') ? 'Buka File di Google Drive' : 'Buka Link'}
+                                                    </a>
+                                                ) : (
+                                                    row.answer
+                                                )}
+                                            </td>
                                         </tr>
                                     ))
                                 )}
