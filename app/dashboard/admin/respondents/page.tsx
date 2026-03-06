@@ -158,113 +158,41 @@ export default function AdminRespondentsPage() {
                 // sort by created_at descending if we want newer institutions on top
                 identities.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-                // 3. Cari Total Pertanyaan "Required" untuk Role Ini (denominator base)
+                // 3. Hitung persentase progres via server-side API (bypasses RLS)
                 const targetRoleObj = roles.find(r => r.role_name === activeTab);
-                let allRequiredQuestions: any[] = [];
+                let progressMap: Record<string, number> = {};
 
                 if (targetRoleObj) {
-                    const { data: qData, error: qError } = await supabase
-                        .from('survey_questions')
-                        .select('id, institution_name, question_type, depends_on_question_id, depends_on_answer')
-                        .eq('role_id', targetRoleObj.id)
-                        .eq('is_required', true)
-                        .eq('active', true)
-                        .neq('question_type', 'section_break');
+                    const respondentIds = identities.map((u: any) => u.id);
+                    const respondentInstitutions: Record<string, string> = {};
+                    identities.forEach((u: any) => {
+                        respondentInstitutions[u.id] = u.institution;
+                    });
 
-                    if (!qError && qData) {
-                        allRequiredQuestions = qData;
+                    try {
+                        const progressRes = await fetch('/api/admin/respondent-progress', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                respondentIds,
+                                roleId: targetRoleObj.id,
+                                respondentInstitutions,
+                            }),
+                        });
+
+                        if (progressRes.ok) {
+                            const progressData = await progressRes.json();
+                            if (progressData.success) {
+                                progressMap = progressData.progress;
+                            }
+                        }
+                    } catch (progressErr) {
+                        console.error('Failed to fetch progress:', progressErr);
                     }
                 }
 
-                // 4. Hitung persentase progres masing-masing responden (Numerator)
-                // Kita akan melakukan map Promise.all untuk mengambil jumlah jawaban tiap orang
-                const enrichedData = await Promise.all(identities.map(async (user: any) => {
-                    let progress = 0;
-
-                    if (allRequiredQuestions.length > 0) {
-                        // Get all answers from this SPECIFIC respondent
-                        const { data: answers, error: aError } = await supabase
-                            .from('survey_answers')
-                            .select('question_id, answer_text, answer_json')
-                            .eq('respondent_id', user.id);
-
-                        const { data: mAnswers, error: mError } = await supabase
-                            .from('survey_multiple_answers')
-                            .select('question_id, answer_value')
-                            .eq('respondent_id', user.id);
-
-                        if (!aError && answers) {
-                            // Map base answers
-                            const answersMap: Record<string, string | any[]> = {};
-                            answers.forEach(a => {
-                                if (a.answer_json) answersMap[a.question_id] = a.answer_json;
-                                else answersMap[a.question_id] = a.answer_text;
-                            });
-
-                            // Map multiple answers
-                            const multiAnswersMap: Record<string, any[]> = {};
-                            if (!mError && mAnswers) {
-                                mAnswers.forEach(m => {
-                                    if (!multiAnswersMap[m.question_id]) multiAnswersMap[m.question_id] = [];
-                                    multiAnswersMap[m.question_id].push(m);
-                                });
-                            }
-
-                            // Tentukan pertanyaan wajib khusus untuk user ini (termasuk filter dependensi)
-                            const userRequiredQuestions = allRequiredQuestions.filter(q => {
-                                // 1. Check institution logic
-                                if (q.institution_name && q.institution_name !== user.institution) return false;
-
-                                // 2. Check dependency logic
-                                if (q.depends_on_question_id && q.depends_on_answer) {
-                                    const parentAns = answersMap[q.depends_on_question_id];
-                                    if (!parentAns) return false;
-
-                                    if (Array.isArray(parentAns)) {
-                                        if (!parentAns.includes(q.depends_on_answer)) return false;
-                                    } else {
-                                        if (String(parentAns) !== q.depends_on_answer) return false;
-                                    }
-                                }
-
-                                return true;
-                            });
-
-                            const requiredCount = userRequiredQuestions.length;
-
-                            if (requiredCount > 0) {
-                                let validAnswerCount = 0;
-
-                                userRequiredQuestions.forEach(q => {
-                                    const ans = answersMap[q.id];
-                                    let isAnswered = false;
-
-                                    if (q.question_type === 'multiple_input') {
-                                        if (ans === 'Tidak Ada' || ans === 'Ada') {
-                                            isAnswered = true;
-                                        }
-                                    } else {
-                                        if (Array.isArray(ans)) {
-                                            if (ans.length > 0) isAnswered = true;
-                                        } else if (ans !== null && ans !== undefined) {
-                                            if (String(ans).trim() !== '') isAnswered = true;
-                                        }
-                                    }
-
-                                    if (isAnswered) {
-                                        validAnswerCount++;
-                                    }
-                                });
-
-                                progress = Math.round((validAnswerCount / requiredCount) * 100);
-                                progress = progress > 100 ? 100 : progress;
-                            }
-                        }
-                    } else {
-                        // If no required questions set up by admin yet
-                        progress = 0;
-                    }
-
+                // 4. Enrich identities with progress
+                const enrichedData = identities.map((user: any) => {
                     return {
                         id: user.id,
                         table_source: tableName,
@@ -278,10 +206,10 @@ export default function AdminRespondentsPage() {
                         ip_address: user.ip_address || 'Tidak terlacak',
                         location: user.location || 'Tidak terlacak',
                         created_at: user.created_at,
-                        progress_percentage: progress,
+                        progress_percentage: progressMap[user.id] || 0,
                         sub_respondents: user.sub_respondents
                     } as Respondent;
-                }));
+                });
 
                 setRespondents(enrichedData);
 
