@@ -10,9 +10,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Data tidak lengkap.' }, { status: 400 });
         }
 
-        // Upsert all standard answers. The "answers" array should contain:
-        // { question_id, answer_text, answer_json }
-
+        // 1. Prepare standard payload
         const payload = (answers || [])
             .filter((ans: any) => ans.question_id) // ensure question_id exists
             .map((ans: any) => {
@@ -31,21 +29,10 @@ export async function POST(request: Request) {
                 return entry;
             });
 
-        if (payload.length > 0) {
-            const { error: insertError } = await supabaseAdmin
-                .from('survey_answers')
-                .upsert(payload, { onConflict: 'respondent_id, question_id' });
-
-            if (insertError) {
-                console.error('Submit Error (Standard):', insertError);
-                return NextResponse.json({ error: `Gagal menyimpan jawaban: ${insertError.message}` }, { status: 500 });
-            }
-        }
-
-        // Handle completely custom multiple_input type answers
+        // 2. Prepare multiple_input payload
+        let multiPayload: any[] = [];
         if (Array.isArray(multiple_answers) && multiple_answers.length > 0) {
-            // Filter out entries with missing required fields
-            const multiPayload = multiple_answers
+            multiPayload = multiple_answers
                 .filter((ans: any) => ans.question_id && ans.group_label && ans.field_label)
                 .map((ans: any) => ({
                     respondent_id,
@@ -56,32 +43,69 @@ export async function POST(request: Request) {
                     field_type: ans.field_type || 'text',
                     answer_value: ans.answer_value || ''
                 }));
+        }
 
-            if (multiPayload.length > 0) {
-                // First delete existing multiple answers for this respondent & questions
-                const questionIds = Array.from(new Set(multiPayload.map(p => p.question_id)));
-                if (questionIds.length > 0) {
-                    const { error: delErr } = await supabaseAdmin
-                        .from('survey_multiple_answers')
-                        .delete()
-                        .eq('respondent_id', respondent_id)
-                        .in('question_id', questionIds);
+        // 3. Prevent FK Violations: If admin deleted a question while respondent was filling it,
+        // it would cause a survey_answers_question_id_fkey constraint error.
+        // We fetch the currently valid question IDs from DB and filter both payloads.
+        const allClientQuestionIds = Array.from(new Set([
+            ...payload.map((p: any) => p.question_id),
+            ...multiPayload.map((p: any) => p.question_id)
+        ]));
 
-                    if (delErr) {
-                        console.error('Delete Error (Multiple):', delErr);
-                        return NextResponse.json({ error: `Gagal menghapus jawaban lama: ${delErr.message}` }, { status: 500 });
-                    }
-                }
+        const validQuestionIds = new Set<string>();
+        if (allClientQuestionIds.length > 0) {
+            const { data: validQ, error: checkErr } = await supabaseAdmin
+                .from('survey_questions')
+                .select('id')
+                .in('id', allClientQuestionIds);
 
-                // Then insert new answers flatly
-                const { error: multiInsertError } = await supabaseAdmin
+            if (!checkErr && validQ) {
+                validQ.forEach(q => validQuestionIds.add(q.id));
+            }
+        }
+
+        // Filter payloads to only include those that still exist in DB
+        const finalPayload = payload.filter((p: any) => validQuestionIds.has(p.question_id));
+        const finalMultiPayload = multiPayload.filter((p: any) => validQuestionIds.has(p.question_id));
+
+        // 4. Upsert Standard Answers
+        if (finalPayload.length > 0) {
+            const { error: insertError } = await supabaseAdmin
+                .from('survey_answers')
+                .upsert(finalPayload, { onConflict: 'respondent_id, question_id' });
+
+            if (insertError) {
+                console.error('Submit Error (Standard):', insertError);
+                return NextResponse.json({ error: `Gagal menyimpan jawaban: ${insertError.message}` }, { status: 500 });
+            }
+        }
+
+        // 5. Handle completely custom multiple_input type answers
+        if (finalMultiPayload.length > 0) {
+            // First delete existing multiple answers for this respondent & questions
+            const questionIds = Array.from(new Set(finalMultiPayload.map(p => p.question_id)));
+            if (questionIds.length > 0) {
+                const { error: delErr } = await supabaseAdmin
                     .from('survey_multiple_answers')
-                    .insert(multiPayload);
+                    .delete()
+                    .eq('respondent_id', respondent_id)
+                    .in('question_id', questionIds);
 
-                if (multiInsertError) {
-                    console.error('Submit Error (Multiple):', multiInsertError);
-                    return NextResponse.json({ error: `Gagal menyimpan jawaban detail: ${multiInsertError.message}` }, { status: 500 });
+                if (delErr) {
+                    console.error('Delete Error (Multiple):', delErr);
+                    return NextResponse.json({ error: `Gagal menghapus jawaban lama: ${delErr.message}` }, { status: 500 });
                 }
+            }
+
+            // Then insert new answers flatly
+            const { error: multiInsertError } = await supabaseAdmin
+                .from('survey_multiple_answers')
+                .insert(finalMultiPayload);
+
+            if (multiInsertError) {
+                console.error('Submit Error (Multiple):', multiInsertError);
+                return NextResponse.json({ error: `Gagal menyimpan jawaban detail: ${multiInsertError.message}` }, { status: 500 });
             }
         }
 
