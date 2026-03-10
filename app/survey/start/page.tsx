@@ -412,8 +412,15 @@ export default function SurveyStartPage() {
                         });
 
                         if (!uploadRes.ok) {
-                            const errData = await uploadRes.json();
-                            throw new Error(errData.error || 'Upload gagal');
+                            let errMessage = 'Upload gagal';
+                            try {
+                                const errData = await uploadRes.json();
+                                errMessage = errData.error || errMessage;
+                            } catch (e) {
+                                if (uploadRes.status === 413) errMessage = 'File terlalu besar. Batas maksimal server terlampaui.';
+                                else errMessage = `Error Server ${uploadRes.status}: ${uploadRes.statusText}`;
+                            }
+                            throw new Error(errMessage);
                         }
 
                         const uploadData = await uploadRes.json();
@@ -461,7 +468,17 @@ export default function SurveyStartPage() {
                             body: formData,
                         });
 
-                        if (!uploadRes.ok) throw new Error('Upload gagal');
+                        if (!uploadRes.ok) {
+                            let errMessage = 'Upload gagal';
+                            try {
+                                const errData = await uploadRes.json();
+                                errMessage = errData.error || errMessage;
+                            } catch (e) {
+                                if (uploadRes.status === 413) errMessage = 'File terlalu besar. Batas maksimal server terlampaui.';
+                                else errMessage = `Error Server ${uploadRes.status}: ${uploadRes.statusText}`;
+                            }
+                            throw new Error(errMessage);
+                        }
                         const uploadData = await uploadRes.json();
 
                         // We need to update multipleAnswers array for this question
@@ -492,8 +509,9 @@ export default function SurveyStartPage() {
                         setUploadProgress(prev => ({ ...prev, [fileKey]: 'done' }));
 
                     } catch (uploadErr: any) {
+                        console.error(`Upload failed for file ${fileKey}:`, uploadErr);
                         setUploadProgress(prev => ({ ...prev, [fileKey]: 'error' }));
-                        throw new Error(`Gagal upload file "${file.name}"`);
+                        throw new Error(`Gagal upload file "${file.name}": ${uploadErr.message}`);
                     }
                 }
 

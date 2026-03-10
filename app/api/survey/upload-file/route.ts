@@ -2,17 +2,13 @@ import { NextResponse } from 'next/server';
 import { uploadToGoogleDrive } from '@/lib/googleDrive';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
-// Allowed file types
-const ALLOWED_MIME_TYPES: Record<string, string> = {
-    'application/pdf': '.pdf',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
-    'image/jpeg': '.jpeg',
-    'image/png': '.png',
-};
+// Allowed file extensions
+const ALLOWED_EXTENSIONS = [
+    '.pdf', '.xls', '.xlsx', '.doc', '.docx', '.ppt', '.pptx',
+    '.jpeg', '.jpg', '.png', '.mp4', '.mov', '.zip', '.rar'
+];
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
 export async function POST(request: Request) {
     try {
@@ -36,15 +32,17 @@ export async function POST(request: Request) {
         // Validate file size
         if (file.size > MAX_FILE_SIZE) {
             return NextResponse.json(
-                { error: `Ukuran file melebihi batas maksimal 10MB. Ukuran file Anda: ${(file.size / 1024 / 1024).toFixed(1)}MB` },
+                { error: `Ukuran file melebihi batas maksimal 50MB. Ukuran file Anda: ${(file.size / 1024 / 1024).toFixed(1)}MB` },
                 { status: 400 }
             );
         }
 
         // Validate file type
-        if (!ALLOWED_MIME_TYPES[file.type]) {
+        const fileExt = '.' + file.name.split('.').pop()?.toLowerCase();
+
+        if (!ALLOWED_EXTENSIONS.includes(fileExt)) {
             return NextResponse.json(
-                { error: `Tipe file "${file.type}" tidak diizinkan. Tipe yang diperbolehkan: PDF, DOCX, XLSX, PPTX, JPEG, PNG.` },
+                { error: `Tipe file "${fileExt}" tidak diizinkan. Gunakan: ${ALLOWED_EXTENSIONS.join(', ')}` },
                 { status: 400 }
             );
         }
@@ -65,7 +63,7 @@ export async function POST(request: Request) {
         const result = await uploadToGoogleDrive(
             buffer,
             uploadFileName,
-            file.type,
+            file.type || 'application/octet-stream',
             subfolder
         );
 
