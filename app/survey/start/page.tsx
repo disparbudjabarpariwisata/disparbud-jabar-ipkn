@@ -7,8 +7,9 @@ import { Loader2, AlertCircle, Save, CheckCircle2, Upload, FileCheck, X, Externa
 import LikertSlider from '@/components/LikertSlider';
 
 // Allowed file types and max size
-const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.xlsx', '.pptx', '.jpeg', '.jpg', '.png'];
-const MAX_FILE_SIZE_MB = 10;
+const ALLOWED_EXTENSIONS = ['.pdf', '.xls', '.xlsx', '.doc', '.docx', '.ppt', '.pptx', '.jpeg', '.jpg', '.png', '.mp4', '.mov', '.zip', '.rar'];
+const ALLOWED_EXTENSIONS_STRING = '.pdf,.xls,.xlsx,.doc,.docx,.ppt,.pptx,.jpeg,.jpg,.png,.mp4,.mov,.zip,.rar';
+const MAX_FILE_SIZE_MB = 50; // Increased to accommodate video and zip
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 interface SurveyQuestion {
@@ -737,7 +738,7 @@ export default function SurveyStartPage() {
                         )}
                         <input
                             type="file"
-                            accept=".pdf,.docx,.xlsx,.pptx,.jpeg,.jpg,.png"
+                            accept={ALLOWED_EXTENSIONS_STRING}
                             onChange={(e) => {
                                 const file = e.target.files?.[0];
                                 if (!file) return;
@@ -808,7 +809,7 @@ export default function SurveyStartPage() {
                             </div>
                         )}
                         <p className="text-xs text-slate-400 font-medium">
-                            Format: PDF, DOCX, XLSX, PPTX, JPEG, PNG. Maks {MAX_FILE_SIZE_MB}MB per file. File akan diupload saat Submit.
+                            Format: PDF, XLS, XLSX, DOC, DOCX, PPT, PPTX, JPEG, PNG, MP4, MOV, ZIP, RAR. Maks {MAX_FILE_SIZE_MB}MB per file. File akan diupload saat Submit.
                         </p>
                     </div>
                 );
@@ -921,7 +922,7 @@ export default function SurveyStartPage() {
                                                                 <div className="space-y-3">
                                                                     <input
                                                                         type="file"
-                                                                        accept=".pdf,.docx,.xlsx,.pptx,.jpeg,.jpg,.png"
+                                                                        accept={ALLOWED_EXTENSIONS_STRING}
                                                                         onChange={(e) => {
                                                                             const file = e.target.files?.[0];
                                                                             if (!file) return;
@@ -929,6 +930,14 @@ export default function SurveyStartPage() {
                                                                                 alert(`Ukuran file melebihi batas maksimal ${MAX_FILE_SIZE_MB}MB.`);
                                                                                 e.target.value = ''; return;
                                                                             }
+
+                                                                            const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+                                                                            if (!ALLOWED_EXTENSIONS.includes(ext)) {
+                                                                                alert(`Tipe file "${ext}" tidak diizinkan. Gunakan: ${ALLOWED_EXTENSIONS.join(', ')}`);
+                                                                                e.target.value = '';
+                                                                                return;
+                                                                            }
+
                                                                             setFileObjects(prev => ({ ...prev, [compId]: file }));
                                                                             handleMultipleAnswerChange(q.id, group.label, field.label, field.type, file.name);
                                                                             setUploadProgress(prev => ({ ...prev, [compId]: 'idle' }));
@@ -1030,7 +1039,7 @@ export default function SurveyStartPage() {
                                                                                 <div className="space-y-3">
                                                                                     <input
                                                                                         type="file"
-                                                                                        accept=".pdf,.docx,.xlsx,.pptx,.jpeg,.jpg,.png"
+                                                                                        accept={ALLOWED_EXTENSIONS_STRING}
                                                                                         onChange={(e) => {
                                                                                             const file = e.target.files?.[0];
                                                                                             if (!file) return;
@@ -1038,6 +1047,14 @@ export default function SurveyStartPage() {
                                                                                                 alert(`Ukuran file melebihi batas maksimal ${MAX_FILE_SIZE_MB}MB.`);
                                                                                                 e.target.value = ''; return;
                                                                                             }
+
+                                                                                            const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+                                                                                            if (!ALLOWED_EXTENSIONS.includes(ext)) {
+                                                                                                alert(`Tipe file "${ext}" tidak diizinkan. Gunakan: ${ALLOWED_EXTENSIONS.join(', ')}`);
+                                                                                                e.target.value = '';
+                                                                                                return;
+                                                                                            }
+
                                                                                             setFileObjects(prev => ({ ...prev, [compId]: file }));
                                                                                             handleMultipleAnswerChange(q.id, activeGroupLabel, field.label, field.type, file.name);
                                                                                             setUploadProgress(prev => ({ ...prev, [compId]: 'idle' }));
