@@ -31,7 +31,7 @@ const sanitize = (input: string): string => {
         .replace(/<[^>]*>/g, '')           // Strip HTML tags
         .replace(/javascript:/gi, '')       // Remove javascript: protocol
         .replace(/on\w+\s*=/gi, '')         // Remove event handlers
-        .replace(/[<>"'`;(){}]/g, '')      // Remove dangerous characters
+        .replace(/[<>"'`;{}]/g, '')      // Remove dangerous characters (but keep parentheses)
         .replace(/&[#\w]+;/g, '')           // Remove HTML entities
         .replace(/\\[nrtbf"'\\]/g, '')     // Remove escape sequences
         .trim();

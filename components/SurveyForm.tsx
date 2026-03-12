@@ -18,7 +18,7 @@ const sanitizeString = (input: string): string => {
         .replace(/<[^>]*>/g, '')          // Strip HTML tags
         .replace(/javascript:/gi, '')      // Remove javascript: protocol
         .replace(/on\w+\s*=/gi, '')        // Remove event handlers (onclick=, onerror=, etc)
-        .replace(/[<>"'`;(){}]/g, '')     // Remove dangerous special characters
+        .replace(/[<>"'`;{}]/g, '')     // Remove dangerous special characters
         .replace(/&[#\w]+;/g, '')          // Remove HTML entities like &#x27; &lt; etc
         .replace(/\\[nrtbf"'\\]/g, '')    // Remove escape sequences
         .trim();
@@ -172,8 +172,9 @@ export default function SurveyForm() {
 
     useEffect(() => {
         if (formData.institution) {
-            setFormData(prev => ({ ...prev, pin: generateInstitutionPin(formData.institution) }));
-            setResumePin(generateInstitutionPin(formData.institution));
+            const cleanInstitution = sanitizeString(formData.institution);
+            setFormData(prev => ({ ...prev, pin: generateInstitutionPin(cleanInstitution) }));
+            setResumePin(generateInstitutionPin(cleanInstitution));
         } else {
             setFormData(prev => ({ ...prev, pin: "" }));
             setResumePin("");
@@ -283,7 +284,7 @@ export default function SurveyForm() {
                     email: sanitizeEmail(formData.email),
                     whatsapp: sanitizePhone(formData.whatsapp),
                     institution: sanitizeString(formData.institution),
-                    pin: formData.pin.replace(/[^a-zA-Z0-9]/g, '').toUpperCase(),
+                    pin: generateInstitutionPin(sanitizeString(formData.institution)),
                 };
 
                 // Submit to backend route which handles DB insert and Resend Pin Email
