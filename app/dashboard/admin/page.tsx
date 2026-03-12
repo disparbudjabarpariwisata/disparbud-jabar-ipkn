@@ -72,32 +72,7 @@ export default function AdminDashboardPage() {
                     <p className="text-white/70">Smiling West Java — Management Panel</p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {[
-                        { label: 'Users', href: '/dashboard/admin/users', icon: <Users size={24} />, color: 'bg-blue-50 text-blue-600' },
-                        { label: 'Respondents', href: '/dashboard/admin/respondents', icon: <UserCheck size={24} />, color: 'bg-orange-50 text-orange-600' },
-                        { label: 'Survey Questions', href: '/dashboard/admin/questions', icon: <HelpCircle size={24} />, color: 'bg-emerald-50 text-[#10b981]' },
-                        { label: 'Role Types', href: '/dashboard/admin/role-types', icon: <Shield size={24} />, color: 'bg-rose-50 text-rose-600' },
-                        { label: 'Institutions', href: '/dashboard/admin/institutions', icon: <Building2 size={24} />, color: 'bg-teal-50 text-teal-600' },
-                        { label: 'Institutions Terkait', href: '/dashboard/admin/institutions-terkait', icon: <Building2 size={24} />, color: 'bg-indigo-50 text-indigo-600' },
-                        { label: 'Cities Jabar', href: '/dashboard/admin/cities-jabar', icon: <Building2 size={24} />, color: 'bg-cyan-50 text-cyan-600' },
-                        { label: 'Hero Slider', href: '/dashboard/admin/hero-slider', icon: <Image size={24} />, color: 'bg-purple-50 text-purple-600' },
-                        { label: 'SEO General', href: '/dashboard/admin/seo', icon: <Search size={24} />, color: 'bg-emerald-50 text-emerald-600' },
-                        { label: 'Database Backup', href: '/dashboard/admin/backup', icon: <Database size={24} />, color: 'bg-blue-50 text-blue-800' },
-                        { label: 'Settings', href: '/dashboard/admin/settings', icon: <Settings size={24} />, color: 'bg-amber-50 text-amber-600' },
-                    ].map((item) => (
-                        <a
-                            key={item.href}
-                            href={item.href}
-                            className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-all group"
-                        >
-                            <div className={`w-12 h-12 rounded-xl ${item.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                                {item.icon}
-                            </div>
-                            <p className="font-bold text-gray-900">{item.label}</p>
-                        </a>
-                    ))}
-                </div>
+
 
                 {/* --- Section: Progress Pengisian Survey --- */}
                 <div className="bg-white rounded-2xl p-6 md:p-8 border border-gray-100 shadow-sm mt-8">
