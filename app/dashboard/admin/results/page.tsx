@@ -115,12 +115,7 @@ export default function AdminResultsPage() {
                 const mapping = [
                     { keywords: ['perangkat daerah'], table: 'survey_perangkat_daerah' },
                     { keywords: ['instansi pemerintah', 'pemerintah terkait'], table: 'survey_pemerintah_terkait' },
-                    { keywords: ['swasta'], table: 'survey_swasta_terkait' },
-                    { keywords: ['komunitas', 'asosiasi'], table: 'survey_komunitas' },
-                    { keywords: ['pelaku usaha', 'ekraf'], table: 'survey_pelaku_usaha' },
                     { keywords: ['kota/kabupaten', 'kabupaten', 'pemda'], table: 'survey_pemda_kabkota' },
-                    { keywords: ['pemerintah pusat'], table: 'survey_pemerintah_pusat' },
-                    { keywords: ['internasional', 'international', 'tourism institution'], table: 'survey_international_tourism' },
                 ];
                 for (const entry of mapping) {
                     if (entry.keywords.some(kw => lower.includes(kw))) return entry.table;

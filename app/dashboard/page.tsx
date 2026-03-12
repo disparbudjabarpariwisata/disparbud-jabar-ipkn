@@ -10,12 +10,6 @@ const ADMIN_EMAIL = 'disparbudjabarpariwisata2026@gmail.com';
 const ROLE_SLUG_MAP: Record<string, string> = {
     'Perangkat Daerah Provinsi Jawa Barat': 'perangkat-daerah',
     'Instansi Pemerintah Terkait': 'instansi-pemerintah',
-    'Instansi Swasta Terkait': 'instansi-swasta',
-    'Komunitas/Asosiasi': 'komunitas',
-    'Pelaku Usaha Pariwisata': 'pelaku-usaha',
-    'Pemerintah Daerah Kota/Kabupaten Jawa Barat': 'pemda-kota-kabupaten',
-    'Pemerintah Pusat': 'pemerintah-pusat',
-    'Lembaga Internasional': 'lembaga-internasional',
 };
 
 export default function DashboardRouter() {

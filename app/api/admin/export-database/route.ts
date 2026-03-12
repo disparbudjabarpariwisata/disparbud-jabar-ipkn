@@ -41,14 +41,9 @@ export async function GET(request: Request) {
             'role_types',
             'survey_questions',
             'survey_answers',
-            'survey_international_tourism',
-            'survey_komunitas',
-            'survey_pelaku_usaha',
             'survey_pemda_kabkota',
-            'survey_pemerintah_pusat',
             'survey_pemerintah_terkait',
             'survey_perangkat_daerah',
-            'survey_swasta_terkait',
             'hero_slides',
             'seo_settings'
         ];

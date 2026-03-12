@@ -20,12 +20,7 @@ export async function POST(request: Request) {
         const tables = [
             'survey_perangkat_daerah',
             'survey_pemerintah_terkait',
-            'survey_swasta_terkait',
-            'survey_komunitas',
-            'survey_pelaku_usaha',
             'survey_pemda_kabkota',
-            'survey_pemerintah_pusat',
-            'survey_international_tourism'
         ];
 
         let foundIdentity: any = null;

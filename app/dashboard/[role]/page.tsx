@@ -21,12 +21,7 @@ import {
 const ROLE_LABELS: Record<string, string> = {
     'perangkat-daerah': 'Perangkat Daerah Provinsi Jawa Barat',
     'instansi-pemerintah': 'Instansi Pemerintah Terkait',
-    'instansi-swasta': 'Instansi Swasta Terkait',
-    'komunitas': 'Komunitas / Asosiasi',
-    'pelaku-usaha': 'Pelaku Usaha Pariwisata',
     'pemda-kota-kabupaten': 'Pemerintah Daerah Kota/Kabupaten',
-    'pemerintah-pusat': 'Pemerintah Pusat Indonesia',
-    'lembaga-internasional': 'Lembaga Internasional',
 };
 
 interface Institution {

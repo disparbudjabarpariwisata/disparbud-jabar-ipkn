@@ -1,15 +1,9 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
 
-const TABLES = [
     'survey_perangkat_daerah',
     'survey_pemerintah_terkait',
-    'survey_swasta_terkait',
-    'survey_komunitas',
-    'survey_pelaku_usaha',
     'survey_pemda_kabkota',
-    'survey_pemerintah_pusat',
-    'survey_international_tourism'
 ];
 
 export async function POST(request: Request) {
