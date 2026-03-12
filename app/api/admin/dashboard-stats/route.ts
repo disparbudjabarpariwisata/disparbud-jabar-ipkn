@@ -252,37 +252,93 @@ export async function GET() {
             return true;
         };
 
-        const linkAnswers = allAnswers?.filter(a => {
-            if (!a.answer_text) return false;
-            if (!isValidLinkText(a.answer_text)) return false;
-            
-            const q = questionMap[a.question_id];
-            
-            // If the answer strongly looks like a URL
-            if (isUrlAnswer(a.answer_text)) return true;
-            
-            // Or if the question is asking for a link and the answer is valid text
-            if (isUrlQuestion(q)) return true;
-            
-            return false;
-        }) || [];
-
-        // Map respondent ID back to institution
+        // Map respondent ID back to institution BEFORE loops
         const respondentMap: Record<string, any> = {};
         allRespondents.forEach(r => { respondentMap[r.id] = r; });
-        
-        for (const ans of linkAnswers) {
-            const respondent = respondentMap[ans.respondent_id];
-            const question = questionMap[ans.question_id];
+
+        // Process all single and JSON answers
+        for (const a of allAnswers || []) {
+            const q = questionMap[a.question_id];
             
-            if (respondent && question) {
-                publications.push({
-                    id: ans.respondent_id + '_' + ans.question_id,
-                    institution: respondent.institution,
-                    question: question.question_text,
-                    url: ans.answer_text.trim(),
-                    lastUpdate: ans.updated_at
-                });
+            // Check text answer
+            if (a.answer_text && isValidLinkText(a.answer_text)) {
+                if (isUrlAnswer(a.answer_text) || isUrlQuestion(q)) {
+                    const respondent = respondentMap[a.respondent_id];
+                    if (respondent && q) {
+                        publications.push({
+                            id: `text_${a.respondent_id}_${a.question_id}`,
+                            institution: respondent.institution,
+                            question: q.question_text,
+                            url: a.answer_text.trim(),
+                            lastUpdate: a.updated_at
+                        });
+                    }
+                }
+            }
+            
+            // Check JSON answer (often arrays from checkboxes or multiple inputs)
+            if (a.answer_json) {
+                try {
+                    // Try parsing if it's a stringified JSON, otherwise assume it's already object/array
+                    const parsed = typeof a.answer_json === 'string' ? JSON.parse(a.answer_json) : a.answer_json;
+                    if (Array.isArray(parsed)) {
+                        parsed.forEach((item, idx) => {
+                            const strItem = String(item).trim();
+                            if (strItem && isValidLinkText(strItem) && (isUrlAnswer(strItem) || isUrlQuestion(q))) {
+                                const respondent = respondentMap[a.respondent_id];
+                                if (respondent && q) {
+                                    publications.push({
+                                        id: `json_${a.respondent_id}_${a.question_id}_${idx}`,
+                                        institution: respondent.institution,
+                                        question: q.question_text,
+                                        url: strItem,
+                                        lastUpdate: a.updated_at
+                                    });
+                                }
+                            }
+                        });
+                    } else if (typeof parsed === 'object' && parsed !== null) {
+                        // Extract any string values from the object
+                        Object.values(parsed).forEach((val: any, idx) => {
+                            const strVal = String(val).trim();
+                            if (strVal && isValidLinkText(strVal) && (isUrlAnswer(strVal) || isUrlQuestion(q))) {
+                                const respondent = respondentMap[a.respondent_id];
+                                if (respondent && q) {
+                                    publications.push({
+                                        id: `json_obj_${a.respondent_id}_${a.question_id}_${idx}`,
+                                        institution: respondent.institution,
+                                        question: q.question_text,
+                                        url: strVal,
+                                        lastUpdate: a.updated_at
+                                    });
+                                }
+                            }
+                        });
+                    }
+                } catch (e) {
+                    // Ignore parsing errors for individual rows
+                }
+            }
+        }
+        
+        // Process multiple answers table
+        for (const m of allMultipleAnswers || []) {
+            const q = questionMap[m.question_id];
+            if (m.answer_value && isValidLinkText(m.answer_value)) {
+                if (isUrlAnswer(m.answer_value) || isUrlQuestion(q)) {
+                    const respondent = respondentMap[m.respondent_id];
+                    if (respondent && q) {
+                        // Use a fallback timestamp since survey_multiple_answers might not have updated_at
+                        const timestamp = respondent.updated_at; 
+                        publications.push({
+                            id: `multi_${m.respondent_id}_${m.question_id}_${Math.random().toString(36).substr(2, 5)}`,
+                            institution: respondent.institution,
+                            question: q.question_text,
+                            url: m.answer_value.trim(),
+                            lastUpdate: timestamp
+                        });
+                    }
+                }
             }
         }
         
