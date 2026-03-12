@@ -198,37 +198,91 @@ export async function GET() {
         progressList.sort((a, b) => new Date(b.lastUpdate).getTime() - new Date(a.lastUpdate).getTime());
 
         // 6. Fetch "Link Publikasi"
-        // First find URL-type questions or those mentioning publikasi
-        const { data: linkQuestions } = await supabaseAdmin
-            .from('survey_questions')
-            .select('id, question_text')
-            .or('question_type.in.(url_basic,url_youtube,url_gdrive),question_text.ilike.%publikasi%,question_text.ilike.%dokumentasi%');
-            
-        const linkQuestionIds = linkQuestions?.map(q => q.id) || [];
-        
         let publications: any[] = [];
+
+        // Fetch all questions so we have their text and type
+        const { data: allQuestionsMap } = await supabaseAdmin
+            .from('survey_questions')
+            .select('id, question_text, question_type');
+            
+        const questionMap: Record<string, any> = {};
+        allQuestionsMap?.forEach(q => { questionMap[q.id] = q; });
+
+        // Helper: Check if string looks like a URL
+        const isUrlAnswer = (text: string | null) => {
+            if (!text) return false;
+            const t = text.trim().toLowerCase();
+            if (t.startsWith('http://') || t.startsWith('https://') || t.startsWith('www.')) return true;
+            
+            const domains = [
+                'youtube.com', 'youtu.be', 'instagram.com', 'tiktok.com', 
+                'drive.google.com', 'facebook.com', 'twitter.com', 'x.com', 
+                'linktr.ee', '.go.id', '.com', '.id', '.org', '.net', 'bit.ly', 's.id'
+            ];
+            for (const d of domains) {
+                if (t.includes(d)) return true;
+            }
+            return false;
+        };
+
+        // Helper: Check if question is asking for a link
+        const isUrlQuestion = (q: any) => {
+            if (!q) return false;
+            const type = q.question_type || '';
+            const text = (q.question_text || '').toLowerCase();
+            return type.startsWith('url_') || 
+                   text.includes('publikasi') || 
+                   text.includes('dokumentasi') || 
+                   text.match(/\blink\b/) || 
+                   text.match(/\btautan\b/) || 
+                   text.includes('website') || 
+                   text.includes('sosial media') ||
+                   text.includes('media sosial') ||
+                   text.includes('youtube') ||
+                   text.includes('instagram') ||
+                   text.includes('tiktok');
+        };
+
+        // Helper: Check if it's not a dummy answer
+        const isValidLinkText = (text: string) => {
+            const t = text.trim().toLowerCase();
+            const invalidPatterns = ['tidak ada', 'belum', 'belum ada', '-', 'kosong', 'tidak punya', 'tidak', 'n/a', 'na', 'tda', 'tidakada'];
+            if (invalidPatterns.includes(t)) return false;
+            if (t.length < 4) return false;
+            return true;
+        };
+
+        const linkAnswers = allAnswers?.filter(a => {
+            if (!a.answer_text) return false;
+            if (!isValidLinkText(a.answer_text)) return false;
+            
+            const q = questionMap[a.question_id];
+            
+            // If the answer strongly looks like a URL
+            if (isUrlAnswer(a.answer_text)) return true;
+            
+            // Or if the question is asking for a link and the answer is valid text
+            if (isUrlQuestion(q)) return true;
+            
+            return false;
+        }) || [];
+
+        // Map respondent ID back to institution
+        const respondentMap: Record<string, any> = {};
+        allRespondents.forEach(r => { respondentMap[r.id] = r; });
         
-        if (linkQuestionIds.length > 0) {
-            // Find answers to these specific questions
-            const linkAnswers = allAnswers?.filter(a => linkQuestionIds.includes(a.question_id) && a.answer_text?.trim() !== '') || [];
+        for (const ans of linkAnswers) {
+            const respondent = respondentMap[ans.respondent_id];
+            const question = questionMap[ans.question_id];
             
-            // Map respondent ID back to institution
-            const respondentMap: Record<string, any> = {};
-            allRespondents.forEach(r => { respondentMap[r.id] = r; });
-            
-            for (const ans of linkAnswers) {
-                const respondent = respondentMap[ans.respondent_id];
-                const question = linkQuestions?.find(q => q.id === ans.question_id);
-                
-                if (respondent && question) {
-                    publications.push({
-                        id: ans.respondent_id + '_' + ans.question_id,
-                        institution: respondent.institution,
-                        question: question.question_text,
-                        url: ans.answer_text,
-                        lastUpdate: ans.updated_at
-                    });
-                }
+            if (respondent && question) {
+                publications.push({
+                    id: ans.respondent_id + '_' + ans.question_id,
+                    institution: respondent.institution,
+                    question: question.question_text,
+                    url: ans.answer_text.trim(),
+                    lastUpdate: ans.updated_at
+                });
             }
         }
         
