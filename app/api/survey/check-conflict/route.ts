@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
 
+const TABLES = [
     'survey_perangkat_daerah',
     'survey_pemerintah_terkait',
     'survey_pemda_kabkota',
