@@ -73,21 +73,44 @@ export async function GET(request: NextRequest) {
         });
 
         // 4. Fetch ALL questions (for display, including non-required ones)
-        const { data: allQuestions } = await supabaseAdmin
+        //    Also fetch section_break questions to build group label lookup
+        const { data: allQuestionsIncludingSections } = await supabaseAdmin
             .from('survey_questions')
             .select('id, role_id, question_text, question_type, sort_order, institution_name')
             .eq('active', true)
-            .neq('question_type', 'section_break')
             .order('sort_order', { ascending: true });
 
+        // Build a map from role_id -> sorted questions (including section_breaks)
+        const allQuestionsWithSectionsByRole: Record<string, any[]> = {};
+        allQuestionsIncludingSections?.forEach(q => {
+            if (!allQuestionsWithSectionsByRole[q.role_id]) allQuestionsWithSectionsByRole[q.role_id] = [];
+            allQuestionsWithSectionsByRole[q.role_id].push(q);
+        });
+
+        // Build group_label map: for each non-section question, find the preceding section_break title
+        const groupLabelMap: Record<string, string> = {}; // question_id -> group_label
+        for (const roleId of Object.keys(allQuestionsWithSectionsByRole)) {
+            const sortedQuestions = allQuestionsWithSectionsByRole[roleId];
+            let currentGroupLabel = '';
+            for (const q of sortedQuestions) {
+                if (q.question_type === 'section_break') {
+                    currentGroupLabel = q.question_text || '';
+                } else {
+                    groupLabelMap[q.id] = currentGroupLabel;
+                }
+            }
+        }
+
+        // Filter out section_breaks for display
         const allQuestionsByRole: Record<string, any[]> = {};
-        allQuestions?.forEach(q => {
+        allQuestionsIncludingSections?.forEach(q => {
+            if (q.question_type === 'section_break') return;
             if (!allQuestionsByRole[q.role_id]) allQuestionsByRole[q.role_id] = [];
             allQuestionsByRole[q.role_id].push(q);
         });
 
         const questionMap: Record<string, any> = {};
-        allQuestions?.forEach(q => { questionMap[q.id] = q; });
+        allQuestionsIncludingSections?.forEach(q => { questionMap[q.id] = q; });
 
         // 5. Fetch all answers (with fallback if keterangan column doesn't exist yet)
         const respondentIds = allRespondents.map(r => r.id);
@@ -264,6 +287,7 @@ export async function GET(request: NextRequest) {
                     question_text: q.question_text,
                     question_type: q.question_type,
                     answer: actualAnswer,
+                    group_label: groupLabelMap[q.id] || '',
                     keterangan: (keteranganByRespondent[user.id] || {})[q.id] || '',
                     progress: progress,
                     updated_at: latestUpdate,

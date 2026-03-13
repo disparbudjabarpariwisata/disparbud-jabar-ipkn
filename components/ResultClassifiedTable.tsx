@@ -15,6 +15,7 @@ type ResultRow = {
     question_text: string;
     question_type: string;
     answer: string;
+    group_label: string;
     keterangan: string;
     progress: number;
     updated_at: string;
@@ -90,6 +91,7 @@ export default function ResultClassifiedTable({ status, title, description }: Pr
             'Pertanyaan': row.question_text,
             'Tipe Input Pertanyaan': row.question_type,
             'Jawaban Pertanyaan': row.answer,
+            'Label / Judul Grup': row.group_label || '',
             'Keterangan': row.keterangan || '',
             'Persentase Progress': `${row.progress}%`,
             'Tanggal Update Survei': row.updated_at
@@ -109,6 +111,7 @@ export default function ResultClassifiedTable({ status, title, description }: Pr
             { wch: 60 }, // Pertanyaan
             { wch: 20 }, // Tipe Input
             { wch: 40 }, // Jawaban
+            { wch: 50 }, // Label / Judul Grup
             { wch: 40 }, // Keterangan
             { wch: 15 }, // Persentase
             { wch: 25 }, // Tanggal
@@ -190,6 +193,7 @@ export default function ResultClassifiedTable({ status, title, description }: Pr
                                     <th className="px-4 py-4 whitespace-nowrap">Pertanyaan</th>
                                     <th className="px-4 py-4 whitespace-nowrap">Tipe Input</th>
                                     <th className="px-4 py-4 whitespace-nowrap">Jawaban</th>
+                                    <th className="px-4 py-4 whitespace-nowrap">Label / Judul Grup</th>
                                     <th className="px-4 py-4 whitespace-nowrap">Keterangan</th>
                                     <th className="px-4 py-4 whitespace-nowrap">Progress</th>
                                     <th className="px-4 py-4 whitespace-nowrap">Tanggal Update</th>
@@ -198,7 +202,7 @@ export default function ResultClassifiedTable({ status, title, description }: Pr
                             <tbody className="divide-y divide-gray-100">
                                 {isLoading ? (
                                     <tr>
-                                        <td colSpan={10} className="px-5 py-8 text-center text-gray-500">
+                                        <td colSpan={11} className="px-5 py-8 text-center text-gray-500">
                                             <div className="flex justify-center mb-2">
                                                 <Loader2 className="animate-spin text-[#10b981]" size={24} />
                                             </div>
@@ -207,7 +211,7 @@ export default function ResultClassifiedTable({ status, title, description }: Pr
                                     </tr>
                                 ) : results.length === 0 ? (
                                     <tr>
-                                        <td colSpan={10} className="px-5 py-8 text-center text-gray-500">
+                                        <td colSpan={11} className="px-5 py-8 text-center text-gray-500">
                                             Tidak ada data ditemukan untuk filter tersebut.
                                         </td>
                                     </tr>
@@ -237,6 +241,13 @@ export default function ResultClassifiedTable({ status, title, description }: Pr
                                                     </a>
                                                 ) : (
                                                     row.answer || <span className="text-gray-300 italic">Belum dijawab</span>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3 min-w-[220px] text-xs text-gray-700">
+                                                {row.group_label ? (
+                                                    <span className="inline-block px-2 py-1 bg-purple-50 text-purple-700 rounded-md text-[10px] font-semibold">{row.group_label}</span>
+                                                ) : (
+                                                    <span className="text-gray-300">-</span>
                                                 )}
                                             </td>
                                             <td className="px-4 py-3 min-w-[180px] text-xs text-gray-500 italic">
