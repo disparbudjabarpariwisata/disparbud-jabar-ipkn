@@ -22,6 +22,8 @@ type DataMapRow = {
     website_url: string;
     active: boolean;
     medical_data?: Record<string, any>;
+    desa_wisata_data?: any[];
+    content?: any;
 };
 
 const emptyForm: Omit<DataMapRow, 'id'> & { id?: string } = {
@@ -47,7 +49,7 @@ export default function AdminDataMapPage() {
     const [form, setForm] = useState<typeof emptyForm>({ ...emptyForm });
     const [isSaving, setIsSaving] = useState(false);
     const [message, setMessage] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState<'Kesehatan' | 'Pariwisata'>('Kesehatan');
+    const [selectedCategory, setSelectedCategory] = useState<'Kesehatan' | 'Pariwisata' | 'Desa Wisata'>('Kesehatan');
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -254,11 +256,12 @@ export default function AdminDataMapPage() {
                     <h3 className="font-semibold text-gray-700 text-sm">Data Wilayah</h3>
                     <select
                         value={selectedCategory}
-                        onChange={(e) => setSelectedCategory(e.target.value as 'Kesehatan' | 'Pariwisata')}
+                        onChange={(e) => setSelectedCategory(e.target.value as 'Kesehatan' | 'Pariwisata' | 'Desa Wisata')}
                         className="px-4 py-2 border border-gray-200 rounded-xl text-sm bg-gray-50 text-gray-700 font-medium focus:outline-none focus:border-[#10b981] cursor-pointer"
                     >
                         <option value="Kesehatan">Kategori: Kesehatan</option>
                         <option value="Pariwisata">Kategori: Pariwisata Umum</option>
+                        <option value="Desa Wisata">Kategori: Desa Wisata</option>
                     </select>
                 </div>
 
@@ -273,6 +276,11 @@ export default function AdminDataMapPage() {
                                     <th className="px-4 py-4">Tipe</th>
                                     {selectedCategory === 'Pariwisata' ? (
                                         <th className="px-4 py-4">Deskripsi</th>
+                                    ) : selectedCategory === 'Desa Wisata' ? (
+                                        <>
+                                            <th className="px-4 py-4">Total Desa</th>
+                                            <th className="px-4 py-4">Status & Potensi</th>
+                                        </>
                                     ) : (
                                         <>
                                             <th className="px-4 py-4">Cakupan JKN</th>
@@ -303,6 +311,23 @@ export default function AdminDataMapPage() {
                                         </td>
                                         {selectedCategory === 'Pariwisata' ? (
                                             <td className="px-4 py-3 text-xs text-gray-500 max-w-[200px] truncate">{row.description || '-'}</td>
+                                        ) : selectedCategory === 'Desa Wisata' ? (
+                                            <>
+                                                <td className="px-4 py-3 text-xs text-gray-500 font-medium">
+                                                    {(row.desa_wisata_data?.length || row.content?.desa_wisata?.length || 0)} Desa
+                                                </td>
+                                                <td className="px-4 py-3 text-[10px] text-gray-500">
+                                                    {(() => {
+                                                        const villages = row.desa_wisata_data || row.content?.desa_wisata;
+                                                        if (!villages || villages.length === 0) return '-';
+                                                        const statusCounts = villages.reduce((acc: any, d: any) => {
+                                                            acc[d.status] = (acc[d.status] || 0) + 1;
+                                                            return acc;
+                                                        }, {});
+                                                        return Object.entries(statusCounts).map(([s, c]) => `${s}: ${c}`).join(', ');
+                                                    })()}
+                                                </td>
+                                            </>
                                         ) : (
                                             (() => {
                                                 let md = null;

@@ -22,64 +22,70 @@ export async function GET() {
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const {
-            id,
-            city_name,
-            city_type,
-            description,
-            tourism_highlights,
-            tourist_attractions,
-            culinary,
-            accommodation,
-            transportation,
-            image_url,
-            website_url,
-            active,
-        } = body;
+            const {
+                id,
+                city_name,
+                city_type,
+                description,
+                tourism_highlights,
+                tourist_attractions,
+                culinary,
+                accommodation,
+                transportation,
+                image_url,
+                website_url,
+                active,
+                desa_wisata_data,
+                content,
+            } = body;
 
-        if (!city_name || !city_type) {
-            return NextResponse.json({ error: 'Nama kota dan tipe wajib diisi.' }, { status: 400 });
-        }
+            if (!city_name || !city_type) {
+                return NextResponse.json({ error: 'Nama kota dan tipe wajib diisi.' }, { status: 400 });
+            }
 
-        if (id) {
-            // Update
-            const { error } = await supabaseAdmin
-                .from('data_map')
-                .update({
-                    city_name,
-                    city_type,
-                    description: description || null,
-                    tourism_highlights: tourism_highlights || null,
-                    tourist_attractions: tourist_attractions || null,
-                    culinary: culinary || null,
-                    accommodation: accommodation || null,
-                    transportation: transportation || null,
-                    image_url: image_url || null,
-                    website_url: website_url || null,
-                    active: active ?? true,
-                    updated_at: new Date().toISOString(),
-                })
-                .eq('id', id);
+            if (id) {
+                // Update
+                const { error } = await supabaseAdmin
+                    .from('data_map')
+                    .update({
+                        city_name,
+                        city_type,
+                        description: description || null,
+                        tourism_highlights: tourism_highlights || null,
+                        tourist_attractions: tourist_attractions || null,
+                        culinary: culinary || null,
+                        accommodation: accommodation || null,
+                        transportation: transportation || null,
+                        image_url: image_url || null,
+                        website_url: website_url || null,
+                        active: active ?? true,
+                        desa_wisata_data: desa_wisata_data || null,
+                        content: content || null,
+                        updated_at: new Date().toISOString(),
+                    })
+                    .eq('id', id);
 
-            if (error) throw error;
-            return NextResponse.json({ success: true, message: 'Data berhasil diperbarui.' });
-        } else {
-            // Insert
-            const { error } = await supabaseAdmin
-                .from('data_map')
-                .insert({
-                    city_name,
-                    city_type,
-                    description: description || null,
-                    tourism_highlights: tourism_highlights || null,
-                    tourist_attractions: tourist_attractions || null,
-                    culinary: culinary || null,
-                    accommodation: accommodation || null,
-                    transportation: transportation || null,
-                    image_url: image_url || null,
-                    website_url: website_url || null,
-                    active: active ?? true,
-                });
+                if (error) throw error;
+                return NextResponse.json({ success: true, message: 'Data berhasil diperbarui.' });
+            } else {
+                // Insert
+                const { error } = await supabaseAdmin
+                    .from('data_map')
+                    .insert({
+                        city_name,
+                        city_type,
+                        description: description || null,
+                        tourism_highlights: tourism_highlights || null,
+                        tourist_attractions: tourist_attractions || null,
+                        culinary: culinary || null,
+                        accommodation: accommodation || null,
+                        transportation: transportation || null,
+                        image_url: image_url || null,
+                        website_url: website_url || null,
+                        active: active ?? true,
+                        desa_wisata_data: desa_wisata_data || null,
+                        content: content || null,
+                    });
 
             if (error) throw error;
             return NextResponse.json({ success: true, message: 'Data berhasil ditambahkan.' });
