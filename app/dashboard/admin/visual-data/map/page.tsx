@@ -38,6 +38,8 @@ const emptyForm: Omit<DataMapRow, 'id'> & { id?: string } = {
     image_url: '',
     website_url: '',
     active: true,
+    desa_wisata_data: [],
+    content: {},
 };
 
 export default function AdminDataMapPage() {
@@ -238,6 +240,31 @@ export default function AdminDataMapPage() {
                                     <span className="text-sm font-medium text-gray-700">Aktif (tampil di peta)</span>
                                 </label>
                             </div>
+                        </div>
+
+                        <div className="border-t border-gray-100 pt-4 mt-2">
+                            <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Data Desa Wisata (JSON List)</label>
+                            <textarea
+                                rows={8}
+                                value={JSON.stringify(form.desa_wisata_data || form.content?.desa_wisata || [], null, 2)}
+                                onChange={e => {
+                                    try {
+                                        const parsed = JSON.parse(e.target.value);
+                                        setForm(prev => ({
+                                            ...prev,
+                                            desa_wisata_data: parsed,
+                                            content: { ...prev.content, desa_wisata: parsed }
+                                        }));
+                                    } catch (err) {
+                                        // If invalid JSON, just update the string representation in a local state if needed, 
+                                        // or just ignore until it's valid. For simplicity, we'll assume the user knows JSON 
+                                        // or we can add a simple error boundary.
+                                    }
+                                }}
+                                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-[10px] font-mono focus:border-[#10b981] outline-none"
+                                placeholder='[ { "nama": "Desa...", "status": "Rintisan", ... } ]'
+                            />
+                            <p className="text-[10px] text-gray-400 mt-1 italic">* Edit hati-hati, harus berformat JSON yang valid (Array of Objects).</p>
                         </div>
 
                         <div className="flex justify-end gap-3 pt-2">

@@ -159,51 +159,57 @@ export default function MapDataPanel({ data, cityName, onClose }: MapDataPanelPr
                     {/* Desa Wisata Section */}
                     {(() => {
                         const villages = data.desa_wisata_data || data.content?.desa_wisata;
-                        if (!villages || villages.length === 0) return null;
                         
                         return (
                             <div className="mt-6 pt-6 border-t border-gray-100">
                                 <div className="flex items-center gap-2 mb-4">
                                     <Landmark size={18} className="text-emerald-600" />
-                                    <h4 className="text-sm font-bold text-gray-800">Daftar Desa Wisata ({villages.length})</h4>
+                                    <h4 className="text-sm font-bold text-gray-800">Daftar Desa Wisata {villages?.length ? `(${villages.length})` : ''}</h4>
                                 </div>
-                                <div className="space-y-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
-                                    {villages.map((desa: any, idx: number) => (
-                                        <div key={idx} className="p-3 bg-gray-50 rounded-xl border border-gray-100 space-y-2">
-                                            <div className="flex justify-between items-start gap-2">
-                                                <h5 className="text-sm font-bold text-gray-900">{desa.nama}</h5>
-                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                                                    desa.status === 'Mandiri' ? 'bg-emerald-100 text-emerald-700' :
-                                                    desa.status === 'Maju' ? 'bg-blue-100 text-blue-700' :
-                                                    desa.status === 'Berkembang' ? 'bg-amber-100 text-amber-700' :
-                                                    'bg-gray-100 text-gray-600'
-                                                }`}>
-                                                    {desa.status}
-                                                </span>
+                                
+                                {!villages || villages.length === 0 ? (
+                                    <div className="p-4 bg-gray-50 rounded-xl border border-dashed border-gray-300 text-center">
+                                        <p className="text-xs text-gray-500 italic">Tidak ada informasi desa wisata untuk wilayah ini.</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+                                        {villages.map((desa: any, idx: number) => (
+                                            <div key={idx} className="p-3 bg-gray-50 rounded-xl border border-gray-100 space-y-2">
+                                                <div className="flex justify-between items-start gap-2">
+                                                    <h5 className="text-sm font-bold text-gray-900">{desa.nama}</h5>
+                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                                        desa.status === 'Mandiri' ? 'bg-emerald-100 text-emerald-700' :
+                                                        desa.status === 'Maju' ? 'bg-blue-100 text-blue-700' :
+                                                        desa.status === 'Berkembang' ? 'bg-amber-100 text-amber-700' :
+                                                        'bg-gray-100 text-gray-600'
+                                                    }`}>
+                                                        {desa.status}
+                                                    </span>
+                                                </div>
+                                                <p className="text-[10px] text-gray-500 flex items-center gap-1">
+                                                    <MapPin size={10} /> {desa.desa_kelurahan}, {desa.kecamatan}
+                                                </p>
+                                                <div className="grid grid-cols-1 gap-1">
+                                                    {desa.potensi?.alam_list?.length > 0 && (
+                                                        <div className="text-[10px] text-gray-600">
+                                                            <span className="font-semibold text-emerald-600">Alam:</span> {desa.potensi.alam_list.join(', ')}
+                                                        </div>
+                                                    )}
+                                                    {desa.potensi?.budaya_list?.length > 0 && (
+                                                        <div className="text-[10px] text-gray-600">
+                                                            <span className="font-semibold text-blue-600">Budaya:</span> {desa.potensi.budaya_list.join(', ')}
+                                                        </div>
+                                                    )}
+                                                    {desa.potensi?.buatan_list?.length > 0 && (
+                                                        <div className="text-[10px] text-gray-600">
+                                                            <span className="font-semibold text-amber-600">Buatan:</span> {desa.potensi.buatan_list.join(', ')}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <p className="text-[10px] text-gray-500 flex items-center gap-1">
-                                                <MapPin size={10} /> {desa.desa_kelurahan}, {desa.kecamatan}
-                                            </p>
-                                            <div className="grid grid-cols-1 gap-1">
-                                                {desa.potensi?.alam_list?.length > 0 && (
-                                                    <div className="text-[10px] text-gray-600">
-                                                        <span className="font-semibold text-emerald-600">Alam:</span> {desa.potensi.alam_list.join(', ')}
-                                                    </div>
-                                                )}
-                                                {desa.potensi?.budaya_list?.length > 0 && (
-                                                    <div className="text-[10px] text-gray-600">
-                                                        <span className="font-semibold text-blue-600">Budaya:</span> {desa.potensi.budaya_list.join(', ')}
-                                                    </div>
-                                                )}
-                                                {desa.potensi?.buatan_list?.length > 0 && (
-                                                    <div className="text-[10px] text-gray-600">
-                                                        <span className="font-semibold text-amber-600">Buatan:</span> {desa.potensi.buatan_list.join(', ')}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         );
                     })()}

@@ -45,8 +45,13 @@ export default function WestJavaMapInner({ selectedLocation, onLocationClick, da
         const map = L.map(mapContainerRef.current, {
             center: westJavaCenter,
             zoom: 9,
-            scrollWheelZoom: true,
-            zoomControl: true,
+            dragging: false,
+            touchZoom: false,
+            doubleClickZoom: false,
+            scrollWheelZoom: false,
+            boxZoom: false,
+            keyboard: false,
+            zoomControl: false,
         });
 
         mapRef.current = map;
