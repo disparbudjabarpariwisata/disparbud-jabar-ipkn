@@ -11,10 +11,12 @@
   "dependencies": {
     "@radix-ui/react-slider": "^1.3.6",
     "@supabase/supabase-js": "^2.90.0",
+    "@types/leaflet": "^1.9.21",
     "embla-carousel-autoplay": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
     "fast-xml-parser": "^5.3.7",
     "jsonwebtoken": "^9.0.3",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.562.0",
     "motion": "^12.24.10",
     "next": "16.1.1",

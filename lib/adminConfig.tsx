@@ -13,6 +13,7 @@ import {
     CheckCircle2,
     Clock,
     XCircle,
+    MapPinned,
 } from 'lucide-react';
 
 export const ADMIN_EMAIL = 'disparbudjabarpariwisata2026@gmail.com';
@@ -27,6 +28,7 @@ export const adminMenuItems = [
     { label: 'Result Survey Complete', href: '/dashboard/admin/results/complete', icon: <CheckCircle2 size={18} /> },
     { label: 'Result Survey On Progress', href: '/dashboard/admin/results/on-progress', icon: <Clock size={18} /> },
     { label: 'Result Survey No Progress', href: '/dashboard/admin/results/no-progress', icon: <XCircle size={18} /> },
+    { label: 'Data Map Jabar', href: '/dashboard/admin/visual-data/map', icon: <MapPinned size={18} /> },
     { label: 'Role Types', href: '/dashboard/admin/role-types', icon: <Shield size={18} /> },
     { label: 'Institutions', href: '/dashboard/admin/institutions', icon: <Building2 size={18} /> },
     { label: 'Institutions Terkait', href: '/dashboard/admin/institutions-terkait', icon: <Building2 size={18} /> },

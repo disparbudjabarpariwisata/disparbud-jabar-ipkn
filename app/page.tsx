@@ -3,13 +3,78 @@ import { Hero } from '@/components/Hero';
 import { Footer } from '@/components/Footer';
 import { YouTubeCarousel } from '@/components/YouTubeCarousel';
 import { getLatestYouTubeVideos } from '@/lib/youtube';
+import WestJavaMapSection from '@/components/WestJavaMapSection';
+import type { MapDataItem } from '@/components/WestJavaMapSection';
 import Link from 'next/link';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { westJavaLocations } from '@/lib/westJavaLocations';
 
 export default async function Home() {
   const videos = await getLatestYouTubeVideos(10);
 
+  // Fetch map data server-side for optimal SEO
+  const { data: mapData } = await supabaseAdmin
+    .from('data_map')
+    .select('*')
+    .eq('active', true)
+    .order('city_name', { ascending: true });
+
+  const locations: MapDataItem[] = mapData || [];
+
+  // Build JSON-LD structured data for all tourism locations
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Destinasi Wisata Jawa Barat',
+    description: 'Daftar 27 kota dan kabupaten destinasi wisata di Provinsi Jawa Barat, Indonesia.',
+    numberOfItems: locations.length,
+    itemListElement: locations.map((loc, index) => {
+      // Match with static coordinates
+      const staticLoc = westJavaLocations.find(
+        (s) => s.name === loc.city_name
+      );
+      return {
+        '@type': 'ListItem',
+        position: index + 1,
+        item: {
+          '@type': 'TouristAttraction',
+          name: loc.city_name,
+          description: loc.description || `Informasi wisata ${loc.city_name}, Jawa Barat.`,
+          ...(loc.image_url && { image: loc.image_url }),
+          ...(loc.website_url && { url: loc.website_url }),
+          address: {
+            '@type': 'PostalAddress',
+            addressLocality: loc.city_name,
+            addressRegion: 'Jawa Barat',
+            addressCountry: 'ID',
+          },
+          ...(staticLoc && {
+            geo: {
+              '@type': 'GeoCoordinates',
+              latitude: staticLoc.coordinates[0],
+              longitude: staticLoc.coordinates[1],
+            },
+          }),
+          ...(loc.tourism_highlights && {
+            amenityFeature: {
+              '@type': 'LocationFeatureSpecification',
+              name: 'Highlight Pariwisata',
+              value: loc.tourism_highlights,
+            },
+          }),
+        },
+      };
+    }),
+  };
+
   return (
     <main className="min-h-screen bg-white">
+      {/* JSON-LD Structured Data for Tourism Locations */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       <Header />
       <Hero />
 
@@ -86,7 +151,44 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* Interactive West Java Map Section (Server-Side data for SEO) */}
+      <WestJavaMapSection initialData={locations} />
+
+      {/* SEO: Crawlable semantic HTML for all tourism locations */}
+      {locations.length > 0 && (
+        <section
+          className="sr-only"
+          aria-label="Data Kepariwisataan Jawa Barat"
+        >
+          <h2>Informasi Wisata 27 Kota dan Kabupaten di Jawa Barat</h2>
+          {locations.map((loc) => (
+            <article key={loc.city_name}>
+              <h3>{loc.city_name} — {loc.city_type}</h3>
+              {loc.description && <p>{loc.description}</p>}
+              {loc.tourism_highlights && (
+                <p>Highlight Pariwisata: {loc.tourism_highlights}</p>
+              )}
+              {loc.tourist_attractions && (
+                <p>Destinasi Wisata: {loc.tourist_attractions}</p>
+              )}
+              {loc.culinary && <p>Kuliner Khas: {loc.culinary}</p>}
+              {loc.accommodation && <p>Akomodasi: {loc.accommodation}</p>}
+              {loc.transportation && <p>Transportasi: {loc.transportation}</p>}
+              {loc.website_url && (
+                <p>
+                  Website Resmi:{' '}
+                  <a href={loc.website_url} rel="noopener">
+                    {loc.website_url}
+                  </a>
+                </p>
+              )}
+            </article>
+          ))}
+        </section>
+      )}
+
       <Footer />
     </main>
   );
 }
+
