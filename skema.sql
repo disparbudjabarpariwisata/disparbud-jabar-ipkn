@@ -95,6 +95,7 @@ CREATE TABLE public.survey_answers (
   question_id uuid NOT NULL,
   answer_text text,
   answer_json jsonb,
+  keterangan text DEFAULT NULL,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT survey_answers_pkey PRIMARY KEY (id),

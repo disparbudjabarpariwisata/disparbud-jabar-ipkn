@@ -19,6 +19,7 @@ export async function POST(request: Request) {
                     role_id,
                     question_id: ans.question_id,
                     answer_text: ans.answer_text || null,
+                    keterangan: ans.keterangan || null,
                 };
                 // Only include answer_json if it has actual content
                 if (ans.answer_json && Array.isArray(ans.answer_json) && ans.answer_json.length > 0) {

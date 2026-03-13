@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { Loader2, AlertCircle, Save, CheckCircle2, Upload, FileCheck, X, ExternalLink } from 'lucide-react';
+import { Loader2, AlertCircle, Save, CheckCircle2, Upload, FileCheck, X, ExternalLink, MessageSquare, ChevronDown } from 'lucide-react';
 import LikertSlider from '@/components/LikertSlider';
 
 // Allowed file types and max size
@@ -73,6 +73,8 @@ export default function SurveyStartPage() {
     const [roleId, setRoleId] = useState<string | null>(null);
     const [questions, setQuestions] = useState<SurveyQuestion[]>([]);
     const [answers, setAnswers] = useState<Record<string, any>>({});
+    const [keterangan, setKeterangan] = useState<Record<string, string>>({}); // optional keterangan per question
+    const [expandedKeterangan, setExpandedKeterangan] = useState<Record<string, boolean>>({}); // track which keterangan textareas are expanded
     const [multipleAnswers, setMultipleAnswers] = useState<Record<string, any[]>>({}); // for complex multiple inputs
     const [fileObjects, setFileObjects] = useState<Record<string, File>>({}); // Store actual File objects keyed by question_id or composite id
     const [uploadProgress, setUploadProgress] = useState<Record<string, 'idle' | 'uploading' | 'done' | 'error'>>({}); // Track upload status per file
@@ -149,6 +151,15 @@ export default function SurveyStartPage() {
                 if (progressData.success && progressData.data) {
                     setAnswers(progressData.data);
                 }
+                if (progressData.success && progressData.keterangan) {
+                    setKeterangan(progressData.keterangan);
+                    // Auto-expand keterangan that have content
+                    const expanded: Record<string, boolean> = {};
+                    Object.keys(progressData.keterangan).forEach((qId: string) => {
+                        if (progressData.keterangan[qId]) expanded[qId] = true;
+                    });
+                    setExpandedKeterangan(expanded);
+                }
                 if (progressData.success && progressData.multiple_data) {
 
                     // Group the multiple answers by question_id
@@ -187,11 +198,12 @@ export default function SurveyStartPage() {
                         return {
                             question_id: q.id,
                             answer_text: isJson ? null : (ans ? stringAns : null),
-                            answer_json: isJson ? (ans || []) : null
+                            answer_json: isJson ? (ans || []) : null,
+                            keterangan: keterangan[q.id] || null
                         };
                     })
-                    // Only save those that actually have answers
-                    .filter(ans => ans.answer_text !== null || (ans.answer_json && ans.answer_json.length > 0));
+                    // Only save those that actually have answers or keterangan
+                    .filter(ans => ans.answer_text !== null || (ans.answer_json && ans.answer_json.length > 0) || ans.keterangan);
 
                 // Determine multiple payloads
                 const multiplePayload = Object.keys(multipleAnswers).flatMap(qId => {
@@ -222,7 +234,7 @@ export default function SurveyStartPage() {
         }, 2000); // 2 second debounce
 
         return () => clearTimeout(timer);
-    }, [answers, identity, roleId, questions, isLoading, isSubmitting, success]);
+    }, [answers, keterangan, identity, roleId, questions, isLoading, isSubmitting, success]);
 
     const handleAnswerChange = (questionId: string, value: any, type: string) => {
         setValidationErrors(prev => ({ ...prev, [questionId]: '' })); // Clear error on change
@@ -529,11 +541,12 @@ export default function SurveyStartPage() {
                     return {
                         question_id: q.id,
                         answer_text: isJson ? null : (stringAns.trim() || null),
-                        answer_json: isJson ? (ans || []) : null
+                        answer_json: isJson ? (ans || []) : null,
+                        keterangan: keterangan[q.id] || null
                     };
                 })
                 // Only save answers that actually have content (match auto-save filter)
-                .filter(ans => (ans.answer_text !== null && ans.answer_text.trim() !== '') || (ans.answer_json && ans.answer_json.length > 0));
+                .filter(ans => (ans.answer_text !== null && ans.answer_text.trim() !== '') || (ans.answer_json && ans.answer_json.length > 0) || ans.keterangan);
 
             const multiplePayload = Object.keys(localMultipleAnswers).flatMap(qId => {
                 const ansArray = localMultipleAnswers[qId];
@@ -1272,6 +1285,33 @@ export default function SurveyStartPage() {
                                     </div>
                                     <div className="mt-3 sm:mt-4">
                                         {renderQuestionInput(q)}
+                                    </div>
+
+                                    {/* Keterangan (Optional Explanation) */}
+                                    <div className="mt-4 border-t border-dashed border-slate-200 pt-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => setExpandedKeterangan(prev => ({ ...prev, [q.id]: !prev[q.id] }))}
+                                                className={`flex items-center gap-2 text-xs font-medium transition-colors ${
+                                                    expandedKeterangan[q.id] || keterangan[q.id]
+                                                        ? 'text-emerald-600 hover:text-emerald-700'
+                                                        : 'text-slate-400 hover:text-slate-600'
+                                                }`}
+                                            >
+                                                <MessageSquare size={14} />
+                                                <span>{expandedKeterangan[q.id] ? 'Sembunyikan' : 'Tambah'} Keterangan</span>
+                                                <span className="text-[10px] text-slate-300">(opsional)</span>
+                                                <ChevronDown size={12} className={`transition-transform ${expandedKeterangan[q.id] ? 'rotate-180' : ''}`} />
+                                            </button>
+                                            {expandedKeterangan[q.id] && (
+                                                <textarea
+                                                    rows={3}
+                                                    value={keterangan[q.id] || ''}
+                                                    onChange={(e) => setKeterangan(prev => ({ ...prev, [q.id]: e.target.value }))}
+                                                    className="w-full mt-2 p-3 rounded-xl border border-slate-200 bg-slate-50/50 outline-none text-sm transition-all focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20 focus:bg-white placeholder:text-slate-400"
+                                                    placeholder="Tambahkan keterangan mengapa Anda menjawab demikian... (opsional)"
+                                                />
+                                            )}
                                     </div>
                                 </div>
                             );

@@ -13,7 +13,7 @@ export async function GET(request: Request) {
         // Fetch standard answers
         const { data, error } = await supabaseAdmin
             .from('survey_answers')
-            .select('question_id, answer_text, answer_json')
+            .select('question_id, answer_text, answer_json, keterangan')
             .eq('respondent_id', respondentId);
 
         if (error) {
@@ -34,15 +34,19 @@ export async function GET(request: Request) {
 
         // Transform results back into a Record<question_id, any value> map shape expected by SurveyStartPage
         const formatted: Record<string, any> = {};
+        const keteranganMap: Record<string, string> = {};
         data.forEach(ans => {
             if (ans.answer_json) {
                 formatted[ans.question_id] = ans.answer_json; // checkbox
             } else {
                 formatted[ans.question_id] = ans.answer_text; // others
             }
+            if (ans.keterangan) {
+                keteranganMap[ans.question_id] = ans.keterangan;
+            }
         });
 
-        return NextResponse.json({ success: true, data: formatted, multiple_data: multipleData || [] });
+        return NextResponse.json({ success: true, data: formatted, multiple_data: multipleData || [], keterangan: keteranganMap });
 
     } catch (error) {
         console.error("API Route Error:", error);
