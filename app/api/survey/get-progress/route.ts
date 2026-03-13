@@ -10,15 +10,24 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'ID Responden wajib diisi.' }, { status: 400 });
         }
 
-        // Fetch standard answers
-        const { data, error } = await supabaseAdmin
+        // Fetch standard answers (with fallback if keterangan column doesn't exist yet)
+        let data: any[] | null = null;
+
+        const { data: dataWithKet, error: ketErr } = await supabaseAdmin
             .from('survey_answers')
             .select('question_id, answer_text, answer_json, keterangan')
             .eq('respondent_id', respondentId);
 
-        if (error) {
-            console.error('Fetch Error:', error);
-            throw error;
+        if (ketErr) {
+            // keterangan column may not exist yet, retry without it
+            const { data: dataFallback, error: fallbackErr } = await supabaseAdmin
+                .from('survey_answers')
+                .select('question_id, answer_text, answer_json')
+                .eq('respondent_id', respondentId);
+            if (fallbackErr) throw fallbackErr;
+            data = dataFallback;
+        } else {
+            data = dataWithKet;
         }
 
         // Fetch multiple answers

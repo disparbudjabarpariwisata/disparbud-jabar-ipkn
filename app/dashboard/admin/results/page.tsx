@@ -156,7 +156,11 @@ export default function AdminResultsPage() {
 
             // Step B: Fetch survey answers for these respondents
             const respondentIds = allRespondents.map(r => r.id);
-            const { data: answers, error: aError } = await supabase
+
+            // Try with keterangan first, fallback without it if column doesn't exist yet
+            let answers: any[] | null = null;
+            let aError: any = null;
+            const { data: answersWithKet, error: errWithKet } = await supabase
                 .from('survey_answers')
                 .select(`
                     respondent_id,
@@ -168,6 +172,25 @@ export default function AdminResultsPage() {
                     )
                 `)
                 .in('respondent_id', respondentIds);
+
+            if (errWithKet) {
+                // Column probably doesn't exist yet, retry without keterangan
+                const { data: answersFallback, error: errFallback } = await supabase
+                    .from('survey_answers')
+                    .select(`
+                        respondent_id,
+                        answer_text,
+                        answer_json,
+                        survey_questions (
+                            question_text
+                        )
+                    `)
+                    .in('respondent_id', respondentIds);
+                answers = answersFallback;
+                aError = errFallback;
+            } else {
+                answers = answersWithKet;
+            }
 
             // Also fetch multiple answers (file uploads within multiple_input)
             const { data: multiAnswers } = await supabase

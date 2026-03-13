@@ -77,8 +77,23 @@ export async function POST(request: Request) {
                 .upsert(finalPayload, { onConflict: 'respondent_id, question_id' });
 
             if (insertError) {
-                console.error('Submit Error (Standard):', insertError);
-                return NextResponse.json({ error: `Gagal menyimpan jawaban: ${insertError.message}` }, { status: 500 });
+                // If error is due to missing keterangan column, retry without it
+                if (insertError.message && insertError.message.includes('keterangan')) {
+                    const payloadWithoutKet = finalPayload.map((p: any) => {
+                        const { keterangan, ...rest } = p;
+                        return rest;
+                    });
+                    const { error: retryError } = await supabaseAdmin
+                        .from('survey_answers')
+                        .upsert(payloadWithoutKet, { onConflict: 'respondent_id, question_id' });
+                    if (retryError) {
+                        console.error('Submit Error (Standard Retry):', retryError);
+                        return NextResponse.json({ error: `Gagal menyimpan jawaban: ${retryError.message}` }, { status: 500 });
+                    }
+                } else {
+                    console.error('Submit Error (Standard):', insertError);
+                    return NextResponse.json({ error: `Gagal menyimpan jawaban: ${insertError.message}` }, { status: 500 });
+                }
             }
         }
 

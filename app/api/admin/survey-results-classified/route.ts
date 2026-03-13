@@ -89,13 +89,25 @@ export async function GET(request: NextRequest) {
         const questionMap: Record<string, any> = {};
         allQuestions?.forEach(q => { questionMap[q.id] = q; });
 
-        // 5. Fetch all answers
+        // 5. Fetch all answers (with fallback if keterangan column doesn't exist yet)
         const respondentIds = allRespondents.map(r => r.id);
 
-        const { data: allAnswers } = await supabaseAdmin
+        let allAnswers: any[] | null = null;
+        const { data: answersWithKet, error: ketError } = await supabaseAdmin
             .from('survey_answers')
             .select('respondent_id, question_id, answer_text, answer_json, keterangan, updated_at')
             .in('respondent_id', respondentIds);
+
+        if (ketError) {
+            // keterangan column may not exist yet, retry without it
+            const { data: answersFallback } = await supabaseAdmin
+                .from('survey_answers')
+                .select('respondent_id, question_id, answer_text, answer_json, updated_at')
+                .in('respondent_id', respondentIds);
+            allAnswers = answersFallback;
+        } else {
+            allAnswers = answersWithKet;
+        }
 
         const { data: allMultipleAnswers } = await supabaseAdmin
             .from('survey_multiple_answers')
