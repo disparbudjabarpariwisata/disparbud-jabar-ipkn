@@ -1,7 +1,7 @@
 'use client';
 
-import { X, MapPin, Utensils, Hotel, Bus, Globe, Landmark, Sparkles, ExternalLink } from 'lucide-react';
-
+import { X, MapPin, Utensils, Hotel, Bus, Globe, Landmark, Sparkles, ExternalLink, Activity, Shield, Bed, Stethoscope } from 'lucide-react';
+import { useMemo } from 'react';
 type MapDataItem = {
     city_name: string;
     city_type: string;
@@ -13,6 +13,7 @@ type MapDataItem = {
     transportation: string;
     image_url: string;
     website_url: string;
+    medical_data?: Record<string, any>;
 };
 
 interface MapDataPanelProps {
@@ -22,6 +23,17 @@ interface MapDataPanelProps {
 }
 
 export default function MapDataPanel({ data, cityName, onClose }: MapDataPanelProps) {
+    const latestHealthData = useMemo(() => {
+        if (!data?.medical_data) return null;
+        const years = Object.keys(data.medical_data).sort((a, b) => Number(b) - Number(a));
+        if (years.length === 0) return null;
+        const latestYear = years[0];
+        return {
+            year: latestYear,
+            datasets: data.medical_data[latestYear].datasets || {}
+        };
+    }, [data?.medical_data]);
+
     if (!cityName) return null;
 
     return (
@@ -101,6 +113,46 @@ export default function MapDataPanel({ data, cityName, onClose }: MapDataPanelPr
                             </div>
                         )}
                     </div>
+
+                    {/* Medical Tourism Data Section */}
+                    {latestHealthData && Object.keys(latestHealthData.datasets).length > 0 && (
+                        <div className="mt-6 pt-6 border-t border-gray-100">
+                            <div className="flex items-center gap-2 mb-4">
+                                <Activity size={18} className="text-rose-500" />
+                                <h4 className="text-sm font-bold text-gray-800">Indikator Pariwisata Medis ({latestHealthData.year})</h4>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {latestHealthData.datasets['JKN'] && (
+                                    <InfoCard 
+                                        icon={<Shield size={18} className="text-emerald-500" />} 
+                                        title="Cakupan JKN" 
+                                        content={`${(latestHealthData.datasets['JKN'].jkn_coverage_ratio * 100).toFixed(1)}% Populasi Terlindungi`} 
+                                    />
+                                )}
+                                {latestHealthData.datasets['Rasio Tempat Tidur'] && (
+                                    <InfoCard 
+                                        icon={<Bed size={18} className="text-blue-500" />} 
+                                        title="Ketersediaan RST" 
+                                        content={`${latestHealthData.datasets['Rasio Tempat Tidur'].hospital_bed_ratio_per_1000_population.toFixed(2)} Tempat Tidur / 1.000 Penduduk`} 
+                                    />
+                                )}
+                                {latestHealthData.datasets['Rasio Dokter'] && (
+                                    <InfoCard 
+                                        icon={<Stethoscope size={18} className="text-indigo-500" />} 
+                                        title="Ketersediaan Dokter" 
+                                        content={`${latestHealthData.datasets['Rasio Dokter'].doctor_ratio_per_1000_population.toFixed(2)} Dokter / 1.000 Penduduk`} 
+                                    />
+                                )}
+                                {latestHealthData.datasets['Penyakit Menular'] && (
+                                    <InfoCard 
+                                        icon={<Activity size={18} className="text-rose-400" />} 
+                                        title="Kasus Dengue (DBD)" 
+                                        content={`${latestHealthData.datasets['Penyakit Menular'].dengue_cases?.toLocaleString('id-ID')} Kasus Tercatat`} 
+                                    />
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
