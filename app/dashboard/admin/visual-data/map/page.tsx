@@ -47,6 +47,7 @@ export default function AdminDataMapPage() {
     const [form, setForm] = useState<typeof emptyForm>({ ...emptyForm });
     const [isSaving, setIsSaving] = useState(false);
     const [message, setMessage] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState<'Kesehatan' | 'Pariwisata'>('Kesehatan');
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -248,6 +249,19 @@ export default function AdminDataMapPage() {
                     </div>
                 )}
 
+                {/* Table Header Controls */}
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
+                    <h3 className="font-semibold text-gray-700 text-sm">Data Wilayah</h3>
+                    <select
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value as 'Kesehatan' | 'Pariwisata')}
+                        className="px-4 py-2 border border-gray-200 rounded-xl text-sm bg-gray-50 text-gray-700 font-medium focus:outline-none focus:border-[#10b981] cursor-pointer"
+                    >
+                        <option value="Kesehatan">Kategori: Kesehatan</option>
+                        <option value="Pariwisata">Kategori: Pariwisata Umum</option>
+                    </select>
+                </div>
+
                 {/* Table */}
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
@@ -257,11 +271,16 @@ export default function AdminDataMapPage() {
                                     <th className="px-4 py-4 w-12">No.</th>
                                     <th className="px-4 py-4">Nama Kota/Kab</th>
                                     <th className="px-4 py-4">Tipe</th>
-                                    <th className="px-4 py-4">Deskripsi</th>
-                                    <th className="px-4 py-4">Cakupan JKN</th>
-                                    <th className="px-4 py-4">Penyakit Menular (DBD)</th>
-                                    <th className="px-4 py-4">Rasio Tempat Tidur RS</th>
-                                    <th className="px-4 py-4">Rasio Dokter Umum</th>
+                                    {selectedCategory === 'Pariwisata' ? (
+                                        <th className="px-4 py-4">Deskripsi</th>
+                                    ) : (
+                                        <>
+                                            <th className="px-4 py-4">Cakupan JKN</th>
+                                            <th className="px-4 py-4">Penyakit Menular (DBD)</th>
+                                            <th className="px-4 py-4">Rasio Tempat Tidur RS</th>
+                                            <th className="px-4 py-4">Rasio Dokter Umum</th>
+                                        </>
+                                    )}
                                     <th className="px-4 py-4">Status</th>
                                     <th className="px-4 py-4 w-24">Aksi</th>
                                 </tr>
@@ -282,30 +301,33 @@ export default function AdminDataMapPage() {
                                                 {row.city_type}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3 text-xs text-gray-500 max-w-[200px] truncate">{row.description || '-'}</td>
-                                        {(() => {
-                                            let md = null;
-                                            if (row.medical_data) {
-                                                const years = Object.keys(row.medical_data).sort((a, b) => Number(b) - Number(a));
-                                                if (years.length > 0) md = row.medical_data[years[0]]?.datasets;
-                                            }
-                                            return (
-                                                <>
-                                                    <td className="px-4 py-3 text-xs text-gray-500 font-medium">
-                                                        {md?.['JKN'] ? `${(md['JKN'].jkn_coverage_ratio * 100).toFixed(1)}%` : '-'}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-xs text-gray-500 font-medium">
-                                                        {md?.['Penyakit Menular'] ? `${md['Penyakit Menular'].dengue_cases?.toLocaleString('id-ID')} Kasus` : '-'}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-xs text-gray-500 font-medium">
-                                                        {md?.['Rasio Tempat Tidur'] ? `${md['Rasio Tempat Tidur'].hospital_bed_ratio_per_1000_population.toFixed(2)} / 1000 Penduduk` : '-'}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-xs text-gray-500 font-medium">
-                                                        {md?.['Rasio Dokter'] ? `${md['Rasio Dokter'].doctor_ratio_per_1000_population.toFixed(2)} / 1000 Penduduk` : '-'}
-                                                    </td>
-                                                </>
-                                            );
-                                        })()}
+                                        {selectedCategory === 'Pariwisata' ? (
+                                            <td className="px-4 py-3 text-xs text-gray-500 max-w-[200px] truncate">{row.description || '-'}</td>
+                                        ) : (
+                                            (() => {
+                                                let md = null;
+                                                if (row.medical_data) {
+                                                    const years = Object.keys(row.medical_data).sort((a, b) => Number(b) - Number(a));
+                                                    if (years.length > 0) md = row.medical_data[years[0]]?.datasets;
+                                                }
+                                                return (
+                                                    <>
+                                                        <td className="px-4 py-3 text-xs text-gray-500 font-medium">
+                                                            {md?.['JKN'] ? `${(md['JKN'].jkn_coverage_ratio * 100).toFixed(1)}%` : '-'}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-xs text-gray-500 font-medium">
+                                                            {md?.['Penyakit Menular'] ? `${md['Penyakit Menular'].dengue_cases?.toLocaleString('id-ID')} Kasus` : '-'}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-xs text-gray-500 font-medium">
+                                                            {md?.['Rasio Tempat Tidur'] ? `${md['Rasio Tempat Tidur'].hospital_bed_ratio_per_1000_population.toFixed(2)} / 1000 Penduduk` : '-'}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-xs text-gray-500 font-medium">
+                                                            {md?.['Rasio Dokter'] ? `${md['Rasio Dokter'].doctor_ratio_per_1000_population.toFixed(2)} / 1000 Penduduk` : '-'}
+                                                        </td>
+                                                    </>
+                                                );
+                                            })()
+                                        )}
                                         <td className="px-4 py-3">
                                             <span className={`inline-block px-2 py-1 rounded-md text-[10px] font-semibold ${row.active ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>
                                                 {row.active ? 'Aktif' : 'Nonaktif'}
