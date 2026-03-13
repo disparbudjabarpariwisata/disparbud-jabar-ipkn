@@ -23,14 +23,6 @@ async function run() {
     // Instead of querying a non-existent `west_java_locations` table, we use the static array
     // mapped to the `data_map` table's expected city_name format.
 
-    const locationNameMap = new Map();
-    // Use the `name` from westJavaLocations which matches what's stored in `data_map.city_name`
-    westJavaLocations.forEach(loc => {
-        // Create variations for matching
-        const shortName = loc.name.replace(/(Kota|Kabupaten)\s+/i, '').trim().toLowerCase();
-        locationNameMap.set(shortName, loc.name); // Store full name for querying `data_map` later
-    });
-
     // 2. Load JSON files
     const jknDataRaw = JSON.parse(fs.readFileSync('/tmp/jkn.json', 'utf8'));
     const penyakitMenularRaw = JSON.parse(fs.readFileSync('/tmp/penyakit_menular.json', 'utf8'));
@@ -50,13 +42,15 @@ async function run() {
     function processRecords(records: any[], datasetName: string, mappingFn: (record: any) => any) {
         if (!records) return;
         records.forEach(record => {
-            const shortName = record.region_name_short.toLowerCase();
-            const cityName = locationNameMap.get(shortName);
-
-            if (!cityName) {
-                console.warn(`Could not find city mapping for: ${record.region_name_short}`);
+            const stdName = record.region_name_standard;
+            const validLocation = westJavaLocations.find(loc => loc.name === stdName);
+            
+            if (!validLocation) {
+                console.warn(`Could not find an exact match for city name: ${stdName}`);
                 return;
             }
+            
+            const cityName = validLocation.name;
 
             const year = record.year || record.tahun;
             
