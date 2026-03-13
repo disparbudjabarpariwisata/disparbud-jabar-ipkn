@@ -271,7 +271,16 @@ export async function GET(request: NextRequest) {
 
                 // Include multiple answers detail
                 const multiDetail = multiAnswersMap[q.id];
+                let groupLabels = '';
                 if (multiDetail && multiDetail.length > 0) {
+                    // Extract unique group labels
+                    const uniqueLabels = [...new Set(
+                        multiDetail
+                            .filter((d: any) => d.group_label && String(d.group_label).trim() !== '')
+                            .map((d: any) => String(d.group_label))
+                    )];
+                    groupLabels = uniqueLabels.join(' | ');
+
                     const multiTexts = multiDetail
                         .filter((d: any) => d.answer_value && String(d.answer_value).trim() !== '')
                         .map((d: any) => `${d.group_label} → ${d.field_label}: ${d.answer_value}`);
@@ -287,7 +296,7 @@ export async function GET(request: NextRequest) {
                     question_text: q.question_text,
                     question_type: q.question_type,
                     answer: actualAnswer,
-                    group_label: groupLabelMap[q.id] || '',
+                    group_label: groupLabels || groupLabelMap[q.id] || '',
                     keterangan: (keteranganByRespondent[user.id] || {})[q.id] || '',
                     progress: progress,
                     updated_at: latestUpdate,
