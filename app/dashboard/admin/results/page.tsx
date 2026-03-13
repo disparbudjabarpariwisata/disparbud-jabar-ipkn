@@ -22,6 +22,7 @@ type ResultRow = {
     email: string;
     question_text: string;
     answer: string;
+    keterangan: string;
 };
 
 export default function AdminResultsPage() {
@@ -161,6 +162,7 @@ export default function AdminResultsPage() {
                     respondent_id,
                     answer_text,
                     answer_json,
+                    keterangan,
                     survey_questions (
                         question_text
                     )
@@ -210,6 +212,7 @@ export default function AdminResultsPage() {
                     email: respondent.email,
                     question_text: ans.survey_questions?.question_text || 'Unknown Question',
                     answer: actualAnswer,
+                    keterangan: ans.keterangan || '',
                 });
             });
 
@@ -232,6 +235,7 @@ export default function AdminResultsPage() {
                         email: respondent.email,
                         question_text: detailLabel,
                         answer: ma.answer_value,
+                        keterangan: '',
                     });
                 });
             }
@@ -258,7 +262,8 @@ export default function AdminResultsPage() {
             "Jabatan": row.position,
             "Email": row.email,
             "Pertanyaan": row.question_text,
-            "Jawaban": row.answer
+            "Jawaban": row.answer,
+            "Keterangan": row.keterangan || '',
         }));
 
         const ws = XLSX.utils.json_to_sheet(excelData);
@@ -272,6 +277,7 @@ export default function AdminResultsPage() {
             { wch: 30 }, // Email
             { wch: 60 }, // Pertanyaan
             { wch: 40 }, // Jawaban
+            { wch: 40 }, // Keterangan
         ];
         ws['!cols'] = colWidths;
 
@@ -355,19 +361,20 @@ export default function AdminResultsPage() {
                                     <th className="px-5 py-4 whitespace-nowrap">Jabatan</th>
                                     <th className="px-5 py-4 whitespace-nowrap">Pertanyaan</th>
                                     <th className="px-5 py-4 whitespace-nowrap">Jawaban</th>
+                                    <th className="px-5 py-4 whitespace-nowrap">Keterangan</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {isLoading ? (
                                     <tr>
-                                        <td colSpan={6} className="px-5 py-8 text-center text-gray-500">
+                                        <td colSpan={7} className="px-5 py-8 text-center text-gray-500">
                                             <div className="flex justify-center mb-2"><Loader2 className="animate-spin text-[#10b981]" size={24} /></div>
                                             Memuat data...
                                         </td>
                                     </tr>
                                 ) : results.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} className="px-5 py-8 text-center text-gray-500">
+                                        <td colSpan={7} className="px-5 py-8 text-center text-gray-500">
                                             Tidak ada data kuesioner ditemukan untuk filter tersebut.
                                         </td>
                                     </tr>
@@ -396,6 +403,9 @@ export default function AdminResultsPage() {
                                                 ) : (
                                                     row.answer
                                                 )}
+                                            </td>
+                                            <td className="px-5 py-3 min-w-[180px] text-xs text-gray-500 italic">
+                                                {row.keterangan || <span className="text-gray-300">-</span>}
                                             </td>
                                         </tr>
                                     ))

@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
 
         const { data: allAnswers } = await supabaseAdmin
             .from('survey_answers')
-            .select('respondent_id, question_id, answer_text, answer_json, updated_at')
+            .select('respondent_id, question_id, answer_text, answer_json, keterangan, updated_at')
             .in('respondent_id', respondentIds);
 
         const { data: allMultipleAnswers } = await supabaseAdmin
@@ -105,10 +105,15 @@ export async function GET(request: NextRequest) {
         // Group answers by respondent
         const answersByRespondent: Record<string, any[]> = {};
         const multiAnswersByRespondent: Record<string, any[]> = {};
+        const keteranganByRespondent: Record<string, Record<string, string>> = {};
 
         allAnswers?.forEach(a => {
             if (!answersByRespondent[a.respondent_id]) answersByRespondent[a.respondent_id] = [];
             answersByRespondent[a.respondent_id].push(a);
+            if (a.keterangan) {
+                if (!keteranganByRespondent[a.respondent_id]) keteranganByRespondent[a.respondent_id] = {};
+                keteranganByRespondent[a.respondent_id][a.question_id] = a.keterangan;
+            }
         });
 
         allMultipleAnswers?.forEach(m => {
@@ -247,6 +252,7 @@ export async function GET(request: NextRequest) {
                     question_text: q.question_text,
                     question_type: q.question_type,
                     answer: actualAnswer,
+                    keterangan: (keteranganByRespondent[user.id] || {})[q.id] || '',
                     progress: progress,
                     updated_at: latestUpdate,
                 });
