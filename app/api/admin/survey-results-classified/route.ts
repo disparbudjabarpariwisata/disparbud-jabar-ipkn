@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
         //    Also fetch section_break questions to build group label lookup
         const { data: allQuestionsIncludingSections } = await supabaseAdmin
             .from('survey_questions')
-            .select('id, role_id, question_text, question_type, sort_order, institution_name')
+            .select('id, role_id, question_text, question_type, sort_order, institution_name, options')
             .eq('active', true)
             .order('sort_order', { ascending: true });
 
@@ -87,8 +87,10 @@ export async function GET(request: NextRequest) {
             allQuestionsWithSectionsByRole[q.role_id].push(q);
         });
 
-        // Build group_label map: for each non-section question, find the preceding section_break title
-        const groupLabelMap: Record<string, string> = {}; // question_id -> group_label
+        // Build group_label maps
+        const groupLabelMap: Record<string, string> = {}; // question_id -> section_break label
+        const multipleInputLabelsMap: Record<string, string> = {}; // question_id -> joined group labels from schema
+
         for (const roleId of Object.keys(allQuestionsWithSectionsByRole)) {
             const sortedQuestions = allQuestionsWithSectionsByRole[roleId];
             let currentGroupLabel = '';
@@ -97,6 +99,16 @@ export async function GET(request: NextRequest) {
                     currentGroupLabel = q.question_text || '';
                 } else {
                     groupLabelMap[q.id] = currentGroupLabel;
+                    
+                    // If it's multiple_input, try to extract labels from its schema
+                    if (q.question_type === 'multiple_input' && q.options && q.options.schema && Array.isArray(q.options.schema)) {
+                        const labels = q.options.schema
+                            .map((item: any) => item.label)
+                            .filter((l: any) => !!l);
+                        if (labels.length > 0) {
+                            multipleInputLabelsMap[q.id] = labels.join(' | ');
+                        }
+                    }
                 }
             }
         }
@@ -296,7 +308,7 @@ export async function GET(request: NextRequest) {
                     question_text: q.question_text,
                     question_type: q.question_type,
                     answer: actualAnswer,
-                    group_label: groupLabels || groupLabelMap[q.id] || '',
+                    group_label: multipleInputLabelsMap[q.id] || groupLabels || groupLabelMap[q.id] || '',
                     keterangan: (keteranganByRespondent[user.id] || {})[q.id] || '',
                     progress: progress,
                     updated_at: latestUpdate,
