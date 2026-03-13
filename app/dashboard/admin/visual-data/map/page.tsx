@@ -21,6 +21,7 @@ type DataMapRow = {
     image_url: string;
     website_url: string;
     active: boolean;
+    medical_data?: Record<string, any>;
 };
 
 const emptyForm: Omit<DataMapRow, 'id'> & { id?: string } = {
@@ -257,6 +258,10 @@ export default function AdminDataMapPage() {
                                     <th className="px-4 py-4">Nama Kota/Kab</th>
                                     <th className="px-4 py-4">Tipe</th>
                                     <th className="px-4 py-4">Deskripsi</th>
+                                    <th className="px-4 py-4">Cakupan JKN</th>
+                                    <th className="px-4 py-4">Penyakit Menular (DBD)</th>
+                                    <th className="px-4 py-4">Rasio Tempat Tidur RS</th>
+                                    <th className="px-4 py-4">Rasio Dokter Umum</th>
                                     <th className="px-4 py-4">Status</th>
                                     <th className="px-4 py-4 w-24">Aksi</th>
                                 </tr>
@@ -278,6 +283,29 @@ export default function AdminDataMapPage() {
                                             </span>
                                         </td>
                                         <td className="px-4 py-3 text-xs text-gray-500 max-w-[200px] truncate">{row.description || '-'}</td>
+                                        {(() => {
+                                            let md = null;
+                                            if (row.medical_data) {
+                                                const years = Object.keys(row.medical_data).sort((a, b) => Number(b) - Number(a));
+                                                if (years.length > 0) md = row.medical_data[years[0]]?.datasets;
+                                            }
+                                            return (
+                                                <>
+                                                    <td className="px-4 py-3 text-xs text-gray-500 font-medium">
+                                                        {md?.['JKN'] ? `${(md['JKN'].jkn_coverage_ratio * 100).toFixed(1)}%` : '-'}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-xs text-gray-500 font-medium">
+                                                        {md?.['Penyakit Menular'] ? `${md['Penyakit Menular'].dengue_cases?.toLocaleString('id-ID')} Kasus` : '-'}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-xs text-gray-500 font-medium">
+                                                        {md?.['Rasio Tempat Tidur'] ? `${md['Rasio Tempat Tidur'].hospital_bed_ratio_per_1000_population.toFixed(2)} / 1000 Penduduk` : '-'}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-xs text-gray-500 font-medium">
+                                                        {md?.['Rasio Dokter'] ? `${md['Rasio Dokter'].doctor_ratio_per_1000_population.toFixed(2)} / 1000 Penduduk` : '-'}
+                                                    </td>
+                                                </>
+                                            );
+                                        })()}
                                         <td className="px-4 py-3">
                                             <span className={`inline-block px-2 py-1 rounded-md text-[10px] font-semibold ${row.active ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>
                                                 {row.active ? 'Aktif' : 'Nonaktif'}
