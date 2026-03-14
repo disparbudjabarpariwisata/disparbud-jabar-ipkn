@@ -217,12 +217,17 @@ export default function ResultClassifiedTable({ status, title, description }: Pr
                                     </tr>
                                 ) : (
                                     results.map((row, idx) => (
-                                        <tr key={idx} className="hover:bg-gray-50">
+                                        <tr key={idx} className={`hover:bg-gray-50 ${(row as any).isUnregistered ? 'bg-orange-50/40' : ''}`}>
                                             <td className="px-4 py-3 text-gray-400 text-xs">{idx + 1}</td>
                                             <td className="px-4 py-3 min-w-[180px]">
                                                 <span className="font-semibold text-gray-900 text-xs">{row.institution}</span>
                                             </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-500">{row.email}</td>
+                                            <td className="px-4 py-3 whitespace-nowrap text-xs">
+                                                {(row as any).isUnregistered 
+                                                    ? <span className="text-orange-500 font-semibold italic">Not Assign Responden</span>
+                                                    : <span className="text-gray-500">{row.email}</span>
+                                                }
+                                            </td>
                                             <td className="px-4 py-3 whitespace-nowrap text-xs font-medium text-gray-800">{row.respondent_name}</td>
                                             <td className="px-4 py-3 min-w-[250px] text-xs leading-relaxed text-gray-800 bg-amber-50/30">{row.question_text}</td>
                                             <td className="px-4 py-3 whitespace-nowrap">

@@ -52,7 +52,9 @@ export async function GET(request: NextRequest) {
             allRespondents = allRespondents.filter(r => r.institution === institutionFilter);
         }
 
-        if (allRespondents.length === 0) {
+        // Note: Don't return early if allRespondents is empty for no_progress,
+        // because we still need to show unregistered institutions from survey_questions
+        if (allRespondents.length === 0 && status !== 'no_progress') {
             return NextResponse.json({ success: true, data: [], institutions: [] });
         }
 
@@ -128,26 +130,31 @@ export async function GET(request: NextRequest) {
         const respondentIds = allRespondents.map(r => r.id);
 
         let allAnswers: any[] | null = null;
-        const { data: answersWithKet, error: ketError } = await supabaseAdmin
-            .from('survey_answers')
-            .select('respondent_id, question_id, answer_text, answer_json, keterangan, updated_at')
-            .in('respondent_id', respondentIds);
+        let allMultipleAnswers: any[] | null = null;
 
-        if (ketError) {
-            // keterangan column may not exist yet, retry without it
-            const { data: answersFallback } = await supabaseAdmin
+        if (respondentIds.length > 0) {
+            const { data: answersWithKet, error: ketError } = await supabaseAdmin
                 .from('survey_answers')
-                .select('respondent_id, question_id, answer_text, answer_json, updated_at')
+                .select('respondent_id, question_id, answer_text, answer_json, keterangan, updated_at')
                 .in('respondent_id', respondentIds);
-            allAnswers = answersFallback;
-        } else {
-            allAnswers = answersWithKet;
-        }
 
-        const { data: allMultipleAnswers } = await supabaseAdmin
-            .from('survey_multiple_answers')
-            .select('respondent_id, question_id, answer_value, group_label, field_label, field_type')
-            .in('respondent_id', respondentIds);
+            if (ketError) {
+                // keterangan column may not exist yet, retry without it
+                const { data: answersFallback } = await supabaseAdmin
+                    .from('survey_answers')
+                    .select('respondent_id, question_id, answer_text, answer_json, updated_at')
+                    .in('respondent_id', respondentIds);
+                allAnswers = answersFallback;
+            } else {
+                allAnswers = answersWithKet;
+            }
+
+            const { data: multiData } = await supabaseAdmin
+                .from('survey_multiple_answers')
+                .select('respondent_id, question_id, answer_value, group_label, field_label, field_type')
+                .in('respondent_id', respondentIds);
+            allMultipleAnswers = multiData;
+        }
 
         // Group answers by respondent
         const answersByRespondent: Record<string, any[]> = {};
@@ -316,6 +323,66 @@ export async function GET(request: NextRequest) {
             }
         }
 
+        // 7. For no_progress status: also include institutions from survey_questions
+        //    that have NO registered respondent at all (Not Assign Responden)
+        if (status === 'no_progress') {
+            // Get all institution_name values from active questions
+            const { data: questionsWithInst } = await supabaseAdmin
+                .from('survey_questions')
+                .select('id, role_id, institution_name, question_text, question_type, sort_order')
+                .eq('active', true)
+                .not('institution_name', 'is', null)
+                .neq('question_type', 'section_break')
+                .order('sort_order', { ascending: true });
+
+            if (questionsWithInst) {
+                // Get set of all registered institution names (normalized)
+                const registeredInstSet = new Set(
+                    allRespondents.map(r => normalize(r.institution || ''))
+                );
+
+                // Group questions by institution_name
+                const unregInstitutionQuestions = new Map<string, any[]>();
+                questionsWithInst.forEach(q => {
+                    if (q.institution_name && q.institution_name.trim()) {
+                        const normalizedName = normalize(q.institution_name);
+                        if (!registeredInstSet.has(normalizedName)) {
+                            if (!unregInstitutionQuestions.has(q.institution_name.trim())) {
+                                unregInstitutionQuestions.set(q.institution_name.trim(), []);
+                            }
+                            unregInstitutionQuestions.get(q.institution_name.trim())!.push(q);
+                        }
+                    }
+                });
+
+                // Apply institution filter if set
+                for (const [instName, questions] of unregInstitutionQuestions) {
+                    if (institutionFilter && instName !== institutionFilter) continue;
+
+                    for (const q of questions) {
+                        resultRows.push({
+                            institution: instName,
+                            email: 'Not Assign Responden',
+                            respondent_name: '-',
+                            question_text: q.question_text,
+                            question_type: q.question_type,
+                            answer: '',
+                            group_label: multipleInputLabelsMap[q.id] || groupLabelMap[q.id] || '',
+                            keterangan: '',
+                            progress: 0,
+                            updated_at: null,
+                            isUnregistered: true,
+                        });
+                    }
+                }
+
+                // Also add unregistered institution names to the institution filter list
+                for (const instName of unregInstitutionQuestions.keys()) {
+                    allInstitutions.add(instName);
+                }
+            }
+        }
+
         // Collect all institutions for the filter dropdown (before status filtering)
         // We need to re-fetch to get ALL institution names, not just filtered ones
         let institutionList: string[] = [];
@@ -325,6 +392,8 @@ export async function GET(request: NextRequest) {
                 const { data } = await supabaseAdmin.from(table).select('institution');
                 data?.forEach((r: any) => { if (r.institution) instSet.add(r.institution); });
             }
+            // Also add unregistered institution names from questions
+            allInstitutions.forEach(inst => instSet.add(inst));
             institutionList = Array.from(instSet).sort();
         } else {
             institutionList = [institutionFilter];
