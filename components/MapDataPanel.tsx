@@ -1,6 +1,6 @@
 'use client';
 
-import { X, MapPin, Utensils, Hotel, Bus, Globe, Landmark, Sparkles, ExternalLink, Activity, Shield, Bed, Stethoscope, ChevronDown, Info } from 'lucide-react';
+import { X, MapPin, Utensils, Hotel, Bus, Globe, Landmark, Sparkles, ExternalLink, Activity, Shield, Bed, Stethoscope, ChevronDown, Info, Trophy, Filter } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid, Cell, ReferenceLine, LabelList } from 'recharts';
@@ -36,6 +36,8 @@ export default function MapDataPanel({ data, cityName, onClose, allMapData = [] 
     const latestYearOptional = availableYears.length > 0 ? availableYears[0] : null;
 
     const [selectedYear, setSelectedYear] = useState<string | null>(null);
+    const [selectedSport, setSelectedSport] = useState<string>('Semua');
+    const [selectedQuality, setSelectedQuality] = useState<string>('Semua');
 
     // Reset or set initial year when data changes
     useEffect(() => {
@@ -44,7 +46,9 @@ export default function MapDataPanel({ data, cityName, onClose, allMapData = [] 
         } else {
             setSelectedYear(null);
         }
-    }, [availableYears]);
+        setSelectedSport('Semua');
+        setSelectedQuality('Semua');
+    }, [availableYears, data?.city_name]);
 
     const latestHealthData = useMemo(() => {
         if (!data?.medical_data || !selectedYear) return null;
@@ -320,6 +324,123 @@ export default function MapDataPanel({ data, cityName, onClose, allMapData = [] 
                                                         </div>
                                                     )}
                                                 </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })()}
+
+                    {/* Sarana Olahraga Section */}
+                    {(() => {
+                        const olahragaData = data.content?.sarana_olahraga;
+                        if (!olahragaData) return null;
+
+                        const profile = olahragaData.profile || {};
+                        const facilities = (olahragaData.facilities || []) as any[];
+
+                        // Extract unique sports and qualities for filters
+                        const availableSports = ['Semua', ...Array.from(new Set(facilities.map(f => f.sport_branch_name).filter(Boolean)))].sort();
+                        const availableQualities = ['Semua', ...Array.from(new Set(facilities.map(f => f.quality_class).filter(Boolean)))].sort();
+
+                        // Apply filters
+                        const filteredFacilities = facilities.filter(f => {
+                            const matchSport = selectedSport === 'Semua' || f.sport_branch_name === selectedSport;
+                            const matchQuality = selectedQuality === 'Semua' || f.quality_class === selectedQuality;
+                            return matchSport && matchQuality;
+                        });
+
+                        return (
+                            <div className="mt-6 pt-6 border-t border-gray-100">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <Trophy size={18} className="text-blue-600" />
+                                    <h4 className="text-sm font-bold text-gray-800">Sarana & Prasarana Olahraga</h4>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3 mb-5">
+                                    <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
+                                        <div className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-1">Total Unit</div>
+                                        <div className="text-xl font-black text-blue-700">{profile.total_availability_units || facilities.length}</div>
+                                    </div>
+                                    <div className="p-3 bg-indigo-50 rounded-xl border border-indigo-100">
+                                        <div className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-1">Total Stadion</div>
+                                        <div className="text-xl font-black text-indigo-700">{profile.stadion_total || facilities.filter(f => f.facility_category === 'stadion').length}</div>
+                                    </div>
+                                </div>
+
+                                {facilities.length > 0 && (
+                                    <div className="space-y-3 mb-4 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                        <div className="flex items-center gap-2 mb-2 text-xs font-bold text-gray-700">
+                                            <Filter size={14} className="text-gray-400" /> Filter Data
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-[10px] text-gray-500 mb-1">Cabang Olahraga</label>
+                                                <select 
+                                                    value={selectedSport} 
+                                                    onChange={e => setSelectedSport(e.target.value)}
+                                                    className="w-full text-xs p-2 rounded-lg border border-gray-200 bg-white focus:border-blue-500 outline-none"
+                                                >
+                                                    {availableSports.map(sport => <option key={sport} value={sport}>{sport}</option>)}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] text-gray-500 mb-1">Kelas/Kualitas</label>
+                                                <select 
+                                                    value={selectedQuality} 
+                                                    onChange={e => setSelectedQuality(e.target.value)}
+                                                    className="w-full text-xs p-2 rounded-lg border border-gray-200 bg-white focus:border-blue-500 outline-none"
+                                                >
+                                                    {availableQualities.map(q => <option key={q} value={q}>{q}</option>)}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {!filteredFacilities.length ? (
+                                    <div className="p-4 bg-gray-50 rounded-xl border border-dashed border-gray-300 text-center">
+                                        <p className="text-xs text-gray-500 italic">Tidak ada fasilitas rekam jejak untuk filter tersebut.</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+                                        {filteredFacilities.map((f: any, idx: number) => (
+                                            <div key={idx} className="p-3 bg-white rounded-xl border border-gray-200 shadow-sm space-y-2">
+                                                <div className="flex justify-between items-start gap-2">
+                                                    <h5 className="text-sm font-bold text-gray-900 leading-tight">{f.facility_name || 'Tidak Bernama'}</h5>
+                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase shrink-0 ${
+                                                        f.facility_category === 'stadion' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
+                                                    }`}>
+                                                        {f.facility_category}
+                                                    </span>
+                                                </div>
+                                                <div className="flex flex-wrap gap-2 text-[10px]">
+                                                    {f.sport_branch_name && (
+                                                        <span className="flex items-center gap-1 text-gray-600 bg-gray-100 px-2 py-0.5 rounded-md">
+                                                            <Activity size={10} /> {f.sport_branch_name}
+                                                        </span>
+                                                    )}
+                                                    {f.quality_class && (
+                                                        <span className={`px-2 py-0.5 rounded-md ${
+                                                            f.quality_class === 'Internasional' ? 'bg-purple-100 text-purple-700 font-medium' :
+                                                            f.quality_class === 'Nasional' ? 'bg-indigo-100 text-indigo-700' :
+                                                            'bg-gray-100 text-gray-500'
+                                                        }`}>
+                                                            {f.quality_class}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {f.management_status && (
+                                                    <p className="text-[10px] text-gray-500 pt-1 border-t border-gray-50 mt-2">
+                                                        <span className="font-semibold text-gray-600">Pengelola:</span> {f.management_status}
+                                                    </p>
+                                                )}
+                                                {f.facility_condition && (
+                                                    <p className="text-[10px] text-gray-500">
+                                                        <span className="font-semibold text-gray-600">Kondisi:</span> {f.facility_condition}
+                                                    </p>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
