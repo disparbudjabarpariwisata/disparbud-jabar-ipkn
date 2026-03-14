@@ -178,7 +178,7 @@ export default function AdminDashboardPage() {
                                                 </td>
                                                 <td className="py-4 px-6 text-sm">
                                                     {row.isUnregistered ? (
-                                                        <span className="text-orange-500 font-medium italic">Belum Terdaftar</span>
+                                                        <span className="text-orange-500 font-medium italic">Not Assign Responden</span>
                                                     ) : (
                                                         <span className="text-gray-600">{row.email}</span>
                                                     )}
