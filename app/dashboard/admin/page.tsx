@@ -26,8 +26,10 @@ import Link from 'next/link';
 export default function AdminDashboardPage() {
     const router = useRouter();
     const [isAuthorized, setIsAuthorized] = useState(false);
-    const [statsData, setStatsData] = useState<{ progress: any[], publications: any[] } | null>(null);
+    const [statsData, setStatsData] = useState<{ progress: any[], publications: any[], filterRoles: string[], filterInstitutions: string[] } | null>(null);
     const [isLoadingStats, setIsLoadingStats] = useState(true);
+    const [filterRole, setFilterRole] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
         const check = async () => {
@@ -44,7 +46,12 @@ export default function AdminDashboardPage() {
                 if (res.ok) {
                     const data = await res.json();
                     if (data.success) {
-                        setStatsData({ progress: data.progress || [], publications: data.publications || [] });
+                        setStatsData({ 
+                            progress: data.progress || [], 
+                            publications: data.publications || [],
+                            filterRoles: data.filterRoles || [],
+                            filterInstitutions: data.filterInstitutions || []
+                        });
                     }
                 }
             } catch (err) {
@@ -55,6 +62,18 @@ export default function AdminDashboardPage() {
         };
         check();
     }, [router]);
+
+    // Filtered progress list
+    const filteredProgress = (statsData?.progress || []).filter((row: any) => {
+        if (filterRole && row.roleName !== filterRole) return false;
+        if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            const matchInst = (row.institution || '').toLowerCase().includes(q);
+            const matchEmail = (row.email || '').toLowerCase().includes(q);
+            if (!matchInst && !matchEmail) return false;
+        }
+        return true;
+    });
 
     if (!isAuthorized) {
         return (
@@ -80,7 +99,43 @@ export default function AdminDashboardPage() {
                         <div className="p-3 rounded-lg bg-emerald-100 text-emerald-600">
                             <BarChart size={24} />
                         </div>
-                        <h2 className="text-xl font-bold text-gray-800">Progress Pengisian Survey</h2>
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-800">Progress Pengisian Survey</h2>
+                            <p className="text-xs text-gray-400 mt-0.5">
+                                Total: {statsData?.progress?.length || 0} instansi
+                                {filteredProgress.length !== (statsData?.progress?.length || 0) && ` · Ditampilkan: ${filteredProgress.length}`}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Filters */}
+                    <div className="flex flex-wrap gap-3 mb-4">
+                        <div className="flex-1 min-w-[200px]">
+                            <label className="block text-xs font-semibold text-gray-500 mb-1">Filter Kategori Instansi (Role)</label>
+                            <select 
+                                value={filterRole} 
+                                onChange={e => setFilterRole(e.target.value)}
+                                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none"
+                            >
+                                <option value="">Semua Role</option>
+                                {(statsData?.filterRoles || []).map(r => (
+                                    <option key={r} value={r}>{r}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="flex-1 min-w-[250px]">
+                            <label className="block text-xs font-semibold text-gray-500 mb-1">Cari Nama Instansi / Email</label>
+                            <div className="relative">
+                                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <input 
+                                    type="text" 
+                                    placeholder="Ketik nama instansi atau email..."
+                                    value={searchQuery}
+                                    onChange={e => setSearchQuery(e.target.value)}
+                                    className="w-full border border-gray-200 rounded-lg pl-9 pr-3 py-2 text-sm focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none"
+                                />
+                            </div>
+                        </div>
                     </div>
                     
                     {isLoadingStats ? (
@@ -93,18 +148,21 @@ export default function AdminDashboardPage() {
                                 <thead>
                                     <tr className="bg-gray-50/80 text-gray-600 text-sm border-b border-gray-200">
                                         <th className="py-4 px-6 font-semibold whitespace-nowrap">Nama Instansi</th>
+                                        <th className="py-4 px-6 font-semibold whitespace-nowrap">Kategori Role</th>
                                         <th className="py-4 px-6 font-semibold whitespace-nowrap">PIC Email</th>
                                         <th className="py-4 px-6 font-semibold whitespace-nowrap">Progress</th>
                                         <th className="py-4 px-6 font-semibold whitespace-nowrap">Last Update</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {(statsData?.progress?.length || 0) === 0 ? (
+                                    {filteredProgress.length === 0 ? (
                                         <tr>
-                                            <td colSpan={4} className="py-8 text-center text-gray-500">Belum ada data responden atau pertanyaan.</td>
+                                            <td colSpan={5} className="py-8 text-center text-gray-500">
+                                                {searchQuery || filterRole ? 'Tidak ada data yang cocok dengan filter.' : 'Belum ada data responden atau pertanyaan.'}
+                                            </td>
                                         </tr>
                                     ) : (
-                                        statsData!.progress.map((row: any) => (
+                                        filteredProgress.map((row: any) => (
                                             <tr key={row.id} className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${row.isUnregistered ? 'bg-red-50/30' : ''}`}>
                                                 <td className="py-4 px-6">
                                                     <span className="font-medium text-gray-800">{row.institution}</span>
@@ -114,6 +172,9 @@ export default function AdminDashboardPage() {
                                                     {row.totalQuestions && (
                                                         <span className="ml-1.5 text-[10px] text-gray-400 font-medium">({row.totalQuestions} Pertanyaan)</span>
                                                     )}
+                                                </td>
+                                                <td className="py-4 px-6 text-xs">
+                                                    <span className="inline-block px-2 py-1 rounded-md bg-blue-50 text-blue-700 font-medium">{row.roleName || '-'}</span>
                                                 </td>
                                                 <td className="py-4 px-6 text-sm">
                                                     {row.isUnregistered ? (

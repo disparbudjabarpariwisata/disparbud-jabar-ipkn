@@ -197,46 +197,63 @@ export async function GET() {
         // Sort progress list by latest update 
         progressList.sort((a, b) => new Date(b.lastUpdate).getTime() - new Date(a.lastUpdate).getTime());
 
-        // 5b. Add institution entries from survey_questions that have no matching respondent
-        // This ensures institutions like "Kementerian Kesehatan" that have questions assigned
-        // but no registered respondent still appear in the progress list
-        const { data: allQuestions } = await supabaseAdmin
+        // 5b. Add institution entries from ALL active survey_questions that have no matching respondent
+        const { data: allActiveQuestionsWithInst } = await supabaseAdmin
             .from('survey_questions')
-            .select('institution_name, role_id')
+            .select('institution_name, role_id, question_text')
             .eq('active', true)
             .not('institution_name', 'is', null);
 
-        if (allQuestions) {
-            // Get all unique institution_name values from questions
-            const questionInstitutions = new Map<string, string>(); // name -> role_id
-            allQuestions.forEach(q => {
+        // Also compute role_id -> role_name reverse map
+        const roleIdToName: Record<string, string> = {};
+        rolesData?.forEach(r => { roleIdToName[r.id] = r.name; });
+
+        if (allActiveQuestionsWithInst) {
+            // Map: institution_name -> { roleId, roleName, questionCount }
+            const questionInstitutions = new Map<string, { roleId: string; roleName: string; questionCount: number }>();
+            allActiveQuestionsWithInst.forEach(q => {
                 if (q.institution_name && q.institution_name.trim()) {
-                    questionInstitutions.set(q.institution_name.trim(), q.role_id);
+                    const key = q.institution_name.trim();
+                    if (!questionInstitutions.has(key)) {
+                        questionInstitutions.set(key, { 
+                            roleId: q.role_id, 
+                            roleName: roleIdToName[q.role_id] || 'Unknown',
+                            questionCount: 0 
+                        });
+                    }
+                    questionInstitutions.get(key)!.questionCount++;
                 }
             });
 
-            // Check which question-targeted institutions already have a matching respondent in progressList
+            // Check which question-targeted institutions already have a matching respondent
             const existingInstitutions = new Set(
                 allRespondents.map(r => normalize(r.institution || ''))
             );
 
-            for (const [instName, roleId] of questionInstitutions) {
+            for (const [instName, meta] of questionInstitutions) {
                 const normalizedName = normalize(instName);
                 if (!existingInstitutions.has(normalizedName)) {
-                    // Count questions for this institution
-                    const instQuestions = allQuestions.filter(q => 
-                        q.institution_name && normalize(q.institution_name) === normalizedName
-                    );
-
                     progressList.push({
                         id: `unregistered_${normalizedName}`,
                         institution: instName,
                         email: 'Belum Terdaftar',
                         progress: 0,
                         lastUpdate: new Date().toISOString(),
-                        totalQuestions: instQuestions.length,
+                        totalQuestions: meta.questionCount,
+                        roleName: meta.roleName,
                         isUnregistered: true
                     });
+                }
+            }
+        }
+
+        // Enrich ALL progress entries with roleName if not already set
+        for (const entry of progressList) {
+            if (!(entry as any).roleName) {
+                // Find from allRespondents
+                const respondent = allRespondents.find(r => r.id === entry.id);
+                if (respondent) {
+                    (entry as any).roleName = respondent.role_name || 'Unknown';
                 }
             }
         }
@@ -245,9 +262,13 @@ export async function GET() {
         progressList.sort((a, b) => {
             const aUnreg = (a as any).isUnregistered ? 1 : 0;
             const bUnreg = (b as any).isUnregistered ? 1 : 0;
-            if (aUnreg !== bUnreg) return aUnreg - bUnreg; // registered first
+            if (aUnreg !== bUnreg) return aUnreg - bUnreg;
             return new Date(b.lastUpdate).getTime() - new Date(a.lastUpdate).getTime();
         });
+
+        // Compute filter metadata for frontend
+        const allRoleNames = [...new Set(progressList.map((p: any) => p.roleName).filter(Boolean))].sort();
+        const allInstNames = [...new Set(progressList.map(p => p.institution).filter(Boolean))].sort();
 
         // 6. Fetch "Link Publikasi"
         let publications: any[] = [];
@@ -400,7 +421,9 @@ export async function GET() {
         return NextResponse.json({ 
             success: true, 
             progress: progressList,
-            publications: publications
+            publications: publications,
+            filterRoles: allRoleNames,
+            filterInstitutions: allInstNames
         });
 
     } catch (error: any) {
