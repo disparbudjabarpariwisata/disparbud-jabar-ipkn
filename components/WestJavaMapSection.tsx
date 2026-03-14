@@ -57,24 +57,37 @@ export default function WestJavaMapSection({ initialData = [] }: WestJavaMapSect
 
     const dataPanelRef = useRef<HTMLDivElement>(null);
 
-    const handleLocationClick = useCallback((location: WestJavaLocation) => {
+    const handleLocationClick = useCallback((location: WestJavaLocation, shouldScroll = false) => {
         setSelectedLocation(location);
         const data = mapData.find(d => d.city_name === location.name);
         setSelectedData(data || null);
         setSearchQuery('');
         setIsDropdownOpen(false);
         
-        // Auto-scroll to the data panel after a slight delay to allow rendering
+        if (shouldScroll) {
+            // Auto-scroll to the data panel after a slight delay to allow rendering
+            setTimeout(() => {
+                if (dataPanelRef.current) {
+                    window.scrollTo({
+                        top: dataPanelRef.current.offsetTop - 100,
+                        behavior: 'smooth'
+                    });
+                }
+            }, 150);
+        }
+    }, [mapData]);
+
+    const handleDetailClick = useCallback((location: WestJavaLocation) => {
+        // Find the panel and scroll to it
         setTimeout(() => {
             if (dataPanelRef.current) {
-                // Adjusting for potential sticky headers (e.g. 100px offset)
                 window.scrollTo({
                     top: dataPanelRef.current.offsetTop - 100,
                     behavior: 'smooth'
                 });
             }
-        }, 150);
-    }, [mapData]);
+        }, 50);
+    }, []);
 
     const handleClose = useCallback(() => {
         setSelectedLocation(null);
@@ -122,7 +135,7 @@ export default function WestJavaMapSection({ initialData = [] }: WestJavaMapSect
                                 filteredLocations.map((loc) => (
                                     <button
                                         key={loc.id}
-                                        onClick={() => handleLocationClick(loc)}
+                                        onClick={() => handleLocationClick(loc, true)}
                                         className="w-full text-left px-4 py-3 hover:bg-emerald-50 transition-colors border-b border-gray-50 last:border-b-0"
                                     >
                                         <div className="font-semibold text-gray-800">{loc.name}</div>
@@ -153,7 +166,8 @@ export default function WestJavaMapSection({ initialData = [] }: WestJavaMapSect
                 {/* Map */}
                 <WestJavaMapInner
                     selectedLocation={selectedLocation}
-                    onLocationClick={handleLocationClick}
+                    onLocationClick={(loc) => handleLocationClick(loc, false)}
+                    onDetailClick={handleDetailClick}
                     dataAvailable={dataAvailable}
                 />
 

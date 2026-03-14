@@ -27,10 +27,11 @@ function createPinIcon(type: 'Kota' | 'Kabupaten', isActive: boolean) {
 interface WestJavaMapProps {
     selectedLocation: WestJavaLocation | null;
     onLocationClick: (location: WestJavaLocation) => void;
+    onDetailClick: (location: WestJavaLocation) => void;
     dataAvailable: Set<string>; // city_names that have data_map entries
 }
 
-export default function WestJavaMapInner({ selectedLocation, onLocationClick, dataAvailable }: WestJavaMapProps) {
+export default function WestJavaMapInner({ selectedLocation, onLocationClick, onDetailClick, dataAvailable }: WestJavaMapProps) {
     const mapRef = useRef<L.Map | null>(null);
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const markersRef = useRef<L.Marker[]>([]);
@@ -71,22 +72,51 @@ export default function WestJavaMapInner({ selectedLocation, onLocationClick, da
 
             const hasData = dataAvailable.has(location.name);
             const popupContent = `
-                <div style="min-width:160px;font-family:system-ui,sans-serif;">
-                    <h3 style="font-weight:700;font-size:14px;margin:0 0 4px 0;">${location.name}</h3>
-                    <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;background:${location.type === 'Kota' ? '#dbeafe' : '#d1fae5'};color:${location.type === 'Kota' ? '#1d4ed8' : '#047857'};">
-                        ${location.type}
-                    </span>
-                    ${location.description ? `<p style="font-size:12px;color:#6b7280;margin:6px 0 0 0;">${location.description}</p>` : ''}
-                    ${hasData ? '<p style="font-size:11px;color:#10b981;margin:6px 0 0 0;font-weight:600;">📍 Klik untuk lihat info pariwisata</p>' : '<p style="font-size:11px;color:#9ca3af;margin:6px 0 0 0;">Data belum tersedia</p>'}
+                <div class="map-popup-content" style="min-width:200px; padding: 4px; font-family: 'Inter', sans-serif;">
+                    <h3 style="font-weight:800; font-size:16px; margin:0 0 4px 0; color: #1e293b;">${location.name}</h3>
+                    <div style="margin-bottom: 8px;">
+                        <span style="display:inline-block; padding:2px 8px; border-radius:6px; font-size:10px; font-weight:700; text-transform: uppercase; background:${location.type === 'Kota' ? '#dbeafe' : '#d1fae5'}; color:${location.type === 'Kota' ? '#1d4ed8' : '#047857'};">
+                            ${location.type}
+                        </span>
+                    </div>
+                    <p style="font-size:13px; color:#64748b; line-height: 1.5; margin: 0 0 12px 0;">
+                        ${location.description || 'Informasi pariwisata wilayah Jawa Barat.'}
+                    </p>
+                    <button 
+                        id="popup-detail-btn-${location.id}"
+                        style="width: 100%; padding: 8px 16px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; items-center; justify-center; transition: background 0.2s;"
+                        onmouseover="this.style.background='#059669'"
+                        onmouseout="this.style.background='#10b981'"
+                    >
+                        Lihat Detail
+                    </button>
                 </div>
             `;
 
             marker.bindPopup(popupContent, {
                 autoPanPadding: [50, 50],
-                keepInView: true
+                keepInView: true,
+                className: 'custom-leaflet-popup'
             });
+
             marker.on('click', () => handleClick(location));
             markers.push(marker);
+        });
+
+        // Handle button clicks in popups
+        map.on('popupopen', (e) => {
+            const popup = e.popup;
+            const container = popup.getElement();
+            if (container) {
+                const btn = container.querySelector('button[id^="popup-detail-btn-"]') as HTMLElement;
+                if (btn) {
+                    const locationId = btn.id.replace('popup-detail-btn-', '');
+                    const location = westJavaLocations.find(l => String(l.id) === locationId);
+                    if (location) {
+                        btn.onclick = () => onDetailClick(location);
+                    }
+                }
+            }
         });
 
         markersRef.current = markers;
@@ -98,7 +128,7 @@ export default function WestJavaMapInner({ selectedLocation, onLocationClick, da
         }
 
         return () => { map.remove(); };
-    }, [handleClick, dataAvailable, selectedLocation]);
+    }, [handleClick, onDetailClick, dataAvailable, selectedLocation]);
 
     // Pan to selected location
     useEffect(() => {
