@@ -110,7 +110,7 @@ export default function WestJavaMapInner({ selectedLocation, onLocationClick, da
     return (
         <div
             ref={mapContainerRef}
-            className="w-full rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
+            className="w-full rounded-2xl shadow-lg border border-gray-200 overflow-hidden relative z-0"
             style={{ height: '500px' }}
         />
     );
