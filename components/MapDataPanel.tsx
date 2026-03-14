@@ -2,6 +2,8 @@
 
 import { X, MapPin, Utensils, Hotel, Bus, Globe, Landmark, Sparkles, ExternalLink, Activity, Shield, Bed, Stethoscope, ChevronDown } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import CountUp from 'react-countup';
 type MapDataItem = {
     city_name: string;
     city_type: string;
@@ -154,33 +156,50 @@ export default function MapDataPanel({ data, cityName, onClose }: MapDataPanelPr
                                     </div>
                                 )}
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {latestHealthData.datasets['JKN'] && (
-                                    <InfoCard 
-                                        icon={<Shield size={18} className="text-emerald-500" />} 
+                                    <AnimatedStatCard 
+                                        icon={<Shield size={20} className="text-emerald-500" />} 
                                         title="Cakupan JKN" 
-                                        content={`${(latestHealthData.datasets['JKN'].jkn_coverage_ratio * 100).toFixed(1)}% Populasi Terlindungi`} 
+                                        value={latestHealthData.datasets['JKN'].jkn_coverage_ratio * 100}
+                                        suffix="% Populasi"
+                                        decimals={1}
+                                        colorClass="from-emerald-50 to-emerald-100/50 border-emerald-100"
+                                        delay={0.1}
                                     />
                                 )}
                                 {latestHealthData.datasets['Rasio Tempat Tidur'] && (
-                                    <InfoCard 
-                                        icon={<Bed size={18} className="text-blue-500" />} 
+                                    <AnimatedStatCard 
+                                        icon={<Bed size={20} className="text-blue-500" />} 
                                         title="Ketersediaan RST" 
-                                        content={`${latestHealthData.datasets['Rasio Tempat Tidur'].hospital_bed_ratio_per_1000_population.toFixed(2)} Tempat Tidur / 1.000 Penduduk`} 
+                                        value={latestHealthData.datasets['Rasio Tempat Tidur'].hospital_bed_ratio_per_1000_population}
+                                        suffix=" / 1.000 Penduduk"
+                                        decimals={2}
+                                        colorClass="from-blue-50 to-blue-100/50 border-blue-100"
+                                        delay={0.2}
                                     />
                                 )}
                                 {latestHealthData.datasets['Rasio Dokter'] && (
-                                    <InfoCard 
-                                        icon={<Stethoscope size={18} className="text-indigo-500" />} 
+                                    <AnimatedStatCard 
+                                        icon={<Stethoscope size={20} className="text-indigo-500" />} 
                                         title="Ketersediaan Dokter" 
-                                        content={`${latestHealthData.datasets['Rasio Dokter'].doctor_ratio_per_1000_population.toFixed(2)} Dokter / 1.000 Penduduk`} 
+                                        value={latestHealthData.datasets['Rasio Dokter'].doctor_ratio_per_1000_population}
+                                        suffix=" / 1.000 Penduduk"
+                                        decimals={2}
+                                        colorClass="from-indigo-50 to-indigo-100/50 border-indigo-100"
+                                        delay={0.3}
                                     />
                                 )}
                                 {latestHealthData.datasets['Penyakit Menular'] && (
-                                    <InfoCard 
-                                        icon={<Activity size={18} className="text-rose-400" />} 
+                                    <AnimatedStatCard 
+                                        icon={<Activity size={20} className="text-rose-500" />} 
                                         title="Kasus Dengue (DBD)" 
-                                        content={`${latestHealthData.datasets['Penyakit Menular'].dengue_cases?.toLocaleString('id-ID')} Kasus Tercatat`} 
+                                        value={latestHealthData.datasets['Penyakit Menular'].dengue_cases || 0}
+                                        suffix=" Kasus Tershcatat"
+                                        separator="."
+                                        decimals={0}
+                                        colorClass="from-rose-50 to-rose-100/50 border-rose-100"
+                                        delay={0.4}
                                     />
                                 )}
                             </div>
@@ -259,5 +278,55 @@ function InfoCard({ icon, title, content }: { icon: React.ReactNode; title: stri
                 <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-line">{content}</p>
             </div>
         </div>
+    );
+}
+
+interface AnimatedStatCardProps {
+    icon: React.ReactNode;
+    title: string;
+    value: number;
+    suffix: string;
+    decimals?: number;
+    separator?: string;
+    colorClass: string;
+    delay: number;
+}
+
+function AnimatedStatCard({ icon, title, value, suffix, decimals = 0, separator = "", colorClass, delay }: AnimatedStatCardProps) {
+    return (
+        <motion.div 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay, ease: "easeOut" }}
+            className={`p-4 rounded-xl border bg-gradient-to-br ${colorClass} shadow-sm backdrop-blur-sm relative overflow-hidden group`}
+        >
+            <div className="flex justify-between items-start mb-2 relative z-10">
+                <div className="p-2 bg-white/80 rounded-lg shadow-sm">
+                    {icon}
+                </div>
+                <h4 className="text-xs font-bold text-gray-700 text-right w-24 leading-tight">{title}</h4>
+            </div>
+            
+            <div className="relative z-10 mt-3">
+                <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-black text-gray-900 tracking-tight">
+                        <CountUp 
+                            end={value} 
+                            duration={2.5} 
+                            decimals={decimals}
+                            separator={separator}
+                            decimal=","
+                            useEasing={true}
+                        />
+                    </span>
+                    <span className="text-xs font-semibold text-gray-600">{suffix}</span>
+                </div>
+            </div>
+
+            {/* Decorative background element */}
+            <div className="absolute -bottom-4 -right-4 opacity-10 blur-sm transform group-hover:scale-110 transition-transform duration-500">
+                {icon}
+            </div>
+        </motion.div>
     );
 }
