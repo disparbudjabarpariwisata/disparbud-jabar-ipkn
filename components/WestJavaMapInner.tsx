@@ -100,7 +100,6 @@ export default function WestJavaMapInner({ selectedLocation, onLocationClick, da
     // Pan to selected location
     useEffect(() => {
         if (!mapRef.current || !selectedLocation) return;
-        mapRef.current.setView(selectedLocation.coordinates, 11, { animate: true });
 
         const markerIdx = westJavaLocations.findIndex(l => l.id === selectedLocation.id);
         if (markerIdx >= 0 && markersRef.current[markerIdx]) {

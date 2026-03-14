@@ -2,9 +2,9 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
-import { WestJavaLocation } from '@/lib/westJavaLocations';
+import { WestJavaLocation, westJavaLocations } from '@/lib/westJavaLocations';
 import MapDataPanel from '@/components/MapDataPanel';
-import { MapPin, Loader2 } from 'lucide-react';
+import { MapPin, Loader2, Search } from 'lucide-react';
 
 // Dynamic import for Leaflet (SSR-incompatible)
 const WestJavaMapInner = dynamic(() => import('@/components/WestJavaMapInner'), {
@@ -41,6 +41,16 @@ export default function WestJavaMapSection({ initialData = [] }: WestJavaMapSect
     const [selectedLocation, setSelectedLocation] = useState<WestJavaLocation | null>(null);
     const [mapData] = useState<MapDataItem[]>(initialData);
     const [selectedData, setSelectedData] = useState<MapDataItem | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+    // Filtered locations based on search query
+    const filteredLocations = useMemo(() => {
+        if (!searchQuery) return westJavaLocations;
+        return westJavaLocations.filter(loc => 
+            loc.name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }, [searchQuery]);
 
     // Set of city names that have data
     const dataAvailable = useMemo(() => new Set(mapData.map(d => d.city_name)), [mapData]);
@@ -49,6 +59,8 @@ export default function WestJavaMapSection({ initialData = [] }: WestJavaMapSect
         setSelectedLocation(location);
         const data = mapData.find(d => d.city_name === location.name);
         setSelectedData(data || null);
+        setSearchQuery('');
+        setIsDropdownOpen(false);
     }, [mapData]);
 
     const handleClose = useCallback(() => {
@@ -71,6 +83,46 @@ export default function WestJavaMapSection({ initialData = [] }: WestJavaMapSect
                     <p className="font-['Inter:Medium',sans-serif] font-medium text-base md:text-lg text-[rgba(0,0,0,0.55)] max-w-2xl mx-auto">
                         Jelajahi 27 kota dan kabupaten di Jawa Barat. Klik pin untuk melihat informasi kepariwisataan.
                     </p>
+                </div>
+
+                {/* Search Filter */}
+                <div className="max-w-md mx-auto mb-8 relative z-10">
+                    <div className="relative">
+                        <input
+                            type="text"
+                            placeholder="Cari Kota atau Kabupaten..."
+                            value={searchQuery}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                                setIsDropdownOpen(true);
+                            }}
+                            onFocus={() => setIsDropdownOpen(true)}
+                            onBlur={() => setTimeout(() => setIsDropdownOpen(false), 200)}
+                            className="w-full px-4 py-3 pl-11 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm text-gray-800"
+                        />
+                        <Search className="absolute left-4 top-3.5 text-gray-400" size={20} />
+                    </div>
+                    
+                    {isDropdownOpen && searchQuery.length > 0 && (
+                        <div className="absolute w-full mt-2 bg-white rounded-xl shadow-lg border border-gray-100 max-h-60 overflow-y-auto">
+                            {filteredLocations.length > 0 ? (
+                                filteredLocations.map((loc) => (
+                                    <button
+                                        key={loc.id}
+                                        onClick={() => handleLocationClick(loc)}
+                                        className="w-full text-left px-4 py-3 hover:bg-emerald-50 transition-colors border-b border-gray-50 last:border-b-0"
+                                    >
+                                        <div className="font-semibold text-gray-800">{loc.name}</div>
+                                        <div className="text-xs text-gray-500">{loc.type}</div>
+                                    </button>
+                                ))
+                            ) : (
+                                <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                                    Lokasi tidak ditemukan
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Legend */}
