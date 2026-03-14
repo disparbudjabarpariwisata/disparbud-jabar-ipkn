@@ -405,44 +405,75 @@ export default function MapDataPanel({ data, cityName, onClose, allMapData = [] 
                                     </div>
                                 ) : (
                                     <div className="space-y-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
-                                        {filteredFacilities.map((f: any, idx: number) => (
-                                            <div key={idx} className="p-3 bg-white rounded-xl border border-gray-200 shadow-sm space-y-2">
-                                                <div className="flex justify-between items-start gap-2">
-                                                    <h5 className="text-sm font-bold text-gray-900 leading-tight">{f.facility_name || 'Tidak Bernama'}</h5>
-                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase shrink-0 ${
-                                                        f.facility_category === 'stadion' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
-                                                    }`}>
-                                                        {f.facility_category}
-                                                    </span>
-                                                </div>
-                                                <div className="flex flex-wrap gap-2 text-[10px]">
-                                                    {f.sport_branch_name && (
-                                                        <span className="flex items-center gap-1 text-gray-600 bg-gray-100 px-2 py-0.5 rounded-md">
-                                                            <Activity size={10} /> {f.sport_branch_name}
+                                        {filteredFacilities.flatMap((f: any, rowIdx: number) => {
+                                            // Handle named_facilities (usually stadiums or specific places)
+                                            if (f.named_facilities && f.named_facilities.length > 0) {
+                                                return f.named_facilities.map((nf: any, nfIdx: number) => (
+                                                    <div key={`nf-${rowIdx}-${nfIdx}`} className="p-3 bg-white rounded-xl border border-gray-200 shadow-sm space-y-2">
+                                                        <div className="flex justify-between items-start gap-2">
+                                                            <h5 className="text-sm font-bold text-gray-900 leading-tight">{nf.facility_name || 'Sarana Olahraga'}</h5>
+                                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase shrink-0 ${
+                                                                f.facility_category === 'stadion' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
+                                                            }`}>
+                                                                {f.facility_category}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex flex-wrap gap-2 text-[10px]">
+                                                            {f.sport_branch_name && (
+                                                                <span className="flex items-center gap-1 text-gray-600 bg-gray-100 px-2 py-0.5 rounded-md">
+                                                                    <Activity size={10} /> {f.sport_branch_name}
+                                                                </span>
+                                                            )}
+                                                            {nf.quality_class && (
+                                                                <span className={`px-2 py-0.5 rounded-md ${
+                                                                    nf.quality_class === 'Internasional' ? 'bg-purple-100 text-purple-700 font-medium' :
+                                                                    nf.quality_class === 'Nasional' ? 'bg-indigo-100 text-indigo-700' :
+                                                                    'bg-gray-100 text-gray-500'
+                                                                }`}>
+                                                                    {nf.quality_class}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        {nf.category_name && (
+                                                            <p className="text-[10px] text-gray-500 pt-1 border-t border-gray-50 mt-2">
+                                                                <span className="font-semibold text-gray-600">Keterangan:</span> {nf.category_name}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                ));
+                                            }
+
+                                            // Fallback for general sarpras facilities (aggregated)
+                                            return (
+                                                <div key={`f-${rowIdx}`} className="p-3 bg-white rounded-xl border border-gray-200 shadow-sm space-y-2">
+                                                    <div className="flex justify-between items-start gap-2">
+                                                        <h5 className="text-sm font-bold text-gray-900 leading-tight">
+                                                            Sarana {f.sport_branch_name || 'Olahraga'}
+                                                        </h5>
+                                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase shrink-0 bg-blue-100 text-blue-700">
+                                                            {f.facility_category}
                                                         </span>
-                                                    )}
-                                                    {f.quality_class && (
-                                                        <span className={`px-2 py-0.5 rounded-md ${
-                                                            f.quality_class === 'Internasional' ? 'bg-purple-100 text-purple-700 font-medium' :
-                                                            f.quality_class === 'Nasional' ? 'bg-indigo-100 text-indigo-700' :
-                                                            'bg-gray-100 text-gray-500'
-                                                        }`}>
-                                                            {f.quality_class}
-                                                        </span>
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-2 text-[10px]">
+                                                        {f.sport_branch_name && (
+                                                            <span className="flex items-center gap-1 text-gray-600 bg-gray-100 px-2 py-0.5 rounded-md">
+                                                                <Activity size={10} /> {f.sport_branch_name}
+                                                            </span>
+                                                        )}
+                                                        {(f.availability_count > 0 || f.facility_count > 0) && (
+                                                            <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-md font-medium">
+                                                                {f.availability_count || f.facility_count} Unit
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    {f.notes && f.notes.length > 0 && (
+                                                        <p className="text-[10px] text-gray-500 pt-1 border-t border-gray-50 mt-2">
+                                                            <span className="font-semibold text-gray-600">Catatan:</span> {f.notes.join(', ')}
+                                                        </p>
                                                     )}
                                                 </div>
-                                                {f.management_status && (
-                                                    <p className="text-[10px] text-gray-500 pt-1 border-t border-gray-50 mt-2">
-                                                        <span className="font-semibold text-gray-600">Pengelola:</span> {f.management_status}
-                                                    </p>
-                                                )}
-                                                {f.facility_condition && (
-                                                    <p className="text-[10px] text-gray-500">
-                                                        <span className="font-semibold text-gray-600">Kondisi:</span> {f.facility_condition}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
