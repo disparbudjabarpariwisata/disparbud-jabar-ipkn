@@ -27,7 +27,7 @@ export default function DataStorySection() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await fetch('/api/public/data-map');
+                const res = await fetch('/api/map-data');
                 const json = await res.json();
                 if (json.success) {
                     setData(json.data || []);
