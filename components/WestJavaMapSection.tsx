@@ -86,7 +86,7 @@ export default function WestJavaMapSection({ initialData = [] }: WestJavaMapSect
                 </div>
 
                 {/* Search Filter */}
-                <div className="max-w-md mx-auto mb-8 relative z-10">
+                <div className="max-w-md mx-auto mb-8 relative z-50">
                     <div className="relative">
                         <input
                             type="text"
