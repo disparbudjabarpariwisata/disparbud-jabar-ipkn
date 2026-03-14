@@ -3,7 +3,7 @@
 import { X, MapPin, Utensils, Hotel, Bus, Globe, Landmark, Sparkles, ExternalLink, Activity, Shield, Bed, Stethoscope, ChevronDown, Info } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid, Cell, ReferenceLine } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid, Cell, ReferenceLine, LabelList } from 'recharts';
 type MapDataItem = {
     city_name: string;
     city_type: string;
@@ -372,6 +372,25 @@ function ChartCard({ title, icon, data, color, formatter, delay }: { title: stri
                             {data.map((entry, index) => (
                                 <Cell key={`cell-${index}`} fill={entry.fill} />
                             ))}
+                            <LabelList 
+                                dataKey="value" 
+                                position="right" 
+                                content={(props: any) => {
+                                    const { x, y, width, value } = props;
+                                    return (
+                                        <text 
+                                            x={Number(x) + Number(width) + 8} 
+                                            y={Number(y) + 16} 
+                                            fill="#475569" 
+                                            fontSize={10} 
+                                            fontWeight={700}
+                                            textAnchor="start"
+                                        >
+                                            {formatter ? formatter(Number(value)) : value}
+                                        </text>
+                                    );
+                                }} 
+                            />
                         </Bar>
                     </BarChart>
                 </ResponsiveContainer>
