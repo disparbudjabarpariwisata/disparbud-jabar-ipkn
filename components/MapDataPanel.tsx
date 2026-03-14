@@ -1,7 +1,7 @@
 'use client';
 
-import { X, MapPin, Utensils, Hotel, Bus, Globe, Landmark, Sparkles, ExternalLink, Activity, Shield, Bed, Stethoscope } from 'lucide-react';
-import { useMemo } from 'react';
+import { X, MapPin, Utensils, Hotel, Bus, Globe, Landmark, Sparkles, ExternalLink, Activity, Shield, Bed, Stethoscope, ChevronDown } from 'lucide-react';
+import { useMemo, useState, useEffect } from 'react';
 type MapDataItem = {
     city_name: string;
     city_type: string;
@@ -25,16 +25,31 @@ interface MapDataPanelProps {
 }
 
 export default function MapDataPanel({ data, cityName, onClose }: MapDataPanelProps) {
-    const latestHealthData = useMemo(() => {
-        if (!data?.medical_data) return null;
-        const years = Object.keys(data.medical_data).sort((a, b) => Number(b) - Number(a));
-        if (years.length === 0) return null;
-        const latestYear = years[0];
-        return {
-            year: latestYear,
-            datasets: data.medical_data[latestYear].datasets || {}
-        };
+    const availableYears = useMemo(() => {
+        if (!data?.medical_data) return [];
+        return Object.keys(data.medical_data).sort((a, b) => Number(b) - Number(a));
     }, [data?.medical_data]);
+
+    const latestYearOptional = availableYears.length > 0 ? availableYears[0] : null;
+
+    const [selectedYear, setSelectedYear] = useState<string | null>(null);
+
+    // Reset or set initial year when data changes
+    useEffect(() => {
+        if (availableYears.length > 0) {
+            setSelectedYear(availableYears[0]);
+        } else {
+            setSelectedYear(null);
+        }
+    }, [availableYears]);
+
+    const latestHealthData = useMemo(() => {
+        if (!data?.medical_data || !selectedYear) return null;
+        return {
+            year: selectedYear,
+            datasets: data.medical_data[selectedYear].datasets || {}
+        };
+    }, [data?.medical_data, selectedYear]);
 
     if (!cityName) return null;
 
@@ -119,9 +134,25 @@ export default function MapDataPanel({ data, cityName, onClose }: MapDataPanelPr
                     {/* Medical Tourism Data Section */}
                     {latestHealthData && Object.keys(latestHealthData.datasets).length > 0 && (
                         <div className="mt-6 pt-6 border-t border-gray-100">
-                            <div className="flex items-center gap-2 mb-4">
-                                <Activity size={18} className="text-rose-500" />
-                                <h4 className="text-sm font-bold text-gray-800">Indikator Pariwisata Medis ({latestHealthData.year})</h4>
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-2">
+                                    <Activity size={18} className="text-rose-500" />
+                                    <h4 className="text-sm font-bold text-gray-800">Informasi Kesehatan</h4>
+                                </div>
+                                {availableYears.length > 1 && (
+                                    <div className="relative">
+                                        <select
+                                            value={selectedYear || ''}
+                                            onChange={(e) => setSelectedYear(e.target.value)}
+                                            className="appearance-none bg-rose-50 border border-rose-100 text-rose-700 text-xs font-semibold rounded-lg pl-3 pr-8 py-1.5 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent cursor-pointer"
+                                        >
+                                            {availableYears.map(year => (
+                                                <option key={year} value={year}>{year}</option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-rose-600 pointer-events-none" />
+                                    </div>
+                                )}
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {latestHealthData.datasets['JKN'] && (
