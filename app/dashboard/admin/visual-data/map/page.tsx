@@ -38,6 +38,7 @@ const emptyForm: Omit<DataMapRow, 'id'> & { id?: string } = {
     image_url: '',
     website_url: '',
     active: true,
+    medical_data: {},
     desa_wisata_data: [],
     content: {},
 };
@@ -240,6 +241,89 @@ export default function AdminDataMapPage() {
                                     <span className="text-sm font-medium text-gray-700">Aktif (tampil di peta)</span>
                                 </label>
                             </div>
+                        </div>
+                        
+                        {/* Health Data Quick Edit (2025) */}
+                        <div className="border-t border-gray-100 pt-4 mt-2">
+                            <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider text-emerald-600">Quick Edit: Data Kesehatan (2025)</label>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                {(() => {
+                                    const year = '2025';
+                                    const md = form.medical_data?.[year]?.datasets || {};
+                                    
+                                    const updateMD = (category: string, field: string, value: any) => {
+                                        setForm(prev => {
+                                            const newMD = { ...prev.medical_data };
+                                            if (!newMD[year]) newMD[year] = { year, datasets: {} };
+                                            if (!newMD[year].datasets[category]) newMD[year].datasets[category] = {};
+                                            newMD[year].datasets[category][field] = value;
+                                            return { ...prev, medical_data: newMD };
+                                        });
+                                    };
+
+                                    return (
+                                        <>
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-gray-400 mb-1">Cakupan JKN (0-1)</label>
+                                                <input 
+                                                    type="number" step="0.001" 
+                                                    value={md['JKN']?.jkn_coverage_ratio || ''} 
+                                                    onChange={e => updateMD('JKN', 'jkn_coverage_ratio', parseFloat(e.target.value))}
+                                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-emerald-50/30 text-xs focus:border-[#10b981] outline-none" 
+                                                    placeholder="Contoh: 0.952"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-gray-400 mb-1">DBD (Kasus)</label>
+                                                <input 
+                                                    type="number" 
+                                                    value={md['Penyakit Menular']?.dengue_cases || ''} 
+                                                    onChange={e => updateMD('Penyakit Menular', 'dengue_cases', parseInt(e.target.value))}
+                                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-emerald-50/30 text-xs focus:border-[#10b981] outline-none" 
+                                                    placeholder="Contoh: 1200"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-gray-400 mb-1">Rasio Bed (/1000)</label>
+                                                <input 
+                                                    type="number" step="0.01" 
+                                                    value={md['Rasio Tempat Tidur']?.hospital_bed_ratio_per_1000_population || ''} 
+                                                    onChange={e => updateMD('Rasio Tempat Tidur', 'hospital_bed_ratio_per_1000_population', parseFloat(e.target.value))}
+                                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-emerald-50/30 text-xs focus:border-[#10b981] outline-none" 
+                                                    placeholder="Contoh: 1.2"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-gray-400 mb-1">Rasio Dokter (/1000)</label>
+                                                <input 
+                                                    type="number" step="0.01" 
+                                                    value={md['Rasio Dokter']?.doctor_ratio_per_1000_population || ''} 
+                                                    onChange={e => updateMD('Rasio Dokter', 'doctor_ratio_per_1000_population', parseFloat(e.target.value))}
+                                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-emerald-50/30 text-xs focus:border-[#10b981] outline-none" 
+                                                    placeholder="Contoh: 0.45"
+                                                />
+                                            </div>
+                                        </>
+                                    );
+                                })()}
+                            </div>
+                        </div>
+
+                        {/* Full Medical Data JSON Editor */}
+                        <div className="border-t border-gray-100 pt-4 mt-2">
+                            <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Full Medical Data (JSON Object)</label>
+                            <textarea
+                                rows={6}
+                                value={JSON.stringify(form.medical_data || {}, null, 2)}
+                                onChange={e => {
+                                    try {
+                                        const parsed = JSON.parse(e.target.value);
+                                        setForm(prev => ({ ...prev, medical_data: parsed }));
+                                    } catch (err) {}
+                                }}
+                                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-[10px] font-mono focus:border-[#10b981] outline-none"
+                                placeholder='{ "2025": { "year": "2025", "datasets": { ... } } }'
+                            />
                         </div>
 
                         <div className="border-t border-gray-100 pt-4 mt-2">

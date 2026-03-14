@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
                 image_url,
                 website_url,
                 active,
+                medical_data,
                 desa_wisata_data,
                 content,
             } = body;
@@ -59,6 +60,7 @@ export async function POST(request: NextRequest) {
                         image_url: image_url || null,
                         website_url: website_url || null,
                         active: active ?? true,
+                        medical_data: medical_data || null,
                         desa_wisata_data: desa_wisata_data || null,
                         content: content || null,
                         updated_at: new Date().toISOString(),
@@ -83,6 +85,7 @@ export async function POST(request: NextRequest) {
                         image_url: image_url || null,
                         website_url: website_url || null,
                         active: active ?? true,
+                        medical_data: medical_data || null,
                         desa_wisata_data: desa_wisata_data || null,
                         content: content || null,
                     });
