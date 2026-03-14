@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { ADMIN_EMAIL, adminMenuItems } from '@/lib/adminConfig';
 import { westJavaLocations } from '@/lib/westJavaLocations';
-import { Loader2, Plus, Pencil, Trash2, Save, X, MapPinned } from 'lucide-react';
+import { Loader2, Plus, Pencil, Trash2, Save, X, MapPinned, PlusCircle } from 'lucide-react';
 
 type DataMapRow = {
     id: string;
@@ -186,169 +186,210 @@ export default function AdminDataMapPage() {
                             </div>
                         </div>
 
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-500 mb-1">Deskripsi Umum</label>
-                            <textarea rows={2} value={form.description} onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))}
-                                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:border-[#10b981] outline-none" placeholder="Deskripsi umum kota/kabupaten..." />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-500 mb-1">Highlight Pariwisata</label>
-                            <textarea rows={2} value={form.tourism_highlights} onChange={e => setForm(prev => ({ ...prev, tourism_highlights: e.target.value }))}
-                                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:border-[#10b981] outline-none" placeholder="Potensi wisata utama..." />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-500 mb-1">Destinasi Wisata</label>
-                            <textarea rows={2} value={form.tourist_attractions} onChange={e => setForm(prev => ({ ...prev, tourist_attractions: e.target.value }))}
-                                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:border-[#10b981] outline-none" placeholder="Daftar destinasi wisata terkenal..." />
-                        </div>
+                        {/* Conditional Form Fields Based on Category */}
+                        {selectedCategory === 'Pariwisata' && (
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-500 mb-1">Deskripsi Umum</label>
+                                    <textarea rows={2} value={form.description} onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))}
+                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:border-[#10b981] outline-none" placeholder="Deskripsi umum kota/kabupaten..." />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-500 mb-1">Highlight Pariwisata</label>
+                                    <textarea rows={2} value={form.tourism_highlights} onChange={e => setForm(prev => ({ ...prev, tourism_highlights: e.target.value }))}
+                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:border-[#10b981] outline-none" placeholder="Potensi wisata utama..." />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-500 mb-1">Destinasi Wisata</label>
+                                    <textarea rows={2} value={form.tourist_attractions} onChange={e => setForm(prev => ({ ...prev, tourist_attractions: e.target.value }))}
+                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:border-[#10b981] outline-none" placeholder="Daftar destinasi wisata terkenal..." />
+                                </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-500 mb-1">Kuliner</label>
-                                <textarea rows={2} value={form.culinary} onChange={e => setForm(prev => ({ ...prev, culinary: e.target.value }))}
-                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:border-[#10b981] outline-none" placeholder="Kuliner khas daerah..." />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-500 mb-1">Akomodasi</label>
-                                <textarea rows={2} value={form.accommodation} onChange={e => setForm(prev => ({ ...prev, accommodation: e.target.value }))}
-                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:border-[#10b981] outline-none" placeholder="Informasi akomodasi..." />
-                            </div>
-                        </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-500 mb-1">Kuliner</label>
+                                        <textarea rows={2} value={form.culinary} onChange={e => setForm(prev => ({ ...prev, culinary: e.target.value }))}
+                                            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:border-[#10b981] outline-none" placeholder="Kuliner khas daerah..." />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-500 mb-1">Akomodasi</label>
+                                        <textarea rows={2} value={form.accommodation} onChange={e => setForm(prev => ({ ...prev, accommodation: e.target.value }))}
+                                            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:border-[#10b981] outline-none" placeholder="Informasi akomodasi..." />
+                                    </div>
+                                </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-500 mb-1">Transportasi</label>
-                                <textarea rows={2} value={form.transportation} onChange={e => setForm(prev => ({ ...prev, transportation: e.target.value }))}
-                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:border-[#10b981] outline-none" placeholder="Akses transportasi..." />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-500 mb-1">URL Gambar</label>
-                                <input type="url" value={form.image_url} onChange={e => setForm(prev => ({ ...prev, image_url: e.target.value }))}
-                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:border-[#10b981] outline-none" placeholder="https://..." />
-                            </div>
-                        </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-500 mb-1">Transportasi</label>
+                                        <textarea rows={2} value={form.transportation} onChange={e => setForm(prev => ({ ...prev, transportation: e.target.value }))}
+                                            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:border-[#10b981] outline-none" placeholder="Akses transportasi..." />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-500 mb-1">URL Gambar</label>
+                                        <input type="url" value={form.image_url} onChange={e => setForm(prev => ({ ...prev, image_url: e.target.value }))}
+                                            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:border-[#10b981] outline-none" placeholder="https://..." />
+                                    </div>
+                                </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-500 mb-1">Website Resmi</label>
-                                <input type="url" value={form.website_url} onChange={e => setForm(prev => ({ ...prev, website_url: e.target.value }))}
-                                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:border-[#10b981] outline-none" placeholder="https://..." />
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-500 mb-1">Website Resmi</label>
+                                    <input type="url" value={form.website_url} onChange={e => setForm(prev => ({ ...prev, website_url: e.target.value }))}
+                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:border-[#10b981] outline-none" placeholder="https://..." />
+                                </div>
                             </div>
-                            <div className="flex items-end">
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" checked={form.active} onChange={e => setForm(prev => ({ ...prev, active: e.target.checked }))}
-                                        className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-                                    <span className="text-sm font-medium text-gray-700">Aktif (tampil di peta)</span>
-                                </label>
-                            </div>
-                        </div>
-                        
-                        {/* Health Data Quick Edit (2025) */}
-                        <div className="border-t border-gray-100 pt-4 mt-2">
-                            <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider text-emerald-600">Quick Edit: Data Kesehatan (2025)</label>
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                {(() => {
-                                    const year = '2025';
-                                    const md = form.medical_data?.[year]?.datasets || {};
-                                    
-                                    const updateMD = (category: string, field: string, value: any) => {
-                                        setForm(prev => {
-                                            const newMD = { ...prev.medical_data };
-                                            if (!newMD[year]) newMD[year] = { year, datasets: {} };
-                                            if (!newMD[year].datasets[category]) newMD[year].datasets[category] = {};
-                                            newMD[year].datasets[category][field] = value;
-                                            return { ...prev, medical_data: newMD };
-                                        });
-                                    };
+                        )}
 
-                                    return (
-                                        <>
-                                            <div>
-                                                <label className="block text-[10px] font-bold text-gray-400 mb-1">Cakupan JKN (0-1)</label>
+                        {selectedCategory === 'Kesehatan' && (
+                            <div className="space-y-6">
+                                <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100">
+                                    <h3 className="text-sm font-bold text-emerald-800 mb-4 flex items-center gap-2">
+                                        <Save size={16} /> Data Indikator Kesehatan (Tahun 2025)
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        {(() => {
+                                            const year = '2025';
+                                            const md = form.medical_data?.[year]?.datasets || {};
+                                            const updateMD = (category: string, field: string, value: any) => {
+                                                setForm(prev => {
+                                                    const newMD = JSON.parse(JSON.stringify(prev.medical_data || {}));
+                                                    if (!newMD[year]) newMD[year] = { year, datasets: {} };
+                                                    if (!newMD[year].datasets[category]) newMD[year].datasets[category] = {};
+                                                    newMD[year].datasets[category][field] = value;
+                                                    return { ...prev, medical_data: newMD };
+                                                });
+                                            };
+
+                                            return (
+                                                <>
+                                                    <div>
+                                                        <label className="block text-[11px] font-bold text-gray-500 mb-1">Cakupan JKN (0-1)</label>
+                                                        <input type="number" step="0.001" value={md['JKN']?.jkn_coverage_ratio || ''} 
+                                                            onChange={e => updateMD('JKN', 'jkn_coverage_ratio', parseFloat(e.target.value))}
+                                                            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:border-[#10b981] outline-none" placeholder="Misal: 0.964" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[11px] font-bold text-gray-500 mb-1">Kasus DBD (Angka)</label>
+                                                        <input type="number" value={md['Penyakit Menular']?.dengue_cases || ''} 
+                                                            onChange={e => updateMD('Penyakit Menular', 'dengue_cases', parseInt(e.target.value))}
+                                                            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:border-[#10b981] outline-none" placeholder="Misal: 1854" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[11px] font-bold text-gray-500 mb-1">Rasio Bed (/1000)</label>
+                                                        <input type="number" step="0.01" value={md['Rasio Tempat Tidur']?.hospital_bed_ratio_per_1000_population || ''} 
+                                                            onChange={e => updateMD('Rasio Tempat Tidur', 'hospital_bed_ratio_per_1000_population', parseFloat(e.target.value))}
+                                                            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:border-[#10b981] outline-none" placeholder="Misal: 0.66" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[11px] font-bold text-gray-500 mb-1">Rasio Dokter (/1000)</label>
+                                                        <input type="number" step="0.01" value={md['Rasio Dokter']?.doctor_ratio_per_1000_population || ''} 
+                                                            onChange={e => updateMD('Rasio Dokter', 'doctor_ratio_per_1000_population', parseFloat(e.target.value))}
+                                                            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:border-[#10b981] outline-none" placeholder="Misal: 0.22" />
+                                                    </div>
+                                                </>
+                                            );
+                                        })()}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {selectedCategory === 'Desa Wisata' && (
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Daftar Desa Wisata</label>
+                                    <button 
+                                        type="button"
+                                        onClick={() => {
+                                            setForm(prev => {
+                                                const currentList = Array.isArray(prev.desa_wisata_data) ? prev.desa_wisata_data : [];
+                                                const newItem = { nama: '', status: 'Rintisan', kategori: 'Seni & Budaya' };
+                                                return { 
+                                                    ...prev, 
+                                                    desa_wisata_data: [...currentList, newItem],
+                                                    content: { ...prev.content, desa_wisata: [...currentList, newItem] }
+                                                };
+                                            });
+                                        }}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-colors"
+                                    >
+                                        <PlusCircle size={14} /> Tambah Desa
+                                    </button>
+                                </div>
+
+                                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                    {(Array.isArray(form.desa_wisata_data) ? form.desa_wisata_data : []).map((v: any, i: number) => (
+                                        <div key={i} className="flex flex-col md:flex-row gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100 relative group">
+                                            <div className="flex-1">
+                                                <label className="block text-[10px] font-bold text-gray-400 mb-1">Nama Desa</label>
                                                 <input 
-                                                    type="number" step="0.001" 
-                                                    value={md['JKN']?.jkn_coverage_ratio || ''} 
-                                                    onChange={e => updateMD('JKN', 'jkn_coverage_ratio', parseFloat(e.target.value))}
-                                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-emerald-50/30 text-xs focus:border-[#10b981] outline-none" 
-                                                    placeholder="Contoh: 0.952"
+                                                    value={v.nama || ''} 
+                                                    onChange={e => {
+                                                        const newList = [...(form.desa_wisata_data as any[])];
+                                                        newList[i].nama = e.target.value;
+                                                        setForm(prev => ({ ...prev, desa_wisata_data: newList, content: { ...prev.content, desa_wisata: newList } }));
+                                                    }}
+                                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs focus:border-[#10b981] outline-none"
                                                 />
                                             </div>
-                                            <div>
-                                                <label className="block text-[10px] font-bold text-gray-400 mb-1">DBD (Kasus)</label>
+                                            <div className="w-full md:w-40">
+                                                <label className="block text-[10px] font-bold text-gray-400 mb-1">Status</label>
+                                                <select 
+                                                    value={v.status || 'Rintisan'} 
+                                                    onChange={e => {
+                                                        const newList = [...(form.desa_wisata_data as any[])];
+                                                        newList[i].status = e.target.value;
+                                                        setForm(prev => ({ ...prev, desa_wisata_data: newList, content: { ...prev.content, desa_wisata: newList } }));
+                                                    }}
+                                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs focus:border-[#10b981] outline-none"
+                                                >
+                                                    <option value="Rintisan">Rintisan</option>
+                                                    <option value="Berkembang">Berkembang</option>
+                                                    <option value="Maju">Maju</option>
+                                                    <option value="Mandiri">Mandiri</option>
+                                                </select>
+                                            </div>
+                                            <div className="w-full md:w-40">
+                                                <label className="block text-[10px] font-bold text-gray-400 mb-1">Kategori Utama</label>
                                                 <input 
-                                                    type="number" 
-                                                    value={md['Penyakit Menular']?.dengue_cases || ''} 
-                                                    onChange={e => updateMD('Penyakit Menular', 'dengue_cases', parseInt(e.target.value))}
-                                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-emerald-50/30 text-xs focus:border-[#10b981] outline-none" 
-                                                    placeholder="Contoh: 1200"
+                                                    value={v.kategori || ''} 
+                                                    onChange={e => {
+                                                        const newList = [...(form.desa_wisata_data as any[])];
+                                                        newList[i].kategori = e.target.value;
+                                                        setForm(prev => ({ ...prev, desa_wisata_data: newList, content: { ...prev.content, desa_wisata: newList } }));
+                                                    }}
+                                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs focus:border-[#10b981] outline-none"
+                                                    placeholder="Seni & Budaya"
                                                 />
                                             </div>
-                                            <div>
-                                                <label className="block text-[10px] font-bold text-gray-400 mb-1">Rasio Bed (/1000)</label>
-                                                <input 
-                                                    type="number" step="0.01" 
-                                                    value={md['Rasio Tempat Tidur']?.hospital_bed_ratio_per_1000_population || ''} 
-                                                    onChange={e => updateMD('Rasio Tempat Tidur', 'hospital_bed_ratio_per_1000_population', parseFloat(e.target.value))}
-                                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-emerald-50/30 text-xs focus:border-[#10b981] outline-none" 
-                                                    placeholder="Contoh: 1.2"
-                                                />
+                                            <div className="flex items-end pb-1">
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const newList = [...(form.desa_wisata_data as any[])].filter((_, idx) => idx !== i);
+                                                        setForm(prev => ({ ...prev, desa_wisata_data: newList, content: { ...prev.content, desa_wisata: newList } }));
+                                                    }}
+                                                    className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
                                             </div>
-                                            <div>
-                                                <label className="block text-[10px] font-bold text-gray-400 mb-1">Rasio Dokter (/1000)</label>
-                                                <input 
-                                                    type="number" step="0.01" 
-                                                    value={md['Rasio Dokter']?.doctor_ratio_per_1000_population || ''} 
-                                                    onChange={e => updateMD('Rasio Dokter', 'doctor_ratio_per_1000_population', parseFloat(e.target.value))}
-                                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-emerald-50/30 text-xs focus:border-[#10b981] outline-none" 
-                                                    placeholder="Contoh: 0.45"
-                                                />
-                                            </div>
-                                        </>
-                                    );
-                                })()}
+                                        </div>
+                                    ))}
+                                    {(Array.isArray(form.desa_wisata_data) ? form.desa_wisata_data : []).length === 0 && (
+                                        <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                                            <p className="text-xs text-gray-400 font-medium">Belum ada desa wisata ditambahkan.</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                        </div>
+                        )}
 
-                        {/* Full Medical Data JSON Editor */}
-                        <div className="border-t border-gray-100 pt-4 mt-2">
-                            <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Full Medical Data (JSON Object)</label>
-                            <textarea
-                                rows={6}
-                                value={JSON.stringify(form.medical_data || {}, null, 2)}
-                                onChange={e => {
-                                    try {
-                                        const parsed = JSON.parse(e.target.value);
-                                        setForm(prev => ({ ...prev, medical_data: parsed }));
-                                    } catch (err) {}
-                                }}
-                                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-[10px] font-mono focus:border-[#10b981] outline-none"
-                                placeholder='{ "2025": { "year": "2025", "datasets": { ... } } }'
-                            />
-                        </div>
-
-                        <div className="border-t border-gray-100 pt-4 mt-2">
-                            <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Data Desa Wisata (JSON List)</label>
-                            <textarea
-                                rows={8}
-                                value={JSON.stringify(form.desa_wisata_data || form.content?.desa_wisata || [], null, 2)}
-                                onChange={e => {
-                                    try {
-                                        const parsed = JSON.parse(e.target.value);
-                                        setForm(prev => ({
-                                            ...prev,
-                                            desa_wisata_data: parsed,
-                                            content: { ...prev.content, desa_wisata: parsed }
-                                        }));
-                                    } catch (err) {
-                                        // If invalid JSON, just update the string representation in a local state if needed, 
-                                        // or just ignore until it's valid. For simplicity, we'll assume the user knows JSON 
-                                        // or we can add a simple error boundary.
-                                    }
-                                }}
-                                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-[10px] font-mono focus:border-[#10b981] outline-none"
-                                placeholder='[ { "nama": "Desa...", "status": "Rintisan", ... } ]'
-                            />
-                            <p className="text-[10px] text-gray-400 mt-1 italic">* Edit hati-hati, harus berformat JSON yang valid (Array of Objects).</p>
+                        <div className="flex items-center">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" checked={form.active} onChange={e => setForm(prev => ({ ...prev, active: e.target.checked }))}
+                                    className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                                <span className="text-sm font-medium text-gray-700">Tampilkan Data Ini di Peta Utama</span>
+                            </label>
                         </div>
 
                         <div className="flex justify-end gap-3 pt-2">
