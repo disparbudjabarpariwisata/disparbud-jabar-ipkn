@@ -1,9 +1,9 @@
 'use client';
 
-import { X, MapPin, Utensils, Hotel, Bus, Globe, Landmark, Sparkles, ExternalLink, Activity, Shield, Bed, Stethoscope, ChevronDown } from 'lucide-react';
+import { X, MapPin, Utensils, Hotel, Bus, Globe, Landmark, Sparkles, ExternalLink, Activity, Shield, Bed, Stethoscope, ChevronDown, Info } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import CountUp from 'react-countup';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid, Cell, ReferenceLine } from 'recharts';
 type MapDataItem = {
     city_name: string;
     city_type: string;
@@ -24,9 +24,10 @@ interface MapDataPanelProps {
     data: MapDataItem | null;
     cityName: string;
     onClose: () => void;
+    allMapData?: MapDataItem[]; // Needed to calculate provincial averages
 }
 
-export default function MapDataPanel({ data, cityName, onClose }: MapDataPanelProps) {
+export default function MapDataPanel({ data, cityName, onClose, allMapData = [] }: MapDataPanelProps) {
     const availableYears = useMemo(() => {
         if (!data?.medical_data) return [];
         return Object.keys(data.medical_data).sort((a, b) => Number(b) - Number(a));
@@ -52,6 +53,69 @@ export default function MapDataPanel({ data, cityName, onClose }: MapDataPanelPr
             datasets: data.medical_data[selectedYear].datasets || {}
         };
     }, [data?.medical_data, selectedYear]);
+
+    // Calculate provincial averages for the selected year
+    const provincialAverages = useMemo(() => {
+        if (!selectedYear || allMapData.length === 0) return null;
+        
+        let totalJkn = 0, countJkn = 0;
+        let totalBed = 0, countBed = 0;
+        let totalDoc = 0, countDoc = 0;
+        let totalDbg = 0, countDbg = 0;
+
+        allMapData.forEach(city => {
+            const cityDataYear = city.medical_data?.[selectedYear]?.datasets;
+            if (!cityDataYear) return;
+
+            if (cityDataYear['JKN']?.jkn_coverage_ratio !== undefined) {
+                totalJkn += cityDataYear['JKN'].jkn_coverage_ratio;
+                countJkn++;
+            }
+            if (cityDataYear['Rasio Tempat Tidur']?.hospital_bed_ratio_per_1000_population !== undefined) {
+                totalBed += cityDataYear['Rasio Tempat Tidur'].hospital_bed_ratio_per_1000_population;
+                countBed++;
+            }
+            if (cityDataYear['Rasio Dokter']?.doctor_ratio_per_1000_population !== undefined) {
+                totalDoc += cityDataYear['Rasio Dokter'].doctor_ratio_per_1000_population;
+                countDoc++;
+            }
+            if (cityDataYear['Penyakit Menular']?.dengue_cases !== undefined) {
+                totalDbg += cityDataYear['Penyakit Menular'].dengue_cases;
+                countDbg++;
+            }
+        });
+
+        return {
+            jkn: countJkn > 0 ? totalJkn / countJkn : 0,
+            bed: countBed > 0 ? totalBed / countBed : 0,
+            doc: countDoc > 0 ? totalDoc / countDoc : 0,
+            dbg: countDbg > 0 ? totalDbg / countDbg : 0,
+        };
+    }, [selectedYear, allMapData]);
+
+    const chartData = useMemo(() => {
+        if (!latestHealthData || !provincialAverages) return null;
+        const ds = latestHealthData.datasets;
+        
+        return {
+            jkn: [
+                { name: cityName, value: ds['JKN'] ? Number((ds['JKN'].jkn_coverage_ratio * 100).toFixed(1)) : 0, fill: '#10b981' },
+                { name: 'Rata-rata Jabar', value: Number((provincialAverages.jkn * 100).toFixed(1)), fill: '#94a3b8' }
+            ],
+            bed: [
+                { name: cityName, value: ds['Rasio Tempat Tidur'] ? Number(ds['Rasio Tempat Tidur'].hospital_bed_ratio_per_1000_population.toFixed(2)) : 0, fill: '#3b82f6' },
+                { name: 'Rata-rata Jabar', value: Number(provincialAverages.bed.toFixed(2)), fill: '#94a3b8' }
+            ],
+            doc: [
+                { name: cityName, value: ds['Rasio Dokter'] ? Number(ds['Rasio Dokter'].doctor_ratio_per_1000_population.toFixed(2)) : 0, fill: '#6366f1' },
+                { name: 'Rata-rata Jabar', value: Number(provincialAverages.doc.toFixed(2)), fill: '#94a3b8' }
+            ],
+            dbg: [
+                { name: cityName, value: ds['Penyakit Menular'] ? ds['Penyakit Menular'].dengue_cases : 0, fill: '#f43f5e' },
+                { name: 'Rata-rata Jabar', value: Number(provincialAverages.dbg.toFixed(0)), fill: '#94a3b8' }
+            ]
+        };
+    }, [latestHealthData, provincialAverages, cityName]);
 
     if (!cityName) return null;
 
@@ -156,52 +220,52 @@ export default function MapDataPanel({ data, cityName, onClose }: MapDataPanelPr
                                     </div>
                                 )}
                             </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {latestHealthData.datasets['JKN'] && (
-                                    <AnimatedStatCard 
-                                        icon={<Shield size={20} className="text-emerald-500" />} 
-                                        title="Cakupan JKN" 
-                                        value={latestHealthData.datasets['JKN'].jkn_coverage_ratio * 100}
-                                        suffix="% Populasi"
-                                        decimals={1}
-                                        colorClass="from-emerald-50 to-emerald-100/50 border-emerald-100"
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {chartData?.jkn && chartData.jkn[0].value > 0 && (
+                                    <ChartCard 
+                                        title="Cakupan JKN (%)" 
+                                        icon={<Shield size={16} className="text-emerald-500" />}
+                                        data={chartData.jkn} 
+                                        color="#10b981"
+                                        formatter={(val) => `${val}%`}
                                         delay={0.1}
                                     />
                                 )}
-                                {latestHealthData.datasets['Rasio Tempat Tidur'] && (
-                                    <AnimatedStatCard 
-                                        icon={<Bed size={20} className="text-blue-500" />} 
-                                        title="Ketersediaan RST" 
-                                        value={latestHealthData.datasets['Rasio Tempat Tidur'].hospital_bed_ratio_per_1000_population}
-                                        suffix=" / 1.000 Penduduk"
-                                        decimals={2}
-                                        colorClass="from-blue-50 to-blue-100/50 border-blue-100"
+                                {chartData?.bed && chartData.bed[0].value > 0 && (
+                                    <ChartCard 
+                                        title="Ketersediaan RST (per 1.000 pddk)" 
+                                        icon={<Bed size={16} className="text-blue-500" />}
+                                        data={chartData.bed} 
+                                        color="#3b82f6"
                                         delay={0.2}
                                     />
                                 )}
-                                {latestHealthData.datasets['Rasio Dokter'] && (
-                                    <AnimatedStatCard 
-                                        icon={<Stethoscope size={20} className="text-indigo-500" />} 
-                                        title="Ketersediaan Dokter" 
-                                        value={latestHealthData.datasets['Rasio Dokter'].doctor_ratio_per_1000_population}
-                                        suffix=" / 1.000 Penduduk"
-                                        decimals={2}
-                                        colorClass="from-indigo-50 to-indigo-100/50 border-indigo-100"
+                                {chartData?.doc && chartData.doc[0].value > 0 && (
+                                    <ChartCard 
+                                        title="Ketersediaan Dokter (per 1.000 pddk)" 
+                                        icon={<Stethoscope size={16} className="text-indigo-500" />}
+                                        data={chartData.doc} 
+                                        color="#6366f1"
                                         delay={0.3}
                                     />
                                 )}
-                                {latestHealthData.datasets['Penyakit Menular'] && (
-                                    <AnimatedStatCard 
-                                        icon={<Activity size={20} className="text-rose-500" />} 
+                                {chartData?.dbg && chartData.dbg[0].value > 0 && (
+                                    <ChartCard 
                                         title="Kasus Dengue (DBD)" 
-                                        value={latestHealthData.datasets['Penyakit Menular'].dengue_cases || 0}
-                                        suffix=" Kasus Tershcatat"
-                                        separator="."
-                                        decimals={0}
-                                        colorClass="from-rose-50 to-rose-100/50 border-rose-100"
+                                        icon={<Activity size={16} className="text-rose-500" />}
+                                        data={chartData.dbg} 
+                                        color="#f43f5e"
+                                        formatter={(val) => val.toLocaleString('id-ID')}
                                         delay={0.4}
                                     />
                                 )}
+                            </div>
+                            
+                            <div className="mt-4 p-3 bg-blue-50/50 rounded-xl border border-blue-100 flex items-start gap-3">
+                                <Info size={16} className="text-blue-500 mt-0.5 shrink-0" />
+                                <p className="text-xs text-slate-600 leading-relaxed">
+                                    Grafik di atas membandingkan metrik kesehatan <strong>{cityName}</strong> dengan nilai rata-rata dari seluruh kota dan kabupaten di wilayah provinsi Jawa Barat pada tahun <strong>{selectedYear}</strong>.
+                                </p>
                             </div>
                         </div>
                     )}
@@ -281,51 +345,36 @@ function InfoCard({ icon, title, content }: { icon: React.ReactNode; title: stri
     );
 }
 
-interface AnimatedStatCardProps {
-    icon: React.ReactNode;
-    title: string;
-    value: number;
-    suffix: string;
-    decimals?: number;
-    separator?: string;
-    colorClass: string;
-    delay: number;
-}
-
-function AnimatedStatCard({ icon, title, value, suffix, decimals = 0, separator = "", colorClass, delay }: AnimatedStatCardProps) {
+function ChartCard({ title, icon, data, color, formatter, delay }: { title: string, icon: React.ReactNode, data: any[], color: string, formatter?: (val: number) => string, delay: number }) {
     return (
         <motion.div 
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay, ease: "easeOut" }}
-            className={`p-4 rounded-xl border bg-gradient-to-br ${colorClass} shadow-sm backdrop-blur-sm relative overflow-hidden group`}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay }}
+            className="p-4 rounded-xl border border-gray-100 bg-white shadow-sm flex flex-col h-56"
         >
-            <div className="flex justify-between items-start mb-2 relative z-10">
-                <div className="p-2 bg-white/80 rounded-lg shadow-sm">
-                    {icon}
-                </div>
-                <h4 className="text-xs font-bold text-gray-700 text-right w-24 leading-tight">{title}</h4>
+            <div className="flex items-center gap-2 mb-4">
+                <div className="p-1.5 bg-gray-50 rounded-md">{icon}</div>
+                <h4 className="text-xs font-bold text-gray-700">{title}</h4>
             </div>
-            
-            <div className="relative z-10 mt-3">
-                <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-black text-gray-900 tracking-tight">
-                        <CountUp 
-                            end={value} 
-                            duration={2.5} 
-                            decimals={decimals}
-                            separator={separator}
-                            decimal=","
-                            useEasing={true}
+            <div className="flex-1 w-full min-h-0">
+                <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data} layout="vertical" margin={{ top: 0, right: 30, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                        <XAxis type="number" hide />
+                        <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={100} tick={{ fontSize: 10, fill: '#64748b', fontWeight: 600 }} />
+                        <RechartsTooltip 
+                            cursor={{ fill: '#f8fafc' }} 
+                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                            formatter={(value: any) => [formatter ? formatter(Number(value)) : value, 'Nilai']}
                         />
-                    </span>
-                    <span className="text-xs font-semibold text-gray-600">{suffix}</span>
-                </div>
-            </div>
-
-            {/* Decorative background element */}
-            <div className="absolute -bottom-4 -right-4 opacity-10 blur-sm transform group-hover:scale-110 transition-transform duration-500">
-                {icon}
+                        <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24} animationDuration={1500}>
+                            {data.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.fill} />
+                            ))}
+                        </Bar>
+                    </BarChart>
+                </ResponsiveContainer>
             </div>
         </motion.div>
     );

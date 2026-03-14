@@ -164,6 +164,7 @@ export default function WestJavaMapSection({ initialData = [] }: WestJavaMapSect
                             data={selectedData}
                             cityName={selectedLocation.name}
                             onClose={handleClose}
+                            allMapData={mapData}
                         />
                     </div>
                 )}
