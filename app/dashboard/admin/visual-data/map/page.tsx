@@ -52,7 +52,7 @@ export default function AdminDataMapPage() {
     const [form, setForm] = useState<typeof emptyForm>({ ...emptyForm });
     const [isSaving, setIsSaving] = useState(false);
     const [message, setMessage] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState<'Kesehatan' | 'Pariwisata' | 'Desa Wisata'>('Kesehatan');
+    const [selectedCategory, setSelectedCategory] = useState<'Kesehatan' | 'Pariwisata' | 'Desa Wisata' | 'Sarana Olahraga'>('Kesehatan');
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -384,6 +384,67 @@ export default function AdminDataMapPage() {
                             </div>
                         )}
 
+                        {selectedCategory === 'Sarana Olahraga' && (
+                            <div className="space-y-4">
+                                <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100 flex flex-col mb-4">
+                                    <h3 className="text-sm font-bold text-blue-800 mb-1">Data Profil Sarana Olahraga</h3>
+                                    <p className="text-xs text-blue-600 mb-4">Anda dapat mengubah ringkasan data sarana olahraga di bawah ini secara manual. Perubahan ini aman dan disimpan dalam format JSONB.</p>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-blue-700 mb-1">Total Unit Sarpras</label>
+                                            <input type="number" 
+                                                value={form.content?.sarana_olahraga?.profile?.total_availability_units || 0} 
+                                                onChange={e => {
+                                                    const val = parseInt(e.target.value) || 0;
+                                                    setForm(prev => {
+                                                        const newContent = { ...(prev.content || {}) };
+                                                        if (!newContent.sarana_olahraga) newContent.sarana_olahraga = { profile: {} };
+                                                        if (!newContent.sarana_olahraga.profile) newContent.sarana_olahraga.profile = {};
+                                                        newContent.sarana_olahraga.profile.total_availability_units = val;
+                                                        return { ...prev, content: newContent };
+                                                    });
+                                                }}
+                                                className="w-full px-4 py-2.5 rounded-xl border border-blue-200 bg-white text-sm focus:border-blue-500 outline-none" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-blue-700 mb-1">Total Stadion</label>
+                                            <input type="number" 
+                                                value={form.content?.sarana_olahraga?.profile?.stadion_total || 0} 
+                                                onChange={e => {
+                                                    const val = parseInt(e.target.value) || 0;
+                                                    setForm(prev => {
+                                                        const newContent = { ...(prev.content || {}) };
+                                                        if (!newContent.sarana_olahraga) newContent.sarana_olahraga = { profile: {} };
+                                                        if (!newContent.sarana_olahraga.profile) newContent.sarana_olahraga.profile = {};
+                                                        newContent.sarana_olahraga.profile.stadion_total = val;
+                                                        return { ...prev, content: newContent };
+                                                    });
+                                                }}
+                                                className="w-full px-4 py-2.5 rounded-xl border border-blue-200 bg-white text-sm focus:border-blue-500 outline-none" />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label className="block text-[11px] font-bold text-blue-700 mb-1">Cabang Olahraga (Pisahkan dengan koma)</label>
+                                            <input type="text" 
+                                                value={(form.content?.sarana_olahraga?.profile?.sport_branches_available || []).join(', ')} 
+                                                onChange={e => {
+                                                    const val = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                                                    setForm(prev => {
+                                                        const newContent = { ...(prev.content || {}) };
+                                                        if (!newContent.sarana_olahraga) newContent.sarana_olahraga = { profile: {} };
+                                                        if (!newContent.sarana_olahraga.profile) newContent.sarana_olahraga.profile = {};
+                                                        newContent.sarana_olahraga.profile.sport_branches_available = val;
+                                                        return { ...prev, content: newContent };
+                                                    });
+                                                }}
+                                                placeholder="Sepak Bola, Basket, Renang..."
+                                                className="w-full px-4 py-2.5 rounded-xl border border-blue-200 bg-white text-sm focus:border-blue-500 outline-none" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="flex items-center">
                             <label className="flex items-center gap-2 cursor-pointer">
                                 <input type="checkbox" checked={form.active} onChange={e => setForm(prev => ({ ...prev, active: e.target.checked }))}
@@ -408,12 +469,13 @@ export default function AdminDataMapPage() {
                     <h3 className="font-semibold text-gray-700 text-sm">Data Wilayah</h3>
                     <select
                         value={selectedCategory}
-                        onChange={(e) => setSelectedCategory(e.target.value as 'Kesehatan' | 'Pariwisata' | 'Desa Wisata')}
+                        onChange={(e) => setSelectedCategory(e.target.value as 'Kesehatan' | 'Pariwisata' | 'Desa Wisata' | 'Sarana Olahraga')}
                         className="px-4 py-2 border border-gray-200 rounded-xl text-sm bg-gray-50 text-gray-700 font-medium focus:outline-none focus:border-[#10b981] cursor-pointer"
                     >
                         <option value="Kesehatan">Kategori: Kesehatan</option>
                         <option value="Pariwisata">Kategori: Pariwisata Umum</option>
                         <option value="Desa Wisata">Kategori: Desa Wisata</option>
+                        <option value="Sarana Olahraga">Kategori: Sarana Olahraga</option>
                     </select>
                 </div>
 
@@ -432,6 +494,12 @@ export default function AdminDataMapPage() {
                                         <>
                                             <th className="px-4 py-4">Total Desa</th>
                                             <th className="px-4 py-4">Status & Potensi</th>
+                                        </>
+                                    ) : selectedCategory === 'Sarana Olahraga' ? (
+                                        <>
+                                            <th className="px-4 py-4 text-center">Total Unit</th>
+                                            <th className="px-4 py-4 text-center">Total Stadion</th>
+                                            <th className="px-4 py-4">Cabang Olahraga Tersedia</th>
                                         </>
                                     ) : (
                                         <>
@@ -478,6 +546,18 @@ export default function AdminDataMapPage() {
                                                         }, {});
                                                         return Object.entries(statusCounts).map(([s, c]) => `${s}: ${c}`).join(', ');
                                                     })()}
+                                                </td>
+                                            </>
+                                        ) : selectedCategory === 'Sarana Olahraga' ? (
+                                            <>
+                                                <td className="px-4 py-3 text-xs text-gray-500 font-medium text-center">
+                                                    {row.content?.sarana_olahraga?.profile?.total_availability_units || 0}
+                                                </td>
+                                                <td className="px-4 py-3 text-xs text-gray-500 font-medium text-center">
+                                                    {row.content?.sarana_olahraga?.profile?.stadion_total || 0}
+                                                </td>
+                                                <td className="px-4 py-3 text-[10px] text-gray-500">
+                                                    {row.content?.sarana_olahraga?.profile?.sport_branches_available?.join(', ') || '-'}
                                                 </td>
                                             </>
                                         ) : (
