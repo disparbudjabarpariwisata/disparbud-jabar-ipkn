@@ -5,6 +5,7 @@ import { YouTubeCarousel } from '@/components/YouTubeCarousel';
 import { getLatestYouTubeVideos } from '@/lib/youtube';
 import WestJavaMapSection from '@/components/WestJavaMapSection';
 import type { MapDataItem } from '@/components/WestJavaMapSection';
+import DataStorySection from '@/components/DataStorySection';
 import Link from 'next/link';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { westJavaLocations } from '@/lib/westJavaLocations';
@@ -153,6 +154,9 @@ export default async function Home() {
 
       {/* Interactive West Java Map Section (Server-Side data for SEO) */}
       <WestJavaMapSection initialData={locations} />
+
+      {/* Analytics Data Story Section */}
+      <DataStorySection />
 
       {/* SEO: Crawlable semantic HTML for all tourism locations */}
       {locations.length > 0 && (
