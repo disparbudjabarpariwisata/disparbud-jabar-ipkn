@@ -81,7 +81,10 @@ export default function WestJavaMapInner({ selectedLocation, onLocationClick, da
                 </div>
             `;
 
-            marker.bindPopup(popupContent);
+            marker.bindPopup(popupContent, {
+                autoPanPadding: [50, 50],
+                keepInView: true
+            });
             marker.on('click', () => handleClick(location));
             markers.push(marker);
         });

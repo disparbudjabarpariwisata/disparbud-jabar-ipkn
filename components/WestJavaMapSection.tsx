@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { WestJavaLocation, westJavaLocations } from '@/lib/westJavaLocations';
 import MapDataPanel from '@/components/MapDataPanel';
@@ -55,12 +55,25 @@ export default function WestJavaMapSection({ initialData = [] }: WestJavaMapSect
     // Set of city names that have data
     const dataAvailable = useMemo(() => new Set(mapData.map(d => d.city_name)), [mapData]);
 
+    const dataPanelRef = useRef<HTMLDivElement>(null);
+
     const handleLocationClick = useCallback((location: WestJavaLocation) => {
         setSelectedLocation(location);
         const data = mapData.find(d => d.city_name === location.name);
         setSelectedData(data || null);
         setSearchQuery('');
         setIsDropdownOpen(false);
+        
+        // Auto-scroll to the data panel after a slight delay to allow rendering
+        setTimeout(() => {
+            if (dataPanelRef.current) {
+                // Adjusting for potential sticky headers (e.g. 100px offset)
+                window.scrollTo({
+                    top: dataPanelRef.current.offsetTop - 100,
+                    behavior: 'smooth'
+                });
+            }
+        }, 150);
     }, [mapData]);
 
     const handleClose = useCallback(() => {
@@ -146,7 +159,7 @@ export default function WestJavaMapSection({ initialData = [] }: WestJavaMapSect
 
                 {/* Data Panel */}
                 {selectedLocation && (
-                    <div className="mt-6">
+                    <div className="mt-6" ref={dataPanelRef}>
                         <MapDataPanel
                             data={selectedData}
                             cityName={selectedLocation.name}
