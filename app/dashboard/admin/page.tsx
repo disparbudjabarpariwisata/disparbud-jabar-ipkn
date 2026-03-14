@@ -101,47 +101,56 @@ export default function AdminDashboardPage() {
                                 <tbody>
                                     {(statsData?.progress?.length || 0) === 0 ? (
                                         <tr>
-                                            <td colSpan={4} className="py-8 text-center text-gray-500">Belum ada data responden.</td>
+                                            <td colSpan={4} className="py-8 text-center text-gray-500">Belum ada data responden atau pertanyaan.</td>
                                         </tr>
                                     ) : (
-                                        statsData!.progress.slice(0, 10).map((row: any) => (
-                                            <tr key={row.id} className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
+                                        statsData!.progress.map((row: any) => (
+                                            <tr key={row.id} className={`border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${row.isUnregistered ? 'bg-red-50/30' : ''}`}>
                                                 <td className="py-4 px-6">
                                                     <span className="font-medium text-gray-800">{row.institution}</span>
+                                                    {row.isUnregistered && (
+                                                        <span className="ml-2 inline-block px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold uppercase">No Response</span>
+                                                    )}
+                                                    {row.totalQuestions && (
+                                                        <span className="ml-1.5 text-[10px] text-gray-400 font-medium">({row.totalQuestions} Pertanyaan)</span>
+                                                    )}
                                                 </td>
-                                                <td className="py-4 px-6 text-gray-600 text-sm">{row.email}</td>
+                                                <td className="py-4 px-6 text-sm">
+                                                    {row.isUnregistered ? (
+                                                        <span className="text-orange-500 font-medium italic">Belum Terdaftar</span>
+                                                    ) : (
+                                                        <span className="text-gray-600">{row.email}</span>
+                                                    )}
+                                                </td>
                                                 <td className="py-4 px-6">
                                                     <div className="flex items-center gap-3 w-48">
                                                         <div className="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
                                                             <div 
-                                                                className={`h-full rounded-full transition-all duration-1000 ${row.progress === 100 ? 'bg-emerald-500' : row.progress > 0 ? 'bg-orange-500' : 'bg-transparent'}`}
-                                                                style={{ width: `${row.progress}%` }}
+                                                                className={`h-full rounded-full transition-all duration-1000 ${row.progress === 100 ? 'bg-emerald-500' : row.progress > 0 ? 'bg-orange-500' : 'bg-red-300'}`}
+                                                                style={{ width: `${Math.max(row.progress, row.isUnregistered ? 3 : 0)}%` }}
                                                             />
                                                         </div>
-                                                        <span className="text-sm font-semibold text-gray-700 min-w-[40px]">{row.progress}%</span>
+                                                        <span className={`text-sm font-semibold min-w-[40px] ${row.isUnregistered ? 'text-red-500' : 'text-gray-700'}`}>{row.progress}%</span>
                                                     </div>
                                                 </td>
                                                 <td className="py-4 px-6 text-sm text-gray-500">
-                                                    <div className="flex items-center gap-2">
-                                                        <Clock size={14} />
-                                                        {new Date(row.lastUpdate).toLocaleString('id-ID', {
-                                                            day: 'numeric', month: 'short', year: 'numeric',
-                                                            hour: '2-digit', minute: '2-digit'
-                                                        })}
-                                                    </div>
+                                                    {row.isUnregistered ? (
+                                                        <span className="text-orange-400 italic text-xs">Menunggu Respon</span>
+                                                    ) : (
+                                                        <div className="flex items-center gap-2">
+                                                            <Clock size={14} />
+                                                            {new Date(row.lastUpdate).toLocaleString('id-ID', {
+                                                                day: 'numeric', month: 'short', year: 'numeric',
+                                                                hour: '2-digit', minute: '2-digit'
+                                                            })}
+                                                        </div>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))
                                     )}
                                 </tbody>
                             </table>
-                            {(statsData?.progress?.length || 0) > 10 && (
-                                <div className="p-4 bg-gray-50 border-t border-gray-200 text-center">
-                                    <Link href="/dashboard/admin/respondents" className="text-sm font-semibold text-blue-600 hover:text-blue-700">
-                                        Lihat Semua Responden →
-                                    </Link>
-                                </div>
-                            )}
                         </div>
                     )}
                 </div>

@@ -197,6 +197,58 @@ export async function GET() {
         // Sort progress list by latest update 
         progressList.sort((a, b) => new Date(b.lastUpdate).getTime() - new Date(a.lastUpdate).getTime());
 
+        // 5b. Add institution entries from survey_questions that have no matching respondent
+        // This ensures institutions like "Kementerian Kesehatan" that have questions assigned
+        // but no registered respondent still appear in the progress list
+        const { data: allQuestions } = await supabaseAdmin
+            .from('survey_questions')
+            .select('institution_name, role_id')
+            .eq('active', true)
+            .not('institution_name', 'is', null);
+
+        if (allQuestions) {
+            // Get all unique institution_name values from questions
+            const questionInstitutions = new Map<string, string>(); // name -> role_id
+            allQuestions.forEach(q => {
+                if (q.institution_name && q.institution_name.trim()) {
+                    questionInstitutions.set(q.institution_name.trim(), q.role_id);
+                }
+            });
+
+            // Check which question-targeted institutions already have a matching respondent in progressList
+            const existingInstitutions = new Set(
+                allRespondents.map(r => normalize(r.institution || ''))
+            );
+
+            for (const [instName, roleId] of questionInstitutions) {
+                const normalizedName = normalize(instName);
+                if (!existingInstitutions.has(normalizedName)) {
+                    // Count questions for this institution
+                    const instQuestions = allQuestions.filter(q => 
+                        q.institution_name && normalize(q.institution_name) === normalizedName
+                    );
+
+                    progressList.push({
+                        id: `unregistered_${normalizedName}`,
+                        institution: instName,
+                        email: 'Belum Terdaftar',
+                        progress: 0,
+                        lastUpdate: new Date().toISOString(),
+                        totalQuestions: instQuestions.length,
+                        isUnregistered: true
+                    });
+                }
+            }
+        }
+
+        // Re-sort: registered respondents first (by last update), then unregistered ones
+        progressList.sort((a, b) => {
+            const aUnreg = (a as any).isUnregistered ? 1 : 0;
+            const bUnreg = (b as any).isUnregistered ? 1 : 0;
+            if (aUnreg !== bUnreg) return aUnreg - bUnreg; // registered first
+            return new Date(b.lastUpdate).getTime() - new Date(a.lastUpdate).getTime();
+        });
+
         // 6. Fetch "Link Publikasi"
         let publications: any[] = [];
 
