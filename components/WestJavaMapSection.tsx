@@ -78,7 +78,7 @@ export default function WestJavaMapSection({ initialData = [] }: WestJavaMapSect
                         Peta Interaktif
                     </div>
                     <h2 className="font-['Inter:Semi_Bold',sans-serif] font-semibold text-3xl md:text-4xl text-black mb-3">
-                        Peta Kepariwisataan Jawa Barat
+                        Pariwisata Jawa Barat
                     </h2>
                     <p className="font-['Inter:Medium',sans-serif] font-medium text-base md:text-lg text-[rgba(0,0,0,0.55)] max-w-2xl mx-auto">
                         Jelajahi 27 kota dan kabupaten di Jawa Barat. Klik pin untuk melihat informasi kepariwisataan.
