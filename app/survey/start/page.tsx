@@ -1,5 +1,7 @@
 'use client';
 
+export const maxDuration = 60;
+
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';

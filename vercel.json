@@ -3,6 +3,10 @@
     "app/api/survey/upload-file/route.ts": {
       "maxDuration": 60,
       "memory": 1024
+    },
+    "app/survey/start/page.tsx": {
+      "maxDuration": 60,
+      "memory": 1024
     }
   }
 }
