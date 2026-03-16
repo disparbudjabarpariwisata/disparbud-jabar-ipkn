@@ -19,6 +19,8 @@ import {
     Search,
     GripVertical,
     Building2,
+    ChevronDown,
+    ChevronRight,
 } from 'lucide-react';
 
 interface RoleType {
@@ -90,6 +92,10 @@ export default function AdminQuestionsPage() {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+
+    // Grouped view state
+    const [expandedInstitutions, setExpandedInstitutions] = useState<Set<string>>(new Set());
+    const [expandedQuestionGroups, setExpandedQuestionGroups] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -253,6 +259,39 @@ export default function AdminQuestionsPage() {
         const matchesSearch = q.question_text.toLowerCase().includes(searchQuery.toLowerCase());
         return matchesRole && matchesInstitution && matchesSearch;
     });
+
+    // Check if grouped view should be shown (only when "Tampilkan Semua" and no institution filter)
+    const showGroupedView = !filterRoleId && !filterInstitutionName;
+
+    // Group questions by institution_name, then by question_text
+    const groupedByInstitution = (() => {
+        if (!showGroupedView) return new Map<string, Map<string, SurveyQuestion[]>>();
+        const instMap = new Map<string, Map<string, SurveyQuestion[]>>();
+        for (const q of displayQuestions) {
+            const instKey = q.institution_name || '(Tanpa Nama Institusi)';
+            if (!instMap.has(instKey)) instMap.set(instKey, new Map());
+            const qMap = instMap.get(instKey)!;
+            if (!qMap.has(q.question_text)) qMap.set(q.question_text, []);
+            qMap.get(q.question_text)!.push(q);
+        }
+        return instMap;
+    })();
+
+    const toggleInstitution = (name: string) => {
+        setExpandedInstitutions(prev => {
+            const next = new Set(prev);
+            if (next.has(name)) next.delete(name); else next.add(name);
+            return next;
+        });
+    };
+
+    const toggleQuestionGroup = (key: string) => {
+        setExpandedQuestionGroups(prev => {
+            const next = new Set(prev);
+            if (next.has(key)) next.delete(key); else next.add(key);
+            return next;
+        });
+    };
 
     const openCreateModal = () => {
         setEditingId(null);
@@ -446,7 +485,148 @@ export default function AdminQuestionsPage() {
                         <h3 className="text-gray-900 font-semibold mb-1">Belum ada pertanyaan</h3>
                         <p className="text-gray-500 text-sm">Pilih Kategori Instansi dan buat pertanyaan baru.</p>
                     </div>
+                ) : showGroupedView ? (
+                    /* === GROUPED ACCORDION VIEW === */
+                    <div className="space-y-3">
+                        {Array.from(groupedByInstitution.entries()).map(([instName, questionMap]) => {
+                            const isInstExpanded = expandedInstitutions.has(instName);
+                            const totalQuestionsInInst = Array.from(questionMap.values()).reduce((sum, arr) => sum + arr.length, 0);
+                            const uniqueQuestionsCount = questionMap.size;
+                            return (
+                                <div key={instName} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                                    {/* Level 1: Institution Header */}
+                                    <button
+                                        onClick={() => toggleInstitution(instName)}
+                                        className="w-full flex items-center gap-3 p-4 sm:p-5 hover:bg-gray-50 transition-colors text-left"
+                                    >
+                                        <div className="text-gray-500">
+                                            {isInstExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                                        </div>
+                                        <Building2 size={20} className="text-amber-600 shrink-0" />
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="text-gray-900 font-bold text-sm sm:text-base truncate">{instName}</h3>
+                                            <p className="text-gray-400 text-xs mt-0.5">{uniqueQuestionsCount} pertanyaan unik &bull; {totalQuestionsInInst} total entri</p>
+                                        </div>
+                                        <span className="px-3 py-1 bg-amber-50 text-amber-700 text-xs font-bold rounded-full border border-amber-200 shrink-0">
+                                            {totalQuestionsInInst}
+                                        </span>
+                                    </button>
+
+                                    {/* Level 1 Content: Question Groups */}
+                                    {isInstExpanded && (
+                                        <div className="border-t border-gray-100">
+                                            {Array.from(questionMap.entries()).map(([qText, qItems], qIdx) => {
+                                                const groupKey = `${instName}::${qText}`;
+                                                const isQExpanded = expandedQuestionGroups.has(groupKey);
+                                                const firstQ = qItems[0];
+                                                return (
+                                                    <div key={groupKey} className={qIdx > 0 ? 'border-t border-gray-50' : ''}>
+                                                        {/* Level 2: Question Group Header */}
+                                                        <button
+                                                            onClick={() => toggleQuestionGroup(groupKey)}
+                                                            className="w-full flex items-start gap-3 px-5 sm:px-7 py-3.5 hover:bg-emerald-50/30 transition-colors text-left"
+                                                        >
+                                                            <div className="text-gray-400 mt-0.5">
+                                                                {isQExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${firstQ.is_required ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-500'}`}>
+                                                                        {firstQ.is_required ? 'Wajib Isi' : 'Opsional'}
+                                                                    </span>
+                                                                    <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider">
+                                                                        {firstQ.question_type}
+                                                                    </span>
+                                                                    {firstQ.sort_order > 0 && <span className="text-xs text-gray-400">#Urutan {firstQ.sort_order}</span>}
+                                                                </div>
+                                                                <p className="text-gray-800 text-sm font-medium leading-relaxed">{qText}</p>
+                                                            </div>
+                                                        </button>
+
+                                                        {/* Level 2 Content: Individual Question Items */}
+                                                        {isQExpanded && (
+                                                            <div className="bg-gray-50/60 border-t border-gray-100">
+                                                                {qItems.map((q) => (
+                                                                    <div key={q.id} className="px-7 sm:px-10 py-3 flex flex-col sm:flex-row gap-3 sm:items-center hover:bg-white/60 transition-colors border-b border-gray-100/70 last:border-b-0">
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <div className="flex items-center gap-2 flex-wrap">
+                                                                                <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider">
+                                                                                    {q.question_type}
+                                                                                </span>
+                                                                                {q.sort_order > 0 && <span className="text-xs text-gray-400">#Urutan {q.sort_order}</span>}
+                                                                                {q.depends_on_question_id && (
+                                                                                    <span className="px-2 py-0.5 rounded bg-purple-50 text-purple-600 text-[10px] font-bold uppercase tracking-wider border border-purple-200">
+                                                                                        Logic Cabang
+                                                                                    </span>
+                                                                                )}
+                                                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${q.active ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-500'}`}>
+                                                                                    {q.active ? 'Aktif' : 'Draft'}
+                                                                                </span>
+                                                                            </div>
+                                                                            {q.options && q.options.length > 0 && q.question_type !== 'multiple_input' && (
+                                                                                <div className="mt-1.5 flex flex-wrap gap-1">
+                                                                                    {q.options.map((opt, idx) => (
+                                                                                        <span key={idx} className="inline-block px-2 py-0.5 bg-white text-gray-600 text-[11px] rounded border border-gray-200">
+                                                                                            {typeof opt === 'string' ? opt : JSON.stringify(opt)}
+                                                                                        </span>
+                                                                                    ))}
+                                                                                </div>
+                                                                            )}
+                                                                            {q.options && q.question_type === 'multiple_input' && (
+                                                                                <div className="mt-1.5 text-[10px] text-gray-500 bg-white p-1.5 rounded border border-gray-200 font-mono">
+                                                                                    [Complex JSON Schema]
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="flex items-center gap-1.5 sm:shrink-0 justify-end">
+                                                                            <button
+                                                                                onClick={() => toggleActive(q)}
+                                                                                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${q.active ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                                                                            >
+                                                                                {q.active ? 'Aktif' : 'Draft'}
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={() => openEditModal(q)}
+                                                                                className="p-1.5 text-gray-500 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
+                                                                                title="Edit Setup"
+                                                                            >
+                                                                                <Pencil size={15} />
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={() => setDeletingId(q.id)}
+                                                                                className="p-1.5 text-gray-500 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
+                                                                            >
+                                                                                <Trash2 size={15} />
+                                                                            </button>
+                                                                        </div>
+                                                                        {/* Delete Confirm Modal */}
+                                                                        {deletingId === q.id && (
+                                                                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                                                                                <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+                                                                                    <h3 className="text-lg font-bold text-gray-900 mb-2">Hapus Pertanyaan?</h3>
+                                                                                    <p className="text-gray-500 text-sm mb-6">Pertanyaan dan semua riwayat jawaban untuk pertanyaan ini akan terhapus secara permanen. Lanjutkan?</p>
+                                                                                    <div className="flex gap-3 justify-end">
+                                                                                        <button onClick={() => setDeletingId(null)} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200">Batal</button>
+                                                                                        <button onClick={() => handleDelete(q.id)} className="px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-xl hover:bg-red-700">Ya, Hapus</button>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
                 ) : (
+                    /* === FLAT LIST VIEW (when filter active) === */
                     <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
                         <div className="divide-y divide-gray-100">
                             {displayQuestions.map((q) => (
@@ -513,7 +693,7 @@ export default function AdminQuestionsPage() {
                                         </button>
                                     </div>
 
-                                    {/* Delete Confrim Modal */}
+                                    {/* Delete Confirm Modal */}
                                     {deletingId === q.id && (
                                         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
                                             <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
