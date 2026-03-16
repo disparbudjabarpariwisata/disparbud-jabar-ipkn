@@ -5,8 +5,8 @@ import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { ADMIN_EMAIL, adminMenuItems } from '@/lib/adminConfig';
-import { Loader2, Database, Table as TableIcon, Search, Eye, ChevronRight, Hash, Info } from 'lucide-react';
-import { getAllTablesDataAction, getSingleTableDataAction } from './actions';
+import { Download, Loader2, Database, Table as TableIcon, Search, Eye, ChevronRight, Hash, Info, FileJson, FileCode } from 'lucide-react';
+import { getAllTablesDataAction, getSingleTableDataAction, getFullTableDataAction } from './actions';
 
 export default function DatabaseExplorerPage() {
     const router = useRouter();
@@ -45,6 +45,54 @@ export default function DatabaseExplorerPage() {
         const res = await getSingleTableDataAction(tableName);
         if (res.success) {
             setTableData(res.data || []);
+        }
+        setIsLoading(false);
+    };
+
+    const handleDownloadJSON = async () => {
+        if (!selectedTable) return;
+        setIsLoading(true);
+        const res = await getFullTableDataAction(selectedTable);
+        if (res.success && res.data) {
+            const dataStr = JSON.stringify(res.data, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+            const exportFileDefaultName = `${selectedTable}_${new Date().toISOString().split('T')[0]}.json`;
+
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+        }
+        setIsLoading(false);
+    };
+
+    const handleDownloadSQL = async () => {
+        if (!selectedTable) return;
+        setIsLoading(true);
+        const res = await getFullTableDataAction(selectedTable);
+        if (res.success && res.data && res.data.length > 0) {
+            const columns = Object.keys(res.data[0]);
+            let sql = `-- SQL Export for table: ${selectedTable}\n`;
+            sql += `-- Generated at: ${new Date().toISOString()}\n\n`;
+
+            res.data.forEach((row: any) => {
+                const values = columns.map(col => {
+                    const val = row[col];
+                    if (val === null) return 'NULL';
+                    if (typeof val === 'string') return `'${val.replace(/'/g, "''")}'`;
+                    if (typeof val === 'object') return `'${JSON.stringify(val).replace(/'/g, "''")}'`;
+                    return val;
+                });
+                sql += `INSERT INTO public.${selectedTable} (${columns.join(', ')}) VALUES (${values.join(', ')});\n`;
+            });
+
+            const dataUri = 'data:text/plain;charset=utf-8,' + encodeURIComponent(sql);
+            const exportFileDefaultName = `${selectedTable}_${new Date().toISOString().split('T')[0]}.sql`;
+
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
         }
         setIsLoading(false);
     };
@@ -140,13 +188,28 @@ export default function DatabaseExplorerPage() {
                     </div>
                 ) : (
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
-                        <div className="p-4 border-b border-gray-50 bg-gray-50/50 flex justify-between items-center">
+                        <div className="p-4 border-b border-gray-50 bg-gray-50/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                             <h2 className="font-bold text-gray-800 flex items-center gap-2">
                                 <TableIcon size={18} className="text-[#10b981]" />
                                 Data Tabel: <span className="text-[#10b981]">{selectedTable}</span>
                             </h2>
-                            <div className="text-xs text-gray-400 font-mono">
-                                Showing {tableData.length} records
+                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                                <button 
+                                    onClick={handleDownloadJSON}
+                                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors border border-blue-100"
+                                >
+                                    <FileJson size={14} /> JSON
+                                </button>
+                                <button 
+                                    onClick={handleDownloadSQL}
+                                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-colors border border-emerald-100"
+                                >
+                                    <FileCode size={14} /> SQL
+                                </button>
+                                <div className="hidden sm:block h-6 w-px bg-gray-200 mx-1"></div>
+                                <div className="text-[10px] text-gray-400 font-mono">
+                                    {tableData.length} preview records
+                                </div>
                             </div>
                         </div>
 

@@ -50,3 +50,15 @@ export async function getSingleTableDataAction(tableName: string) {
         return { success: false, error: err.message };
     }
 }
+
+export async function getFullTableDataAction(tableName: string) {
+    try {
+        // High limit for full export, enough for mirroring most core tables
+        const { data, error } = await supabaseAdmin.from(tableName).select('*').limit(10000);
+        if (error) throw error;
+        return { success: true, data };
+    } catch (err: any) {
+        console.error(`Export Error for ${tableName}:`, err);
+        return { success: false, error: err.message };
+    }
+}
