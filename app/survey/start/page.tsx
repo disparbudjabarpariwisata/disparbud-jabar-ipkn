@@ -5,7 +5,7 @@ export const maxDuration = 60;
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { Loader2, AlertCircle, Save, CheckCircle2, Upload, FileCheck, X, ExternalLink, MessageSquare, ChevronDown } from 'lucide-react';
+import { Loader2, AlertCircle, Save, CheckCircle2, Upload, FileCheck, X, ExternalLink, MessageSquare, ChevronDown, Copy } from 'lucide-react';
 import LikertSlider from '@/components/LikertSlider';
 import { saveSurveyFileUrlAction } from './actions/db-updates';
 
@@ -81,6 +81,9 @@ export default function SurveyStartPage() {
     const [multipleAnswers, setMultipleAnswers] = useState<Record<string, any[]>>({}); // for complex multiple inputs
     const [fileObjects, setFileObjects] = useState<Record<string, File>>({}); // Store actual File objects keyed by question_id or composite id
     const [uploadProgress, setUploadProgress] = useState<Record<string, 'idle' | 'uploading' | 'done' | 'error'>>({}); // Track upload status per file
+    const [uploadProgressPercent, setUploadProgressPercent] = useState<Record<string, number>>({}); // Track upload percentage per file
+    const [uploadTimestamps, setUploadTimestamps] = useState<Record<string, string>>({}); // Track upload dates per file
+    const [uploadedFiles, setUploadedFiles] = useState<{ url: string, name: string }[]>([]); // Track all unique uploaded files
 
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -162,6 +165,9 @@ export default function SurveyStartPage() {
                         if (progressData.keterangan[qId]) expanded[qId] = true;
                     });
                     setExpandedKeterangan(expanded);
+                }
+                if (progressData.success && progressData.timestamps) {
+                    setUploadTimestamps(progressData.timestamps);
                 }
                 if (progressData.success && progressData.multiple_data) {
 
@@ -382,6 +388,154 @@ export default function SurveyStartPage() {
         return isValid;
     };
 
+    const handleReuseFile = async (qId: string, url: string, compositeKey?: string, groupLabel?: string, fieldLabel?: string) => {
+        if (!identity || !roleId) return;
+        
+        const key = compositeKey || qId;
+        setUploadProgress(prev => ({ ...prev, [key]: 'uploading' }));
+        setUploadProgressPercent(prev => ({ ...prev, [key]: 100 }));
+
+        try {
+            // Save to Database via Server Action
+            const dbFormData = new FormData();
+            dbFormData.append('file_url', url);
+            dbFormData.append('respondent_id', identity.id);
+            dbFormData.append('question_id', qId);
+            dbFormData.append('role_id', roleId);
+            dbFormData.append('is_multiple', compositeKey ? 'true' : 'false');
+            if (groupLabel) dbFormData.append('group_label', groupLabel);
+            if (fieldLabel) dbFormData.append('field_label', fieldLabel);
+
+            const dbResult = await saveSurveyFileUrlAction(dbFormData);
+            if (!dbResult.success) throw new Error(dbResult.error);
+
+            // Update States
+            if (!compositeKey) {
+                setAnswers(prev => ({ ...prev, [qId]: url }));
+                setUploadTimestamps(prev => ({ ...prev, [qId]: new Date().toISOString() }));
+            } else {
+                setMultipleAnswers(prev => {
+                    const currentArr = prev[qId] || [];
+                    return {
+                        ...prev,
+                        [qId]: currentArr.map(ans => {
+                            if (`${qId}_${ans.group_label}_${ans.field_label}` === compositeKey) {
+                                return { ...ans, answer_value: url };
+                            }
+                            return ans;
+                        })
+                    };
+                });
+                setUploadTimestamps(prev => ({ ...prev, [compositeKey]: new Date().toISOString() }));
+            }
+
+            setUploadProgress(prev => ({ ...prev, [key]: 'done' }));
+            setSuccess("File berhasil digunakan kembali.");
+            setTimeout(() => setSuccess(null), 3000);
+
+        } catch (err: any) {
+            console.error(`Reuse failed for ${key}:`, err);
+            setUploadProgress(prev => ({ ...prev, [key]: 'error' }));
+            setError(`Gagal menggunakan file: ${err.message}`);
+            setTimeout(() => setError(null), 5000);
+        }
+    };
+
+    const handleSingleFileUpload = async (qId: string, compositeKey?: string, groupLabel?: string, fieldLabel?: string) => {
+        const key = compositeKey || qId;
+        const file = fileObjects[key];
+        if (!file || !identity || !roleId) return;
+
+        setUploadProgress(prev => ({ ...prev, [key]: 'uploading' }));
+        setUploadProgressPercent(prev => ({ ...prev, [key]: 0 }));
+
+        try {
+            const timestamp = new Date().getTime();
+            const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+            const filePath = compositeKey 
+                ? `${identity.id}/multiple/${timestamp}_${safeName}`
+                : `${identity.id}/${timestamp}_${safeName}`;
+
+            // Simulate progress
+            const progressInterval = setInterval(() => {
+                setUploadProgressPercent(prev => {
+                    const current = prev[key] || 0;
+                    if (current >= 90) {
+                        clearInterval(progressInterval);
+                        return prev;
+                    }
+                    return { ...prev, [key]: current + 10 };
+                });
+            }, 200);
+
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('survey_uploads')
+                .upload(filePath, file, {
+                    cacheControl: '3600',
+                    upsert: true
+                });
+
+            clearInterval(progressInterval);
+            if (uploadError) throw uploadError;
+
+            setUploadProgressPercent(prev => ({ ...prev, [key]: 100 }));
+
+            // Step 2: Get Public URL
+            const { data: { publicUrl } } = supabase.storage
+                .from('survey_uploads')
+                .getPublicUrl(filePath);
+
+            // Step 3: Save to Database via Server Action
+            const dbFormData = new FormData();
+            dbFormData.append('file_url', publicUrl);
+            dbFormData.append('respondent_id', identity.id);
+            dbFormData.append('question_id', qId);
+            dbFormData.append('role_id', roleId);
+            dbFormData.append('is_multiple', compositeKey ? 'true' : 'false');
+            if (groupLabel) dbFormData.append('group_label', groupLabel);
+            if (fieldLabel) dbFormData.append('field_label', fieldLabel);
+
+            const dbResult = await saveSurveyFileUrlAction(dbFormData);
+            if (!dbResult.success) throw new Error(dbResult.error);
+
+            // Step 4: Update States
+            if (!compositeKey) {
+                setAnswers(prev => ({ ...prev, [qId]: publicUrl }));
+                setUploadTimestamps(prev => ({ ...prev, [qId]: new Date().toISOString() }));
+            } else {
+                setMultipleAnswers(prev => {
+                    const currentArr = prev[qId] || [];
+                    return {
+                        ...prev,
+                        [qId]: currentArr.map(ans => {
+                            if (`${qId}_${ans.group_label}_${ans.field_label}` === compositeKey) {
+                                return { ...ans, answer_value: publicUrl };
+                            }
+                            return ans;
+                        })
+                    };
+                });
+                setUploadTimestamps(prev => ({ ...prev, [compositeKey]: new Date().toISOString() }));
+            }
+
+            // Update uploaded files list if not already there
+            setUploadedFiles(prev => {
+                if (prev.some(f => f.url === publicUrl)) return prev;
+                return [...prev, { url: publicUrl, name: safeName }];
+            });
+
+            setUploadProgress(prev => ({ ...prev, [key]: 'done' }));
+            setSuccess("File berhasil diupload.");
+            setTimeout(() => setSuccess(null), 3000);
+
+        } catch (err: any) {
+            console.error(`Upload failed for ${key}:`, err);
+            setUploadProgress(prev => ({ ...prev, [key]: 'error' }));
+            setError(`Gagal upload file "${file.name}": ${err.message}`);
+            setTimeout(() => setError(null), 5000);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
@@ -403,151 +557,10 @@ export default function SurveyStartPage() {
             const localAnswers = { ...answers };
             const localMultipleAnswers = JSON.parse(JSON.stringify(multipleAnswers)); // deep copy to ensure safe mutation
 
-            if (standardFileUploadQuestions.length > 0 || multipleFileUploadKeys.length > 0) {
-                setIsUploadingFiles(true);
-
-                // Handle standard uploads
-                for (const q of standardFileUploadQuestions) {
-                    const file = fileObjects[q.id];
-                    if (!file) continue;
-
-                    setUploadProgress(prev => ({ ...prev, [q.id]: 'uploading' }));
-
-                    try {
-                        const formData = new FormData();
-                        formData.append('file', file);
-                        formData.append('respondent_id', identity.id);
-                        formData.append('question_id', q.id);
-                        formData.append('role_id', roleId!);
-                        formData.append('institution_name', identity.institution || '');
-
-                        // Step 1.1: Upload to Supabase Storage Directly
-                        const fileExt = file.name.split('.').pop();
-                        const timestamp = new Date().getTime();
-                        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-                        const filePath = `${identity.id}/${timestamp}_${safeName}`;
-
-                        const { data: uploadData, error: uploadError } = await supabase.storage
-                            .from('survey_uploads')
-                            .upload(filePath, file, {
-                                cacheControl: '3600',
-                                upsert: true
-                            });
-
-                        if (uploadError) throw uploadError;
-
-                        // Step 1.2: Get Public URL
-                        const { data: { publicUrl } } = supabase.storage
-                            .from('survey_uploads')
-                            .getPublicUrl(filePath);
-
-                        // Step 1.3: Save to Database via Server Action
-                        const dbFormData = new FormData();
-                        dbFormData.append('file_url', publicUrl);
-                        dbFormData.append('respondent_id', identity.id);
-                        dbFormData.append('question_id', q.id);
-                        dbFormData.append('role_id', roleId!);
-                        dbFormData.append('is_multiple', 'false');
-
-                        const dbResult = await saveSurveyFileUrlAction(dbFormData);
-                        if (!dbResult.success) throw new Error(dbResult.error);
-
-                        // Update the answer with the Public URL
-                        setAnswers(prev => ({ ...prev, [q.id]: publicUrl }));
-                        localAnswers[q.id] = publicUrl; // keep synchronous state
-
-                        setUploadProgress(prev => ({ ...prev, [q.id]: 'done' }));
-                    } catch (uploadErr: any) {
-                        console.error(`Upload failed for question ${q.id}:`, uploadErr);
-                        setUploadProgress(prev => ({ ...prev, [q.id]: 'error' }));
-                        throw new Error(`Gagal upload file "${file.name}": ${uploadErr.message}`);
-                    }
-                }
-
-                // Handle multiple input uploads
-                for (const fileKey of multipleFileUploadKeys) {
-                    const file = fileObjects[fileKey];
-                    if (!file) continue;
-
-                    // Extract question_id, group_label, field_label from the composite key
-                    const firstUnderscore = fileKey.indexOf('_');
-                    const question_id = fileKey.substring(0, firstUnderscore);
-                    const rest = fileKey.substring(firstUnderscore + 1);
-                    const lastUnderscore = rest.lastIndexOf('_');
-                    const group_label = rest.substring(0, lastUnderscore);
-                    const field_label = rest.substring(lastUnderscore + 1);
-
-                    setUploadProgress(prev => ({ ...prev, [fileKey]: 'uploading' }));
-
-                    try {
-                        // Step 1.1: Upload to Supabase Storage Directly
-                        const timestamp = new Date().getTime();
-                        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-                        const filePath = `${identity.id}/multiple/${timestamp}_${safeName}`;
-
-                        const { data: uploadData, error: uploadError } = await supabase.storage
-                            .from('survey_uploads')
-                            .upload(filePath, file, {
-                                cacheControl: '3600',
-                                upsert: true
-                            });
-
-                        if (uploadError) throw uploadError;
-
-                        // Step 1.2: Get Public URL
-                        const { data: { publicUrl } } = supabase.storage
-                            .from('survey_uploads')
-                            .getPublicUrl(filePath);
-
-                        // Step 1.3: Save to Database via Server Action
-                        const dbFormData = new FormData();
-                        dbFormData.append('file_url', publicUrl);
-                        dbFormData.append('respondent_id', identity.id);
-                        dbFormData.append('question_id', question_id);
-                        dbFormData.append('role_id', roleId!);
-                        dbFormData.append('is_multiple', 'true');
-                        dbFormData.append('group_label', group_label);
-                        dbFormData.append('field_label', field_label);
-
-                        const dbResult = await saveSurveyFileUrlAction(dbFormData);
-                        if (!dbResult.success) throw new Error(dbResult.error);
-
-                        // We need to update multipleAnswers array for this question
-                        setMultipleAnswers(prev => {
-                            const currentArr = prev[question_id] || [];
-                            return {
-                                ...prev,
-                                [question_id]: currentArr.map(ans => {
-                                    if (`${question_id}_${ans.group_label}_${ans.field_label}` === fileKey) {
-                                        return { ...ans, answer_value: publicUrl };
-                                    }
-                                    return ans;
-                                })
-                            };
-                        });
-
-                        // Update our synchronous tracking object too
-                        if (localMultipleAnswers[question_id]) {
-                            localMultipleAnswers[question_id] = localMultipleAnswers[question_id].map((ans: any) => {
-                                if (`${question_id}_${ans.group_label}_${ans.field_label}` === fileKey) {
-                                    return { ...ans, answer_value: publicUrl };
-                                }
-                                return ans;
-                            });
-                        }
-
-                        setUploadProgress(prev => ({ ...prev, [fileKey]: 'done' }));
-
-                    } catch (uploadErr: any) {
-                        console.error(`Upload failed for file ${fileKey}:`, uploadErr);
-                        setUploadProgress(prev => ({ ...prev, [fileKey]: 'error' }));
-                        throw new Error(`Gagal upload file "${file.name}": ${uploadErr.message}`);
-                    }
-                }
-
-                setIsUploadingFiles(false);
-            }
-
+            // Individual upload is now handled by handleSingleFileUpload button, 
+            // but we keep this as a fallback or if we want to ensure all files are uploaded.
+            // However, the user requested it to be one by one.
+            
             // Step 2: Format and save all non-file answers using local state
             const payload = visibleQuestions
                 .filter(q => q.question_type !== 'section_break' && q.question_type !== 'file_upload')
@@ -774,16 +787,49 @@ export default function SurveyStartPage() {
                 const currentFile = fileObjects[q.id];
                 const progress = uploadProgress[q.id];
                 const existingFileUrl = val && typeof val === 'string' && val.startsWith('http') ? val : null;
+                const existingFileTimestamp = uploadTimestamps[q.id];
+                const existingFileName = existingFileUrl ? existingFileUrl.split('/').pop()?.split('_').slice(1).join('_') : 'Lihat File';
+
                 return (
                     <div className="space-y-3">
-                        {/* Show link to previously uploaded file on Google Drive */}
+                        {/* Show link to previously uploaded file */}
                         {existingFileUrl && !currentFile && (
-                            <a href={existingFileUrl} target="_blank" rel="noreferrer"
-                                className="flex items-center gap-2 p-3 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 text-sm font-medium hover:bg-emerald-100 transition-colors group">
-                                <FileCheck size={16} className="shrink-0" />
-                                <span className="flex-1">File telah diupload — Klik untuk melihat di Google Drive</span>
-                                <ExternalLink size={14} className="shrink-0 opacity-50 group-hover:opacity-100 transition-opacity" />
-                            </a>
+                            <div className="group relative">
+                                <a href={existingFileUrl} target="_blank" rel="noreferrer"
+                                    className="flex items-center gap-3 p-4 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 text-sm font-medium hover:bg-emerald-100 transition-all shadow-sm">
+                                    <div className="w-10 h-10 bg-emerald-200/50 rounded-lg flex items-center justify-center shrink-0">
+                                        <FileCheck size={20} className="text-emerald-600" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-bold truncate text-emerald-800">{existingFileName}</p>
+                                        <p className="text-[10px] text-emerald-600/70 uppercase tracking-wider font-semibold">
+                                            {existingFileTimestamp ? `Diunggah pada: ${new Date(existingFileTimestamp).toLocaleString('id-ID')}` : 'File telah tersimpan'}
+                                        </p>
+                                    </div>
+                                    <ExternalLink size={16} className="shrink-0 opacity-40 group-hover:opacity-100 transition-opacity" />
+                                </a>
+                            </div>
+                        )}
+
+                        {/* File reuse picker */}
+                        {uploadedFiles.length > 0 && !currentFile && (
+                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
+                                <p className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1.5 px-1">
+                                    <Copy size={12} /> Gunakan file yang sudah diupload
+                                </p>
+                                <select 
+                                    className="w-full p-2 text-xs rounded-lg border border-slate-200 bg-white outline-none focus:border-[#10b981]"
+                                    onChange={(e) => {
+                                        if (e.target.value) handleReuseFile(q.id, e.target.value);
+                                    }}
+                                    value=""
+                                >
+                                    <option value="">-- Pilih file untuk digunakan kembali --</option>
+                                    {uploadedFiles.map((file, idx) => (
+                                        <option key={idx} value={file.url}>{file.name}</option>
+                                    ))}
+                                </select>
+                            </div>
                         )}
                         <input
                             type="file"
@@ -822,43 +868,63 @@ export default function SurveyStartPage() {
                         />
                         {/* File info badge */}
                         {currentFile && (
-                            <div className={`flex items-center gap-2 p-3 rounded-lg border text-sm ${progress === 'done' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' :
-                                progress === 'error' ? 'bg-red-50 border-red-200 text-red-700' :
-                                    progress === 'uploading' ? 'bg-blue-50 border-blue-200 text-blue-700' :
-                                        'bg-slate-50 border-slate-200 text-slate-600'
-                                }`}>
-                                {progress === 'uploading' ? (
-                                    <Loader2 size={16} className="animate-spin shrink-0" />
-                                ) : progress === 'done' ? (
-                                    <FileCheck size={16} className="shrink-0" />
-                                ) : progress === 'error' ? (
-                                    <AlertCircle size={16} className="shrink-0" />
-                                ) : (
-                                    <Upload size={16} className="shrink-0" />
-                                )}
-                                <span className="truncate font-medium">{currentFile.name}</span>
-                                <span className="text-xs opacity-70 shrink-0">({(currentFile.size / 1024 / 1024).toFixed(1)}MB)</span>
-                                {progress === 'uploading' && <span className="text-xs">Mengupload...</span>}
-                                {progress === 'done' && <span className="text-xs">✓ Terupload</span>}
-                                {progress === 'error' && <span className="text-xs">Gagal</span>}
-                                {progress !== 'uploading' && progress !== 'done' && (
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setFileObjects(prev => { const copy = { ...prev }; delete copy[q.id]; return copy; });
-                                            setAnswers(prev => { const copy = { ...prev }; delete copy[q.id]; return copy; });
-                                            setUploadProgress(prev => { const copy = { ...prev }; delete copy[q.id]; return copy; });
-                                        }}
-                                        className="ml-auto text-slate-400 hover:text-red-500 transition-colors"
-                                        title="Hapus file"
-                                    >
-                                        <X size={16} />
-                                    </button>
+                            <div className="space-y-3">
+                                <div className={`flex items-center gap-2 p-3 rounded-lg border text-sm ${progress === 'done' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' :
+                                    progress === 'error' ? 'bg-red-50 border-red-200 text-red-700' :
+                                        progress === 'uploading' ? 'bg-blue-50 border-blue-200 text-blue-700' :
+                                            'bg-slate-50 border-slate-200 text-slate-600'
+                                    }`}>
+                                    {progress === 'uploading' ? (
+                                        <Loader2 size={16} className="animate-spin shrink-0" />
+                                    ) : progress === 'done' ? (
+                                        <FileCheck size={16} className="shrink-0" />
+                                    ) : progress === 'error' ? (
+                                        <AlertCircle size={16} className="shrink-0" />
+                                    ) : (
+                                        <Upload size={16} className="shrink-0" />
+                                    )}
+                                    <span className="truncate font-medium flex-1">{currentFile.name}</span>
+                                    <span className="text-xs opacity-70 shrink-0">({(currentFile.size / 1024 / 1024).toFixed(1)}MB)</span>
+                                    
+                                    {progress !== 'uploading' && progress !== 'done' && (
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleSingleFileUpload(q.id)}
+                                                className="px-3 py-1.5 bg-[#10b981] text-white text-xs font-bold rounded-lg hover:bg-[#059669] transition-all shadow-sm flex items-center gap-1.5"
+                                            >
+                                                <Upload size={12} /> Upload Sekarang
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setFileObjects(prev => { const copy = { ...prev }; delete copy[q.id]; return copy; });
+                                                    setAnswers(prev => { const copy = { ...prev }; delete copy[q.id]; return copy; });
+                                                    setUploadProgress(prev => { const copy = { ...prev }; delete copy[q.id]; return copy; });
+                                                    setUploadProgressPercent(prev => { const copy = { ...prev }; delete copy[q.id]; return copy; });
+                                                }}
+                                                className="p-1.5 text-slate-400 hover:text-red-500 transition-colors bg-white rounded-lg border border-slate-200"
+                                                title="Hapus"
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        </div>
+                                    )}
+                                    {progress === 'done' && <span className="text-xs font-bold bg-emerald-100 px-2 py-0.5 rounded text-emerald-700">✓ TERUPLOAD</span>}
+                                </div>
+                                
+                                {progress === 'uploading' && (
+                                    <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                                        <div 
+                                            className="bg-[#10b981] h-full transition-all duration-300 ease-out"
+                                            style={{ width: `${uploadProgressPercent[q.id] || 0}%` }}
+                                        />
+                                    </div>
                                 )}
                             </div>
                         )}
-                        <p className="text-xs text-slate-400 font-medium">
-                            Format: PDF, XLS, XLSX, DOC, DOCX, PPT, PPTX, JPEG, PNG, MP4, MOV, ZIP, RAR. Maks {MAX_FILE_SIZE_MB}MB per file. File akan diupload saat Submit.
+                        <p className="text-xs text-slate-400 font-medium italic">
+                            Format: PDF, XLS, XLSX, DOC, DOCX, PPT, PPTX, JPEG, PNG, MP4, MOV, ZIP, RAR. Maks {MAX_FILE_SIZE_MB}MB. Klik tombol upload setelah memilih file.
                         </p>
                     </div>
                 );
@@ -994,19 +1060,65 @@ export default function SurveyStartPage() {
                                                                         className="w-full p-2.5 rounded-xl border bg-white outline-none transition-all cursor-pointer file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 text-sm border-slate-200"
                                                                     />
                                                                     {fieldVal && !currentFile && typeof fieldVal === 'string' && fieldVal.startsWith('http') && (
-                                                                        <a href={fieldVal} target="_blank" rel="noreferrer" className="text-sm text-emerald-600 font-medium hover:underline inline-flex items-center gap-1">
-                                                                            <FileCheck size={14} /> Lihat File Tersimpan
-                                                                        </a>
+                                                                        <div className="relative group">
+                                                                            <a href={fieldVal} target="_blank" rel="noreferrer" 
+                                                                                className="flex items-center gap-2.5 p-3 rounded-xl border border-emerald-100 bg-emerald-50/50 text-emerald-700 text-xs font-semibold hover:bg-emerald-100 transition-all border-dashed">
+                                                                                <FileCheck size={14} className="shrink-0" />
+                                                                                <div className="flex-1 min-w-0">
+                                                                                    <p className="truncate">{fieldVal.split('/').pop()?.split('_').slice(1).join('_') || 'Lihat File'}</p>
+                                                                                    {uploadTimestamps[compId] && (
+                                                                                        <p className="text-[9px] text-emerald-500 font-normal">
+                                                                                            {new Date(uploadTimestamps[compId]).toLocaleString('id-ID')}
+                                                                                        </p>
+                                                                                    )}
+                                                                                </div>
+                                                                                <ExternalLink size={12} className="shrink-0 opacity-40 group-hover:opacity-100" />
+                                                                            </a>
+                                                                        </div>
+                                                                    )}
+
+                                                                    {/* Reuse picker for multiple inputs */}
+                                                                    {uploadedFiles.length > 0 && !currentFile && (
+                                                                        <div className="bg-slate-50/50 border border-slate-100 rounded-lg p-2 space-y-1.5 mt-2">
+                                                                            <p className="text-[10px] font-bold text-slate-400 uppercase px-1">Gunakan file lain</p>
+                                                                            <select 
+                                                                                className="w-full p-1.5 text-[11px] rounded border border-slate-200 bg-white outline-none"
+                                                                                onChange={(e) => {
+                                                                                    if (e.target.value) handleReuseFile(q.id, e.target.value, compId, group.label, field.label);
+                                                                                }}
+                                                                                value=""
+                                                                            >
+                                                                                <option value="">-- Pilih file --</option>
+                                                                                {uploadedFiles.map((file, idx) => (
+                                                                                    <option key={idx} value={file.url}>{file.name}</option>
+                                                                                ))}
+                                                                            </select>
+                                                                        </div>
                                                                     )}
                                                                     {currentFile && (
-                                                                        <div className="flex items-center gap-2 p-2.5 rounded-lg border text-sm bg-slate-50 border-slate-200 text-slate-600">
-                                                                            <Upload size={14} className="shrink-0" />
-                                                                            <span className="truncate font-medium flex-1">{currentFile.name} ({progress === 'uploading' ? '...' : (currentFile.size / 1024 / 1024).toFixed(1) + 'MB'})</span>
-                                                                            <button type="button" onClick={() => {
-                                                                                setFileObjects(prev => { const copy = { ...prev }; delete copy[compId]; return copy; });
-                                                                                handleMultipleAnswerChange(q.id, group.label, field.label, field.type, '');
-                                                                                setUploadProgress(prev => { const copy = { ...prev }; delete copy[compId]; return copy; });
-                                                                            }} className="text-slate-400 hover:text-red-500"><X size={14} /></button>
+                                                                        <div className="space-y-2">
+                                                                            <div className={`flex items-center gap-2 p-2.5 rounded-lg border text-sm ${progress === 'done' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                                                                                <Upload size={14} className="shrink-0" />
+                                                                                <span className="truncate font-medium flex-1">{currentFile.name}</span>
+                                                                                
+                                                                                {progress !== 'uploading' && progress !== 'done' && (
+                                                                                    <div className="flex items-center gap-1.5">
+                                                                                        <button type="button" onClick={() => handleSingleFileUpload(q.id, compId, group.label, field.label)} className="px-2 py-1 bg-[#10b981] text-white text-[10px] font-bold rounded hover:bg-[#059669]">Upload</button>
+                                                                                        <button type="button" onClick={() => {
+                                                                                            setFileObjects(prev => { const copy = { ...prev }; delete copy[compId]; return copy; });
+                                                                                            handleMultipleAnswerChange(q.id, group.label, field.label, field.type, '');
+                                                                                            setUploadProgress(prev => { const copy = { ...prev }; delete copy[compId]; return copy; });
+                                                                                            setUploadProgressPercent(prev => { const copy = { ...prev }; delete copy[compId]; return copy; });
+                                                                                        }} className="text-slate-400 hover:text-red-500"><X size={14} /></button>
+                                                                                    </div>
+                                                                                )}
+                                                                                {progress === 'done' && <span className="text-[10px] font-bold text-emerald-600 uppercase">✓ OK</span>}
+                                                                            </div>
+                                                                            {progress === 'uploading' && (
+                                                                                <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                                                                                    <div className="bg-[#10b981] h-full transition-all" style={{ width: `${uploadProgressPercent[compId] || 0}%` }} />
+                                                                                </div>
+                                                                            )}
                                                                         </div>
                                                                     )}
                                                                 </div>
@@ -1111,19 +1223,46 @@ export default function SurveyStartPage() {
                                                                                         className="w-full p-2.5 rounded-xl border bg-white outline-none transition-all cursor-pointer file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 text-sm border-slate-200"
                                                                                     />
                                                                                     {fieldVal && !currentFile && typeof fieldVal === 'string' && fieldVal.startsWith('http') && (
-                                                                                        <a href={fieldVal} target="_blank" rel="noreferrer" className="text-sm text-emerald-600 font-medium hover:underline inline-flex items-center gap-1">
-                                                                                            <FileCheck size={14} /> Lihat File Tersimpan
-                                                                                        </a>
+                                                                                        <div className="relative group">
+                                                                                            <a href={fieldVal} target="_blank" rel="noreferrer" 
+                                                                                                className="flex items-center gap-2.5 p-3 rounded-xl border border-emerald-100 bg-emerald-50/50 text-emerald-700 text-xs font-semibold hover:bg-emerald-100 transition-all border-dashed">
+                                                                                                <FileCheck size={14} className="shrink-0" />
+                                                                                                <div className="flex-1 min-w-0">
+                                                                                                    <p className="truncate">{fieldVal.split('/').pop()?.split('_').slice(1).join('_') || 'Lihat File'}</p>
+                                                                                                    {uploadTimestamps[compId] && (
+                                                                                                        <p className="text-[9px] text-emerald-500 font-normal">
+                                                                                                            {new Date(uploadTimestamps[compId]).toLocaleString('id-ID')}
+                                                                                                        </p>
+                                                                                                    )}
+                                                                                                </div>
+                                                                                                <ExternalLink size={12} className="shrink-0 opacity-40 group-hover:opacity-100" />
+                                                                                            </a>
+                                                                                        </div>
                                                                                     )}
                                                                                     {currentFile && (
-                                                                                        <div className="flex items-center gap-2 p-2.5 rounded-lg border text-sm bg-slate-50 border-slate-200 text-slate-600">
-                                                                                            <Upload size={14} className="shrink-0" />
-                                                                                            <span className="truncate font-medium flex-1">{currentFile.name} ({progress === 'uploading' ? '...' : (currentFile.size / 1024 / 1024).toFixed(1) + 'MB'})</span>
-                                                                                            <button type="button" onClick={() => {
-                                                                                                setFileObjects(prev => { const copy = { ...prev }; delete copy[compId]; return copy; });
-                                                                                                handleMultipleAnswerChange(q.id, activeGroupLabel, field.label, field.type, '');
-                                                                                                setUploadProgress(prev => { const copy = { ...prev }; delete copy[compId]; return copy; });
-                                                                                            }} className="text-slate-400 hover:text-red-500"><X size={14} /></button>
+                                                                                        <div className="space-y-2">
+                                                                                            <div className={`flex items-center gap-2 p-2.5 rounded-lg border text-sm ${progress === 'done' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                                                                                                <Upload size={14} className="shrink-0" />
+                                                                                                <span className="truncate font-medium flex-1">{currentFile.name}</span>
+                                                                                                
+                                                                                                {progress !== 'uploading' && progress !== 'done' && (
+                                                                                                    <div className="flex items-center gap-1.5">
+                                                                                                        <button type="button" onClick={() => handleSingleFileUpload(q.id, compId, activeGroupLabel, field.label)} className="px-2 py-1 bg-[#10b981] text-white text-[10px] font-bold rounded hover:bg-[#059669]">Upload</button>
+                                                                                                        <button type="button" onClick={() => {
+                                                                                                            setFileObjects(prev => { const copy = { ...prev }; delete copy[compId]; return copy; });
+                                                                                                            handleMultipleAnswerChange(q.id, activeGroupLabel, field.label, field.type, '');
+                                                                                                            setUploadProgress(prev => { const copy = { ...prev }; delete copy[compId]; return copy; });
+                                                                                                            setUploadProgressPercent(prev => { const copy = { ...prev }; delete copy[compId]; return copy; });
+                                                                                                        }} className="text-slate-400 hover:text-red-500"><X size={14} /></button>
+                                                                                                    </div>
+                                                                                                )}
+                                                                                                {progress === 'done' && <span className="text-[10px] font-bold text-emerald-600 uppercase">✓ OK</span>}
+                                                                                            </div>
+                                                                                            {progress === 'uploading' && (
+                                                                                                <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                                                                                                    <div className="bg-[#10b981] h-full transition-all" style={{ width: `${uploadProgressPercent[compId] || 0}%` }} />
+                                                                                                </div>
+                                                                                            )}
                                                                                         </div>
                                                                                     )}
                                                                                 </div>

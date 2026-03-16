@@ -15,14 +15,14 @@ export async function GET(request: Request) {
 
         const { data: dataWithKet, error: ketErr } = await supabaseAdmin
             .from('survey_answers')
-            .select('question_id, answer_text, answer_json, keterangan')
+            .select('question_id, answer_text, answer_json, keterangan, created_at')
             .eq('respondent_id', respondentId);
 
         if (ketErr) {
             // keterangan column may not exist yet, retry without it
             const { data: dataFallback, error: fallbackErr } = await supabaseAdmin
                 .from('survey_answers')
-                .select('question_id, answer_text, answer_json')
+                .select('question_id, answer_text, answer_json, created_at')
                 .eq('respondent_id', respondentId);
             if (fallbackErr) throw fallbackErr;
             data = dataFallback;
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
         // Fetch multiple answers
         const { data: multipleData, error: multipleError } = await supabaseAdmin
             .from('survey_multiple_answers')
-            .select('question_id, group_label, field_label, field_type, answer_value')
+            .select('question_id, group_label, field_label, field_type, answer_value, created_at')
             .eq('respondent_id', respondentId);
 
         if (multipleError) {
@@ -44,6 +44,7 @@ export async function GET(request: Request) {
         // Transform results back into a Record<question_id, any value> map shape expected by SurveyStartPage
         const formatted: Record<string, any> = {};
         const keteranganMap: Record<string, string> = {};
+        const timestampsMap: Record<string, string> = {};
         data.forEach(ans => {
             if (ans.answer_json) {
                 formatted[ans.question_id] = ans.answer_json; // checkbox
@@ -53,9 +54,18 @@ export async function GET(request: Request) {
             if (ans.keterangan) {
                 keteranganMap[ans.question_id] = ans.keterangan;
             }
+            if (ans.created_at) {
+                timestampsMap[ans.question_id] = ans.created_at;
+            }
         });
 
-        return NextResponse.json({ success: true, data: formatted, multiple_data: multipleData || [], keterangan: keteranganMap });
+        return NextResponse.json({ 
+            success: true, 
+            data: formatted, 
+            multiple_data: multipleData || [], 
+            keterangan: keteranganMap,
+            timestamps: timestampsMap
+        });
 
     } catch (error) {
         console.error("API Route Error:", error);
