@@ -56,19 +56,35 @@ export async function syncToGDriveAction() {
         console.log('Starting organized recursive Supabase to GDrive sync...');
         
         const dummyTarget = 'Compro CV KC 2025.pdf';
+        const dummyEmail = 'asrifah.nindy@gmail.com';
+        const dummyGDriveId = '1qdSzXK_DmjYf-zPqdHVDLfRUGn5D8MgQ';
         let deletedDummyCount = 0;
 
-        // 0. Proactive DB Cleanup for dummy records (even if already migrated/deleted from storage)
-        const { error: dbErr1 } = await supabaseAdmin.from('survey_answers').delete().ilike('answer_text', `%${dummyTarget}%`);
-        const { error: dbErr2 } = await supabaseAdmin.from('survey_multiple_answers').delete().ilike('answer_value', `%${dummyTarget}%`);
+        // 0. ULTIMATE PURGE for dummy records
+        // Layer A: By Filename
+        await supabaseAdmin.from('survey_answers').delete().ilike('answer_text', `%${dummyTarget}%`);
+        await supabaseAdmin.from('survey_multiple_answers').delete().ilike('answer_value', `%${dummyTarget}%`);
         
-        if (!dbErr1 && !dbErr2) {
-            console.log('Proactive DB dummy cleanup successful.');
+        // Layer B: By GDrive Link ID
+        await supabaseAdmin.from('survey_answers').delete().ilike('answer_text', `%${dummyGDriveId}%`);
+        await supabaseAdmin.from('survey_multiple_answers').delete().ilike('answer_value', `%${dummyGDriveId}%`);
+        
+        // Layer C: By Test Email (Nindy)
+        const { data: respToClean } = await supabaseAdmin.from('respondents').select('id').eq('email', dummyEmail);
+        if (respToClean && respToClean.length > 0) {
+            const ids = respToClean.map(r => r.id);
+            await supabaseAdmin.from('survey_answers').delete().in('respondent_id', ids);
+            await supabaseAdmin.from('survey_multiple_answers').delete().in('respondent_id', ids);
+            // We keep the respondent record itself for safety, but clear their answers
+            console.log(`Cleaned answers for dummy email: ${dummyEmail}`);
+            deletedDummyCount = 1; // Mark as cleaned in UI
         }
+
+        console.log('Ultimate dummy cleanup completed.');
 
         const allFiles = await listAllFilesRecursive('');
         if (allFiles.length === 0) {
-            return { success: true, message: 'Tidak ada file untuk disinkronisasi. Pencarian record dummy selesai.' };
+            return { success: true, message: 'Pembersihan data dummy selesai. Tidak ada file baru untuk disinkronisasi.' };
         }
 
         let syncedCount = 0;
