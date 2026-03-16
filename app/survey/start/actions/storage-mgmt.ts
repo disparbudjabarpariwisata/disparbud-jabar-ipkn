@@ -55,15 +55,24 @@ export async function syncToGDriveAction() {
     try {
         console.log('Starting organized recursive Supabase to GDrive sync...');
         
+        const dummyTarget = 'Compro CV KC 2025.pdf';
+        let deletedDummyCount = 0;
+
+        // 0. Proactive DB Cleanup for dummy records (even if already migrated/deleted from storage)
+        const { error: dbErr1 } = await supabaseAdmin.from('survey_answers').delete().ilike('answer_text', `%${dummyTarget}%`);
+        const { error: dbErr2 } = await supabaseAdmin.from('survey_multiple_answers').delete().ilike('answer_value', `%${dummyTarget}%`);
+        
+        if (!dbErr1 && !dbErr2) {
+            console.log('Proactive DB dummy cleanup successful.');
+        }
+
         const allFiles = await listAllFilesRecursive('');
         if (allFiles.length === 0) {
-            return { success: true, message: 'Tidak ada file untuk disinkronisasi.' };
+            return { success: true, message: 'Tidak ada file untuk disinkronisasi. Pencarian record dummy selesai.' };
         }
 
         let syncedCount = 0;
-        let deletedDummyCount = 0;
         let errors = [];
-        const dummyTarget = 'Compro CV KC 2025.pdf';
 
         for (const file of allFiles) {
             try {
