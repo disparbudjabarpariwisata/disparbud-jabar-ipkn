@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Loader2, AlertCircle, Save, CheckCircle2, Upload, FileCheck, X, ExternalLink, MessageSquare, ChevronDown } from 'lucide-react';
 import LikertSlider from '@/components/LikertSlider';
+import { uploadFileAction } from './actions/upload';
 
 // Allowed file types and max size
 const ALLOWED_EXTENSIONS = ['.pdf', '.xls', '.xlsx', '.doc', '.docx', '.ppt', '.pptx', '.jpeg', '.jpg', '.png', '.mp4', '.mov', '.zip', '.rar'];
@@ -418,24 +419,13 @@ export default function SurveyStartPage() {
                         formData.append('role_id', roleId!);
                         formData.append('institution_name', identity.institution || '');
 
-                        const uploadRes = await fetch('/api/survey/upload-file', {
-                            method: 'POST',
-                            body: formData,
-                        });
+                        const result = await uploadFileAction(formData);
 
-                        if (!uploadRes.ok) {
-                            let errMessage = 'Upload gagal';
-                            try {
-                                const errData = await uploadRes.json();
-                                errMessage = errData.error || errMessage;
-                            } catch (e) {
-                                if (uploadRes.status === 413) errMessage = 'File terlalu besar. Batas maksimal server terlampaui.';
-                                else errMessage = `Error Server ${uploadRes.status}: ${uploadRes.statusText}`;
-                            }
-                            throw new Error(errMessage);
+                        if (!result.success) {
+                            throw new Error(result.error || 'Upload gagal');
                         }
 
-                        const uploadData = await uploadRes.json();
+                        const uploadData = result;
 
                         // Update the answer with the Google Drive URL
                         setAnswers(prev => ({ ...prev, [q.id]: uploadData.fileUrl }));
@@ -475,23 +465,13 @@ export default function SurveyStartPage() {
                         formData.append('group_label', group_label);
                         formData.append('field_label', field_label);
 
-                        const uploadRes = await fetch('/api/survey/upload-file', {
-                            method: 'POST',
-                            body: formData,
-                        });
+                        const result = await uploadFileAction(formData);
 
-                        if (!uploadRes.ok) {
-                            let errMessage = 'Upload gagal';
-                            try {
-                                const errData = await uploadRes.json();
-                                errMessage = errData.error || errMessage;
-                            } catch (e) {
-                                if (uploadRes.status === 413) errMessage = 'File terlalu besar. Batas maksimal server terlampaui.';
-                                else errMessage = `Error Server ${uploadRes.status}: ${uploadRes.statusText}`;
-                            }
-                            throw new Error(errMessage);
+                        if (!result.success) {
+                            throw new Error(result.error || 'Upload gagal');
                         }
-                        const uploadData = await uploadRes.json();
+
+                        const uploadData = result;
 
                         // We need to update multipleAnswers array for this question
                         setMultipleAnswers(prev => {
