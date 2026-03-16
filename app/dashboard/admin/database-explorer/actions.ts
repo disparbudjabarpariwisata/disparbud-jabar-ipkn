@@ -7,17 +7,19 @@ export async function getAllTablesDataAction() {
         // Since we can't easily query information_schema from the standard Supabase client 
         // without raw SQL (which might be restricted), we define the known core tables.
         const tableNames = [
-            'respondents',
+            'survey_perangkat_daerah',
+            'survey_pemerintah_terkait',
+            'survey_pemda_kabkota',
+            'survey_questions',
             'survey_answers',
             'survey_multiple_answers',
-            'questions',
-            'institutions',
-            'institutions_terkait',
             'role_types',
-            'cities',
+            'institution_names',
+            'institution_names2',
+            'cities_jabar',
             'data_map',
             'hero_slider',
-            'seo_config',
+            'seo_settings',
             'users'
         ];
 

@@ -98,26 +98,44 @@ export default function DatabaseExplorerPage() {
                                 <div className="col-span-full py-12 flex justify-center">
                                     <Loader2 className="animate-spin text-gray-300" size={40} />
                                 </div>
-                            ) : filteredTableNames.map((name) => (
-                                <div 
-                                    key={name}
-                                    onClick={() => handleSelectTable(name)}
-                                    className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-[#10b981]/30 transition-all cursor-pointer group"
-                                >
-                                    <div className="flex items-center justify-between mb-3">
-                                        <div className="p-2 bg-gray-50 rounded-lg text-gray-600 group-hover:bg-[#10b981]/10 group-hover:text-[#10b981] transition-colors">
-                                            <TableIcon size={20} />
+                            ) : filteredTableNames.map((tableName) => {
+                                const count = allData[tableName]?.length || 0;
+                                const displayName = tableName
+                                    .replace('survey_perangkat_daerah', 'Responden: Perangkat Daerah')
+                                    .replace('survey_pemerintah_terkait', 'Responden: Instansi Terkait')
+                                    .replace('survey_pemda_kabkota', 'Responden: Kab/Kota')
+                                    .replace('survey_questions', 'Daftar Pertanyaan')
+                                    .replace('survey_answers', 'Jawaban (Text/File)')
+                                    .replace('survey_multiple_answers', 'Jawaban (Checkbox/Multiple)')
+                                    .replace('institution_names2', 'Institusi Terkait (Master)')
+                                    .replace('institution_names', 'Institusi PD (Master)')
+                                    .replace('cities_jabar', 'Kota/Kab (Master)')
+                                    .replace('seo_settings', 'SEO Config')
+                                    .replace(/_/g, ' ')
+                                    .replace(/\b\w/g, l => l.toUpperCase());
+
+                                return (
+                                    <div 
+                                        key={tableName}
+                                        onClick={() => handleSelectTable(tableName)}
+                                        className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-[#10b981]/30 transition-all cursor-pointer group"
+                                    >
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="p-2 bg-gray-50 rounded-lg text-gray-600 group-hover:bg-[#10b981]/10 group-hover:text-[#10b981] transition-colors">
+                                                <TableIcon size={20} />
+                                            </div>
+                                            <span className="text-[10px] font-bold px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full group-hover:bg-[#10b981]/10 group-hover:text-[#10b981]">
+                                                {count}{count >= 100 ? '+' : ''} records
+                                            </span>
                                         </div>
-                                        <span className="text-[10px] font-bold px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">
-                                            {allData[name].length}{allData[name].length >= 100 ? '+' : ''} records
-                                        </span>
+                                        <h3 className="font-bold text-gray-900 truncate group-hover:text-[#10b981] transition-colors">{displayName}</h3>
+                                        <p className="text-[10px] text-gray-400 font-mono mt-0.5">{tableName}</p>
+                                        <p className="text-xs text-gray-500 mt-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Eye size={12} /> Klik untuk detail isi
+                                        </p>
                                     </div>
-                                    <h3 className="font-bold text-gray-900 truncate">{name}</h3>
-                                    <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-                                        <Eye size={12} /> Klik untuk melihat detail isi tabel
-                                    </p>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 ) : (
