@@ -3,21 +3,42 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { uploadToGoogleDrive } from '@/lib/googleDrive';
 
+async function listAllFilesRecursive(path: string = ''): Promise<{ name: string; path: string; metadata: any }[]> {
+    const { data, error } = await supabaseAdmin.storage.from('survey_uploads').list(path, { limit: 1000 });
+    if (error) throw error;
+    if (!data) return [];
+
+    let allFiles: { name: string; path: string; metadata: any }[] = [];
+
+    for (const item of data) {
+        const itemPath = path ? `${path}/${item.name}` : item.name;
+        
+        // If it's a folder (metadata is null or it has no size and is not the placeholder)
+        if (!item.metadata && item.name !== '.emptyFolderPlaceholder') {
+            const subFiles = await listAllFilesRecursive(itemPath);
+            allFiles = allFiles.concat(subFiles);
+        } else if (item.name !== '.emptyFolderPlaceholder') {
+            allFiles.push({
+                name: item.name,
+                path: itemPath,
+                metadata: item.metadata
+            });
+        }
+    }
+
+    return allFiles;
+}
+
 export async function getStorageStatsAction() {
     try {
         let totalSize = 0;
+        const allFiles = await listAllFilesRecursive('');
         
-        // List all files in the bucket (simplified, assuming flat for now)
-        const { data: files, error: listError } = await supabaseAdmin.storage.from('survey_uploads').list('', { limit: 1000 });
-        if (listError) throw listError;
-        
-        if (files) {
-            files.forEach(f => {
-                if (f.metadata && f.metadata.size) {
-                    totalSize += f.metadata.size;
-                }
-            });
-        }
+        allFiles.forEach(f => {
+            if (f.metadata && f.metadata.size) {
+                totalSize += f.metadata.size;
+            }
+        });
 
         return { 
             success: true, 
@@ -32,26 +53,24 @@ export async function getStorageStatsAction() {
 
 export async function syncToGDriveAction() {
     try {
-        // 1. Get all files in Supabase Storage
-        const { data: files, error: listError } = await supabaseAdmin.storage.from('survey_uploads').list('', { limit: 1000 });
-        if (listError) throw listError;
+        console.log('Starting recursive Supabase to GDrive sync...');
+        
+        // 1. Get ALL files recursively
+        const allFiles = await listAllFilesRecursive('');
 
-        if (!files || files.length === 0 || (files.length === 1 && files[0].name === '.emptyFolderPlaceholder')) {
+        if (allFiles.length === 0) {
             return { success: true, message: 'Tidak ada file untuk disinkronisasi.' };
         }
 
         let syncedCount = 0;
         let errors = [];
 
-        for (const fileMetadata of files) {
-            const fileName = fileMetadata.name;
-            if (fileName === '.emptyFolderPlaceholder') continue;
-
+        for (const file of allFiles) {
             try {
-                // 2. Download file from Supabase
+                // 2. Download file from Supabase using full path
                 const { data: fileBlob, error: downloadError } = await supabaseAdmin.storage
                     .from('survey_uploads')
-                    .download(fileName);
+                    .download(file.path);
                 
                 if (downloadError) throw downloadError;
 
@@ -61,35 +80,33 @@ export async function syncToGDriveAction() {
                 
                 const gDriveResult = await uploadToGoogleDrive(
                     buffer,
-                    fileName,
-                    fileMetadata.metadata?.mimetype || 'application/octet-stream',
+                    file.name,
+                    file.metadata?.mimetype || 'application/octet-stream',
                     'Survey Migrated'
                 );
 
                 // 4. Update Database
-                // We use ilike to find any link containing the filename
-                
                 // Update survey_answers
                 const { error: ansErr } = await supabaseAdmin
                     .from('survey_answers')
                     .update({ answer_text: gDriveResult.fileUrl })
-                    .ilike('answer_text', `%${fileName}%`);
+                    .ilike('answer_text', `%${file.name}%`);
                 if (ansErr) console.error('Error updating survey_answers:', ansErr);
 
                 // Update survey_multiple_answers
                 const { error: multErr } = await supabaseAdmin
                     .from('survey_multiple_answers')
                     .update({ answer_value: gDriveResult.fileUrl })
-                    .ilike('answer_value', `%${fileName}%`);
+                    .ilike('answer_value', `%${file.name}%`);
                 if (multErr) console.error('Error updating survey_multiple_answers:', multErr);
 
                 // 5. Delete from Supabase only after DB update
-                await supabaseAdmin.storage.from('survey_uploads').remove([fileName]);
+                await supabaseAdmin.storage.from('survey_uploads').remove([file.path]);
                 
                 syncedCount++;
             } catch (err: any) {
-                console.error(`Failed to sync ${fileName}:`, err);
-                errors.push(`${fileName}: ${err.message}`);
+                console.error(`Failed to sync ${file.path}:`, err);
+                errors.push(`${file.name}: ${err.message}`);
             }
         }
 
