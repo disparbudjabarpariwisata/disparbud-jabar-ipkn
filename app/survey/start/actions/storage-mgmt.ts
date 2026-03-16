@@ -53,28 +53,67 @@ export async function getStorageStatsAction() {
 
 export async function syncToGDriveAction() {
     try {
-        console.log('Starting recursive Supabase to GDrive sync...');
+        console.log('Starting organized recursive Supabase to GDrive sync...');
         
-        // 1. Get ALL files recursively
         const allFiles = await listAllFilesRecursive('');
-
         if (allFiles.length === 0) {
             return { success: true, message: 'Tidak ada file untuk disinkronisasi.' };
         }
 
         let syncedCount = 0;
+        let deletedDummyCount = 0;
         let errors = [];
+        const dummyTarget = 'Compro CV KC 2025.pdf';
 
         for (const file of allFiles) {
             try {
-                // 2. Download file from Supabase using full path
+                // 1. Check if it's the dummy file correctly identified by user
+                if (file.name.includes(dummyTarget)) {
+                    // Delete from DB and Storage immediately without migrating
+                    await supabaseAdmin.from('survey_answers').delete().ilike('answer_text', `%${file.name}%`);
+                    await supabaseAdmin.from('survey_multiple_answers').delete().ilike('answer_value', `%${file.name}%`);
+                    await supabaseAdmin.storage.from('survey_uploads').remove([file.path]);
+                    deletedDummyCount++;
+                    console.log('Deleted dummy test file:', file.path);
+                    continue;
+                }
+
+                // 2. Fetch Metadata (Institution & Question)
+                // We find the answer record that points to this file
+                const { data: ansData } = await supabaseAdmin
+                    .from('survey_answers')
+                    .select('*, respondents(*, institutions(*)), questions(*)')
+                    .ilike('answer_text', `%${file.name}%`)
+                    .single();
+
+                let metaPath = 'Survey Migrated';
+                if (ansData) {
+                    const instName = ansData.respondents?.institutions?.name || 'Unknown Institution';
+                    const qText = ansData.questions?.question_text?.substring(0, 50) || 'Unknown Question';
+                    metaPath = `Survey Migrated/${instName}/${qText}`;
+                } else {
+                    // Check multiple answers
+                    const { data: multData } = await supabaseAdmin
+                        .from('survey_multiple_answers')
+                        .select('*, respondents(*, institutions(*)), questions(*)')
+                        .ilike('answer_value', `%${file.name}%`)
+                        .single();
+                    
+                    if (multData) {
+                        const instName = multData.respondents?.institutions?.name || 'Unknown Institution';
+                        const qText = multData.questions?.question_text?.substring(0, 50) || 'Unknown Question';
+                        metaPath = `Survey Migrated/${instName}/${qText}`;
+                    }
+                }
+
+                // 3. Download from Supabase
                 const { data: fileBlob, error: downloadError } = await supabaseAdmin.storage
                     .from('survey_uploads')
                     .download(file.path);
                 
                 if (downloadError) throw downloadError;
 
-                // 3. Upload to Google Drive
+                // 4. Upload to GDrive with nested folder
                 const arrayBuffer = await fileBlob.arrayBuffer();
                 const buffer = Buffer.from(arrayBuffer);
                 
@@ -82,25 +121,21 @@ export async function syncToGDriveAction() {
                     buffer,
                     file.name,
                     file.metadata?.mimetype || 'application/octet-stream',
-                    'Survey Migrated'
+                    metaPath
                 );
 
-                // 4. Update Database
-                // Update survey_answers
-                const { error: ansErr } = await supabaseAdmin
+                // 5. Update Database links
+                await supabaseAdmin
                     .from('survey_answers')
                     .update({ answer_text: gDriveResult.fileUrl })
                     .ilike('answer_text', `%${file.name}%`);
-                if (ansErr) console.error('Error updating survey_answers:', ansErr);
 
-                // Update survey_multiple_answers
-                const { error: multErr } = await supabaseAdmin
+                await supabaseAdmin
                     .from('survey_multiple_answers')
                     .update({ answer_value: gDriveResult.fileUrl })
                     .ilike('answer_value', `%${file.name}%`);
-                if (multErr) console.error('Error updating survey_multiple_answers:', multErr);
 
-                // 5. Delete from Supabase only after DB update
+                // 6. Delete from Supabase
                 await supabaseAdmin.storage.from('survey_uploads').remove([file.path]);
                 
                 syncedCount++;
@@ -110,13 +145,16 @@ export async function syncToGDriveAction() {
             }
         }
 
+        let finalMsg = `Berhasil memindahkan ${syncedCount} file ke Google Drive secara terorganisir.`;
+        if (deletedDummyCount > 0) finalMsg += ` Dan menghapus ${deletedDummyCount} file dummy.`;
+
         return { 
             success: true, 
-            message: `Berhasil memindahkan ${syncedCount} file ke Google Drive.`,
+            message: finalMsg,
             errorDetails: errors.length > 0 ? errors : null
         };
     } catch (err: any) {
-        console.error('Sync process failed:', err);
+        console.error('Organized sync failed:', err);
         return { success: false, error: err.message };
     }
 }

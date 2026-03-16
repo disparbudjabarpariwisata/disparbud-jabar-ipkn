@@ -59,7 +59,7 @@ export async function uploadToGoogleDrive(
     let targetFolderId = parentFolderId;
 
     if (subfolder) {
-        targetFolderId = await getOrCreateSubfolder(accessToken, parentFolderId, subfolder);
+        targetFolderId = await getOrCreateSubfolderRecursive(accessToken, parentFolderId, subfolder);
         console.log(`[GDrive] Using subfolder ID: ${targetFolderId}`);
     }
 
@@ -134,14 +134,32 @@ export async function uploadToGoogleDrive(
 }
 
 /**
- * Find or create a subfolder inside a parent folder on Google Drive
+ * Find or create a subfolder inside a parent folder on Google Drive (supports nested paths like 'A/B/C')
+ */
+export async function getOrCreateSubfolderRecursive(
+    accessToken: string,
+    parentFolderId: string,
+    folderPath: string
+): Promise<string> {
+    const parts = folderPath.split('/').filter(p => p.trim() !== '');
+    let currentParentId = parentFolderId;
+
+    for (const part of parts) {
+        currentParentId = await getOrCreateSubfolder(accessToken, currentParentId, part);
+    }
+
+    return currentParentId;
+}
+
+/**
+ * Find or create a single level subfolder
  */
 async function getOrCreateSubfolder(
     accessToken: string,
     parentFolderId: string,
     folderName: string
 ): Promise<string> {
-    const query = `name='${folderName}' and '${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+    const query = `name='${folderName.replace(/'/g, "\\'")}' and '${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
     const searchRes = await fetch(
         `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name)`,
         {
