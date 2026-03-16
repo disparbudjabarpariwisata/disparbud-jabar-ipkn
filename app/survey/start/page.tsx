@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Loader2, AlertCircle, Save, CheckCircle2, Upload, FileCheck, X, ExternalLink, MessageSquare, ChevronDown } from 'lucide-react';
 import LikertSlider from '@/components/LikertSlider';
-import { uploadFileAction } from './actions/upload';
+import { saveSurveyFileUrlAction } from './actions/db-updates';
 
 // Allowed file types and max size
 const ALLOWED_EXTENSIONS = ['.pdf', '.xls', '.xlsx', '.doc', '.docx', '.ppt', '.pptx', '.jpeg', '.jpg', '.png', '.mp4', '.mov', '.zip', '.rar'];
@@ -421,17 +421,40 @@ export default function SurveyStartPage() {
                         formData.append('role_id', roleId!);
                         formData.append('institution_name', identity.institution || '');
 
-                        const result = await uploadFileAction(formData);
+                        // Step 1.1: Upload to Supabase Storage Directly
+                        const fileExt = file.name.split('.').pop();
+                        const timestamp = new Date().getTime();
+                        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+                        const filePath = `${identity.id}/${timestamp}_${safeName}`;
 
-                        if (!result.success) {
-                            throw new Error(result.error || 'Upload gagal');
-                        }
+                        const { data: uploadData, error: uploadError } = await supabase.storage
+                            .from('survey_uploads')
+                            .upload(filePath, file, {
+                                cacheControl: '3600',
+                                upsert: true
+                            });
 
-                        const uploadData = result;
+                        if (uploadError) throw uploadError;
 
-                        // Update the answer with the Google Drive URL
-                        setAnswers(prev => ({ ...prev, [q.id]: uploadData.fileUrl }));
-                        localAnswers[q.id] = uploadData.fileUrl; // keep synchronous state
+                        // Step 1.2: Get Public URL
+                        const { data: { publicUrl } } = supabase.storage
+                            .from('survey_uploads')
+                            .getPublicUrl(filePath);
+
+                        // Step 1.3: Save to Database via Server Action
+                        const dbFormData = new FormData();
+                        dbFormData.append('file_url', publicUrl);
+                        dbFormData.append('respondent_id', identity.id);
+                        dbFormData.append('question_id', q.id);
+                        dbFormData.append('role_id', roleId!);
+                        dbFormData.append('is_multiple', 'false');
+
+                        const dbResult = await saveSurveyFileUrlAction(dbFormData);
+                        if (!dbResult.success) throw new Error(dbResult.error);
+
+                        // Update the answer with the Public URL
+                        setAnswers(prev => ({ ...prev, [q.id]: publicUrl }));
+                        localAnswers[q.id] = publicUrl; // keep synchronous state
 
                         setUploadProgress(prev => ({ ...prev, [q.id]: 'done' }));
                     } catch (uploadErr: any) {
@@ -457,23 +480,37 @@ export default function SurveyStartPage() {
                     setUploadProgress(prev => ({ ...prev, [fileKey]: 'uploading' }));
 
                     try {
-                        const formData = new FormData();
-                        formData.append('file', file);
-                        formData.append('respondent_id', identity.id);
-                        formData.append('question_id', question_id);
-                        formData.append('role_id', roleId!);
-                        formData.append('institution_name', identity.institution || '');
-                        formData.append('is_multiple', 'true');
-                        formData.append('group_label', group_label);
-                        formData.append('field_label', field_label);
+                        // Step 1.1: Upload to Supabase Storage Directly
+                        const timestamp = new Date().getTime();
+                        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+                        const filePath = `${identity.id}/multiple/${timestamp}_${safeName}`;
 
-                        const result = await uploadFileAction(formData);
+                        const { data: uploadData, error: uploadError } = await supabase.storage
+                            .from('survey_uploads')
+                            .upload(filePath, file, {
+                                cacheControl: '3600',
+                                upsert: true
+                            });
 
-                        if (!result.success) {
-                            throw new Error(result.error || 'Upload gagal');
-                        }
+                        if (uploadError) throw uploadError;
 
-                        const uploadData = result;
+                        // Step 1.2: Get Public URL
+                        const { data: { publicUrl } } = supabase.storage
+                            .from('survey_uploads')
+                            .getPublicUrl(filePath);
+
+                        // Step 1.3: Save to Database via Server Action
+                        const dbFormData = new FormData();
+                        dbFormData.append('file_url', publicUrl);
+                        dbFormData.append('respondent_id', identity.id);
+                        dbFormData.append('question_id', question_id);
+                        dbFormData.append('role_id', roleId!);
+                        dbFormData.append('is_multiple', 'true');
+                        dbFormData.append('group_label', group_label);
+                        dbFormData.append('field_label', field_label);
+
+                        const dbResult = await saveSurveyFileUrlAction(dbFormData);
+                        if (!dbResult.success) throw new Error(dbResult.error);
 
                         // We need to update multipleAnswers array for this question
                         setMultipleAnswers(prev => {
@@ -481,9 +518,8 @@ export default function SurveyStartPage() {
                             return {
                                 ...prev,
                                 [question_id]: currentArr.map(ans => {
-                                    // if this answer matches the fileKey logic, update its answer_value
                                     if (`${question_id}_${ans.group_label}_${ans.field_label}` === fileKey) {
-                                        return { ...ans, answer_value: uploadData.fileUrl };
+                                        return { ...ans, answer_value: publicUrl };
                                     }
                                     return ans;
                                 })
@@ -494,7 +530,7 @@ export default function SurveyStartPage() {
                         if (localMultipleAnswers[question_id]) {
                             localMultipleAnswers[question_id] = localMultipleAnswers[question_id].map((ans: any) => {
                                 if (`${question_id}_${ans.group_label}_${ans.field_label}` === fileKey) {
-                                    return { ...ans, answer_value: uploadData.fileUrl };
+                                    return { ...ans, answer_value: publicUrl };
                                 }
                                 return ans;
                             });
