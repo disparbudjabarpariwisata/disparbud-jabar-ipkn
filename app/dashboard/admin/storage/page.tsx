@@ -131,11 +131,11 @@ export default function StorageManagementPage() {
 
                         <button
                             onClick={handleSync}
-                            disabled={isSyncing || usagePercent === 0}
+                            disabled={isSyncing}
                             className="mt-4 w-full py-2.5 bg-[#10b981] text-white rounded-xl font-semibold text-sm hover:bg-[#059669] transition-all shadow-md disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                             {isSyncing ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />}
-                            Mulai Pindahkan File Sekarang
+                            {usagePercent === 0 ? 'Bersihkan Data Dummy / Cek File Baru' : 'Mulai Pindahkan File Sekarang'}
                         </button>
                     </div>
                 </div>
