@@ -167,10 +167,9 @@ export default function SurveyStartPage() {
                     setExpandedKeterangan(expanded);
                 }
                 if (progressData.success && progressData.timestamps) {
-                    setUploadTimestamps(progressData.timestamps);
+                    setUploadTimestamps(prev => ({ ...prev, ...progressData.timestamps }));
                 }
                 if (progressData.success && progressData.multiple_data) {
-
                     // Group the multiple answers by question_id
                     const grouped = progressData.multiple_data.reduce((acc: any, row: any) => {
                         if (!acc[row.question_id]) acc[row.question_id] = [];
@@ -178,6 +177,42 @@ export default function SurveyStartPage() {
                         return acc;
                     }, {});
                     setMultipleAnswers(grouped);
+
+                    // Extract all unique file URLs for reuse and their timestamps
+                    const allFiles: { url: string, name: string }[] = [];
+                    const addedUrls = new Set<string>();
+                    const newTimestamps: Record<string, string> = {};
+
+                    const addFile = (url: string, timestamp?: string, compositeId?: string) => {
+                        if (url && url.startsWith('http') && !addedUrls.has(url)) {
+                            const name = url.split('/').pop()?.split('_').slice(1).join('_') || 'File';
+                            allFiles.push({ url, name });
+                            addedUrls.add(url);
+                        }
+                        if (compositeId && timestamp) {
+                            newTimestamps[compositeId] = timestamp;
+                        }
+                    };
+
+                    // Process standard answers for files
+                    Object.entries(progressData.data || {}).forEach(([qId, val]: [string, any]) => {
+                        if (typeof val === 'string' && val.startsWith('http')) {
+                            addFile(val);
+                        }
+                    });
+
+                    // Process multiple answers for files and timestamps
+                    progressData.multiple_data.forEach((row: any) => {
+                        if (row.field_type === 'file_upload' && row.answer_value) {
+                            const compId = `${row.question_id}_${row.group_label}_${row.field_label}`;
+                            addFile(row.answer_value, row.created_at, compId);
+                        }
+                    });
+
+                    setUploadedFiles(allFiles);
+                    if (Object.keys(newTimestamps).length > 0) {
+                        setUploadTimestamps(prev => ({ ...prev, ...newTimestamps }));
+                    }
                 }
             }
 
