@@ -1,0 +1,50 @@
+'use server';
+
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
+
+export async function getAllTablesDataAction() {
+    try {
+        // Since we can't easily query information_schema from the standard Supabase client 
+        // without raw SQL (which might be restricted), we define the known core tables.
+        const tableNames = [
+            'respondents',
+            'survey_answers',
+            'survey_multiple_answers',
+            'questions',
+            'institutions',
+            'institutions_terkait',
+            'role_types',
+            'cities',
+            'data_map',
+            'hero_slider',
+            'seo_config',
+            'users'
+        ];
+
+        const allData: Record<string, any[]> = {};
+        
+        for (const table of tableNames) {
+            const { data, error } = await supabaseAdmin.from(table).select('*').limit(100);
+            if (!error && data) {
+                allData[table] = data;
+            } else {
+                allData[table] = []; // Empty or error
+            }
+        }
+
+        return { success: true, allData };
+    } catch (err: any) {
+        console.error('Database Explorer Error:', err);
+        return { success: false, error: err.message };
+    }
+}
+
+export async function getSingleTableDataAction(tableName: string) {
+    try {
+        const { data, error } = await supabaseAdmin.from(tableName).select('*').limit(200);
+        if (error) throw error;
+        return { success: true, data };
+    } catch (err: any) {
+        return { success: false, error: err.message };
+    }
+}

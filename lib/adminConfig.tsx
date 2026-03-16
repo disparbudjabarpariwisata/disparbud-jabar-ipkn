@@ -36,6 +36,7 @@ export const adminMenuItems = [
     { label: 'Hero Slider', href: '/dashboard/admin/hero-slider', icon: <Image size={18} /> },
     { label: 'SEO General', href: '/dashboard/admin/seo', icon: <Search size={18} /> },
     { label: 'Penyimpanan', href: '/dashboard/admin/storage', icon: <Database size={18} /> },
+    { label: 'Database Explorer', href: '/dashboard/admin/database-explorer', icon: <Search size={18} /> },
     { label: 'Database Backup', href: '/dashboard/admin/backup', icon: <Database size={18} /> },
     { label: 'Settings', href: '/dashboard/admin/settings', icon: <Settings size={18} /> },
 ];
