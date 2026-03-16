@@ -3,8 +3,6 @@
 import { uploadToGoogleDrive } from '@/lib/googleDrive';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
-export const maxDuration = 60; // 60 seconds timeout for large file uploads
-
 export async function uploadFileAction(formData: FormData) {
     try {
         const file = formData.get('file') as File | null;
