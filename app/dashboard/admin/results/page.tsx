@@ -413,17 +413,30 @@ export default function AdminResultsPage() {
                                             <td className="px-5 py-3 min-w-[150px]">{row.position}</td>
                                             <td className="px-5 py-3 min-w-[300px] text-xs leading-relaxed text-gray-800 bg-amber-50/30">{row.question_text}</td>
                                             <td className="px-5 py-3 min-w-[200px] font-medium text-emerald-700">
-                                                {row.answer && row.answer.startsWith('http') ? (
-                                                    <a
-                                                        href={row.answer}
-                                                        target="_blank"
-                                                        rel="noreferrer"
-                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold hover:bg-blue-100 border border-blue-200 transition-colors"
-                                                    >
-                                                        <ExternalLink size={13} />
-                                                        {row.answer.includes('drive.google.com') ? 'Buka File di Google Drive' : 'Buka Link'}
-                                                    </a>
-                                                ) : (
+                                                {row.answer && row.answer.startsWith('http') ? (() => {
+                                                    const isGDrive = row.answer.includes('drive.google.com');
+                                                    const isSupabase = row.answer.includes('supabase.co/storage');
+                                                    const isFile = isGDrive || isSupabase;
+                                                    const fileName = isSupabase
+                                                        ? decodeURIComponent(row.answer.split('/').pop()?.split('?')[0] || '').replace(/^\d+_/, '')
+                                                        : null;
+                                                    return (
+                                                        <div className="flex flex-col gap-1">
+                                                            <a
+                                                                href={row.answer}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold hover:bg-blue-100 border border-blue-200 transition-colors"
+                                                            >
+                                                                <ExternalLink size={13} />
+                                                                {isGDrive ? 'Buka File di Google Drive' : isFile ? 'Buka File' : 'Buka Link'}
+                                                            </a>
+                                                            {fileName && (
+                                                                <span className="text-[10px] text-gray-400 truncate max-w-[180px]" title={fileName}>{fileName}</span>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })() : (
                                                     row.answer
                                                 )}
                                             </td>
