@@ -485,12 +485,6 @@ export default function SurveyStartPage() {
         setUploadProgressPercent(prev => ({ ...prev, [key]: 0 }));
 
         try {
-            const timestamp = new Date().getTime();
-            const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-            const filePath = compositeKey 
-                ? `${identity.id}/multiple/${timestamp}_${safeName}`
-                : `${identity.id}/${timestamp}_${safeName}`;
-
             // Simulate progress
             const progressInterval = setInterval(() => {
                 setUploadProgressPercent(prev => {
@@ -503,37 +497,33 @@ export default function SurveyStartPage() {
                 });
             }, 200);
 
-            const { data: uploadData, error: uploadError } = await supabase.storage
-                .from('survey_uploads')
-                .upload(filePath, file, {
-                    cacheControl: '3600',
-                    upsert: true
-                });
+            // Upload via server-side API route (uses admin key to bypass RLS)
+            const uploadFormData = new FormData();
+            uploadFormData.append('file', file);
+            uploadFormData.append('respondent_id', identity.id);
+            uploadFormData.append('question_id', qId);
+            uploadFormData.append('role_id', roleId);
+            uploadFormData.append('is_multiple', compositeKey ? 'true' : 'false');
+            if (groupLabel) uploadFormData.append('group_label', groupLabel);
+            if (fieldLabel) uploadFormData.append('field_label', fieldLabel);
+
+            const uploadRes = await fetch('/api/survey/upload-to-storage', {
+                method: 'POST',
+                body: uploadFormData,
+            });
 
             clearInterval(progressInterval);
-            if (uploadError) throw uploadError;
 
+            const uploadResult = await uploadRes.json();
+            if (!uploadRes.ok || !uploadResult.success) {
+                throw new Error(uploadResult.error || 'Upload gagal. Silakan coba lagi.');
+            }
+
+            const publicUrl = uploadResult.publicUrl;
+            const safeName = uploadResult.fileName;
             setUploadProgressPercent(prev => ({ ...prev, [key]: 100 }));
 
-            // Step 2: Get Public URL
-            const { data: { publicUrl } } = supabase.storage
-                .from('survey_uploads')
-                .getPublicUrl(filePath);
-
-            // Step 3: Save to Database via Server Action
-            const dbFormData = new FormData();
-            dbFormData.append('file_url', publicUrl);
-            dbFormData.append('respondent_id', identity.id);
-            dbFormData.append('question_id', qId);
-            dbFormData.append('role_id', roleId);
-            dbFormData.append('is_multiple', compositeKey ? 'true' : 'false');
-            if (groupLabel) dbFormData.append('group_label', groupLabel);
-            if (fieldLabel) dbFormData.append('field_label', fieldLabel);
-
-            const dbResult = await saveSurveyFileUrlAction(dbFormData);
-            if (!dbResult.success) throw new Error(dbResult.error);
-
-            // Step 4: Update States
+            // Update States
             if (!compositeKey) {
                 setAnswers(prev => ({ ...prev, [qId]: publicUrl }));
                 setUploadTimestamps(prev => ({ ...prev, [qId]: new Date().toISOString() }));
@@ -567,7 +557,8 @@ export default function SurveyStartPage() {
             console.error(`Upload failed for ${key}:`, err);
             setUploadProgress(prev => ({ ...prev, [key]: 'error' }));
             setError(`Gagal upload file "${file.name}": ${err.message}`);
-            setTimeout(() => setError(null), 5000);
+            // Keep error visible longer so user can read it
+            setTimeout(() => setError(null), 10000);
         }
     };
 
@@ -956,6 +947,12 @@ export default function SurveyStartPage() {
                                         />
                                     </div>
                                 )}
+                                {progress === 'error' && (
+                                    <div className="flex items-center gap-2 p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs">
+                                        <AlertCircle size={14} className="shrink-0" />
+                                        <span>Upload gagal. Klik <b>Upload Sekarang</b> untuk mencoba lagi.</span>
+                                    </div>
+                                )}
                             </div>
                         )}
                         <p className="text-xs text-slate-400 font-medium italic">
@@ -1152,6 +1149,12 @@ export default function SurveyStartPage() {
                                                                             {progress === 'uploading' && (
                                                                                 <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
                                                                                     <div className="bg-[#10b981] h-full transition-all" style={{ width: `${uploadProgressPercent[compId] || 0}%` }} />
+                                                                                </div>
+                                                                            )}
+                                                                            {progress === 'error' && (
+                                                                                <div className="flex items-center gap-1.5 p-2 rounded-lg bg-red-50 border border-red-200 text-red-600 text-[11px]">
+                                                                                    <AlertCircle size={12} className="shrink-0" />
+                                                                                    <span>Upload gagal. Klik <b>Upload</b> untuk coba lagi.</span>
                                                                                 </div>
                                                                             )}
                                                                         </div>
