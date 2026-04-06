@@ -9,6 +9,16 @@ import DataStorySection from '@/components/DataStorySection';
 import Link from 'next/link';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { westJavaLocations } from '@/lib/westJavaLocations';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: "Data Pariwisata Jawa Barat | Smiling West Java",
+  description: "Eksplorasi cerita data pariwisata Jawa Barat terlengkap. Temukan insight tentang infrastruktur, ekonomi kreatif, kesehatan, dan potensi desa wisata di 27 wilayah kabupaten dan kota.",
+  keywords: "data pariwisata jawa barat, cerita data pariwisata jawa barat, wajah pariwisata jawa barat, statistik wisata jabar, destinasi pariwisata jabar",
+  alternates: {
+    canonical: "https://smilingwestjava.official.id/"
+  }
+};
 
 export default async function Home() {
   const videos = await getLatestYouTubeVideos(10);
@@ -109,14 +119,14 @@ export default async function Home() {
       {/* YouTube Video Carousel Section */}
       <YouTubeCarousel videos={videos} />
 
-      {/* Welcome Section */}
+      {/* Welcome Section / SEO H1 */}
       <section className="px-6 md:px-16 py-20 bg-gray-50">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="font-['Inter:Semi_Bold',sans-serif] font-semibold text-3xl md:text-5xl text-black mb-6">
-            Welcome to Smiling West Java Repository Website
-          </h2>
-          <p className="font-['Inter:Medium',sans-serif] font-medium text-lg md:text-xl text-[rgba(0,0,0,0.55)] leading-relaxed">
-            Discover everything you need to know about tourism in West Java Province.
+          <h1 className="font-['Inter:Semi_Bold',sans-serif] font-semibold text-3xl md:text-5xl text-black mb-6">
+            Pusat Data Pariwisata Jawa Barat
+          </h1>
+          <p className="font-['Inter:Medium',sans-serif] font-medium text-lg md:text-xl text-[rgba(0,0,0,0.55)] leading-relaxed mb-4">
+            Welcome to Smiling West Java Repository. Discover everything you need to know about tourism potentials, infrastructure, and analytics in West Java Province.
           </p>
         </div>
       </section>
