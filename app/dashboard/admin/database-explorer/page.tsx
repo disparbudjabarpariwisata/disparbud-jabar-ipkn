@@ -160,6 +160,9 @@ export default function DatabaseExplorerPage() {
                                     .replace('cities_jabar', 'Kota/Kab (Master)')
                                     .replace('seo_settings', 'SEO Config')
                                     .replace('kata_kreatif_jabar', 'Kata Kreatif Jabar (Indeks Ekonomi Kreatif)')
+                                    .replace('data_kesehatan_jabar', 'Data Kesehatan Jabar (Per Tahun)')
+                                    .replace('data_desa_wisata_jabar', 'Daftar Desa Wisata Jabar')
+                                    .replace('data_sarpras_olahraga_jabar', 'Sarana & Prasarana Olahraga Jabar')
                                     .replace(/_/g, ' ')
                                     .replace(/\b\w/g, l => l.toUpperCase());
 
