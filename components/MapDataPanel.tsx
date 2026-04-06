@@ -229,6 +229,7 @@ export default function MapDataPanel({ data, cityName, onClose, allMapData = [] 
                                 {chartData?.jkn && chartData.jkn[0].value > 0 && (
                                     <ChartCard 
                                         title="Cakupan JKN (%)" 
+                                        description="Persentase penduduk wilayah ini yang terlindungi oleh asuransi JKN (Jaminan Kesehatan Nasional). Angka ini mencerminkan tingkatan akses masyarakat dan wisatawan lokal terhadap fasilitas medis pertama."
                                         icon={<Shield size={16} className="text-emerald-500" />}
                                         data={chartData.jkn} 
                                         color="#10b981"
@@ -239,6 +240,7 @@ export default function MapDataPanel({ data, cityName, onClose, allMapData = [] 
                                 {chartData?.bed && chartData.bed[0].value > 0 && (
                                     <ChartCard 
                                         title="Ketersediaan RST (per 1.000 pddk)" 
+                                        description="Rasio jumlah RST (Rumah Sakit Tempat Tidur) yang dihitung per 1.000 Penduduk (pddk). Indikator vital ini mengukur kesigapan fasilitas rawat inap medis apabila terjadi gawat darurat kepariwisataan."
                                         icon={<Bed size={16} className="text-blue-500" />}
                                         data={chartData.bed} 
                                         color="#3b82f6"
@@ -248,6 +250,7 @@ export default function MapDataPanel({ data, cityName, onClose, allMapData = [] 
                                 {chartData?.doc && chartData.doc[0].value > 0 && (
                                     <ChartCard 
                                         title="Ketersediaan Dokter Umum (per 1.000 pddk)" 
+                                        description="Rasio jumlah ketersediaan Dokter Umum per 1.000 Penduduk (pddk) di wilayah ini. Sangat penting peranannya dalam pertolongan gawat darurat medis tahap pertama di area sekitar lokasi rekreasi."
                                         icon={<Stethoscope size={16} className="text-indigo-500" />}
                                         data={chartData.doc} 
                                         color="#6366f1"
@@ -257,6 +260,7 @@ export default function MapDataPanel({ data, cityName, onClose, allMapData = [] 
                                 {chartData?.spesialis && chartData.spesialis[0].value > 0 && (
                                     <ChartCard 
                                         title="Ketersediaan Dr Spesialis (per 1.000 pddk)" 
+                                        description="Rasio ketersediaan Dr (Dokter) Spesialis per 1.000 Penduduk (pddk). Menunjukkan kesigapan instansi rumah sakit sekitar area untuk menangani kasus penyakit klinis tahap lanjut."
                                         icon={<Activity size={16} className="text-purple-500" />}
                                         data={chartData.spesialis} 
                                         color="#8b5cf6"
@@ -497,18 +501,23 @@ function InfoCard({ icon, title, content }: { icon: React.ReactNode; title: stri
     );
 }
 
-function ChartCard({ title, icon, data, color, formatter, delay }: { title: string, icon: React.ReactNode, data: any[], color: string, formatter?: (val: number) => string, delay: number }) {
+function ChartCard({ title, icon, data, color, formatter, delay, description }: { title: string, icon: React.ReactNode, data: any[], color: string, formatter?: (val: number) => string, delay: number, description?: string }) {
     return (
         <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, delay }}
-            className="p-4 rounded-xl border border-gray-100 bg-white shadow-sm flex flex-col h-56"
+            className="p-4 rounded-xl border border-gray-100 bg-white shadow-sm flex flex-col h-[280px]"
         >
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 mb-2">
                 <div className="p-1.5 bg-gray-50 rounded-md">{icon}</div>
                 <h4 className="text-xs font-bold text-gray-700">{title}</h4>
             </div>
+            {description && (
+                <p className="text-[10px] text-gray-500 mb-3 leading-relaxed">
+                    {description}
+                </p>
+            )}
             <div className="flex-1 w-full min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={data} layout="vertical" margin={{ top: 0, right: 30, left: 0, bottom: 0 }}>
