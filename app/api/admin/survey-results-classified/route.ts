@@ -278,33 +278,90 @@ export async function GET(request: NextRequest) {
             });
 
             for (const q of displayQuestions) {
-                let actualAnswer = '';
                 const ans = answersMap[q.id];
+                const multiDetail = multiAnswersMap[q.id];
+                const sectionLabel = groupLabelMap[q.id] || '';
+                const ket = (keteranganByRespondent[user.id] || {})[q.id] || '';
+
+                // Detect file link from standard answer
+                let fileLink = '';
+                if (ans && typeof ans === 'string' && ans.startsWith('http')) {
+                    fileLink = ans;
+                }
+
+                // If multiple_input with group details, split into separate rows per group_label
+                if (multiDetail && multiDetail.length > 0) {
+                    // Get unique group labels from the respondent's actual answers
+                    const uniqueGroupLabels = [...new Set(
+                        multiDetail
+                            .filter((d: any) => d.group_label && String(d.group_label).trim() !== '')
+                            .map((d: any) => String(d.group_label))
+                    )];
+
+                    if (uniqueGroupLabels.length > 0) {
+                        // Create one row per group_label
+                        for (const gl of uniqueGroupLabels) {
+                            const groupEntries = multiDetail.filter((d: any) => d.group_label === gl);
+                            
+                            // Build answer text for this group only
+                            const groupTexts = groupEntries
+                                .filter((d: any) => d.answer_value && String(d.answer_value).trim() !== '')
+                                .map((d: any) => `${d.field_label}: ${d.answer_value}`);
+                            
+                            const groupAnswer = groupTexts.length > 0 ? groupTexts.join(' | ') : '';
+
+                            // Detect file links within this group
+                            let groupFileLink = '';
+                            const fileEntries = groupEntries.filter((d: any) =>
+                                (d.field_type === 'file_upload' || d.field_type === 'upload_file') &&
+                                d.answer_value && String(d.answer_value).startsWith('http')
+                            );
+                            if (fileEntries.length > 0) {
+                                groupFileLink = fileEntries.map((d: any) => d.answer_value).join(' | ');
+                            }
+                            // Also check for any URL-like answer_value (gdrive, supabase storage)
+                            if (!groupFileLink) {
+                                const urlEntries = groupEntries.filter((d: any) =>
+                                    d.answer_value && String(d.answer_value).startsWith('http')
+                                );
+                                if (urlEntries.length > 0) {
+                                    groupFileLink = urlEntries.map((d: any) => d.answer_value).join(' | ');
+                                }
+                            }
+
+                            let baseAnswer = '';
+                            if (ans !== null && ans !== undefined) {
+                                baseAnswer = Array.isArray(ans) ? ans.join(', ') : String(ans);
+                            }
+                            const fullAnswer = baseAnswer && groupAnswer
+                                ? `${baseAnswer} | ${groupAnswer}`
+                                : groupAnswer || baseAnswer;
+
+                            resultRows.push({
+                                institution: user.institution,
+                                email: user.email,
+                                respondent_name: user.pic_name || 'NN',
+                                question_text: q.question_text,
+                                question_type: q.question_type,
+                                answer: fullAnswer,
+                                group_label: gl,
+                                keterangan: ket,
+                                file_link: groupFileLink || fileLink,
+                                progress: progress,
+                                updated_at: latestUpdate,
+                            });
+                        }
+                        continue; // Skip the default row push below
+                    }
+                }
+
+                // Default: one row per question (no multiple_input groups)
+                let actualAnswer = '';
                 if (ans !== null && ans !== undefined) {
                     if (Array.isArray(ans)) {
                         actualAnswer = ans.join(', ');
                     } else {
                         actualAnswer = String(ans);
-                    }
-                }
-
-                // Include multiple answers detail
-                const multiDetail = multiAnswersMap[q.id];
-                let groupLabels = '';
-                if (multiDetail && multiDetail.length > 0) {
-                    // Extract unique group labels
-                    const uniqueLabels = [...new Set(
-                        multiDetail
-                            .filter((d: any) => d.group_label && String(d.group_label).trim() !== '')
-                            .map((d: any) => String(d.group_label))
-                    )];
-                    groupLabels = uniqueLabels.join(' | ');
-
-                    const multiTexts = multiDetail
-                        .filter((d: any) => d.answer_value && String(d.answer_value).trim() !== '')
-                        .map((d: any) => `${d.group_label} → ${d.field_label}: ${d.answer_value}`);
-                    if (multiTexts.length > 0) {
-                        actualAnswer = actualAnswer ? `${actualAnswer} | ${multiTexts.join(' | ')}` : multiTexts.join(' | ');
                     }
                 }
 
@@ -315,8 +372,9 @@ export async function GET(request: NextRequest) {
                     question_text: q.question_text,
                     question_type: q.question_type,
                     answer: actualAnswer,
-                    group_label: multipleInputLabelsMap[q.id] || groupLabels || groupLabelMap[q.id] || '',
-                    keterangan: (keteranganByRespondent[user.id] || {})[q.id] || '',
+                    group_label: multipleInputLabelsMap[q.id] || sectionLabel,
+                    keterangan: ket,
+                    file_link: fileLink,
                     progress: progress,
                     updated_at: latestUpdate,
                 });
@@ -369,6 +427,7 @@ export async function GET(request: NextRequest) {
                             answer: '',
                             group_label: multipleInputLabelsMap[q.id] || groupLabelMap[q.id] || '',
                             keterangan: '',
+                            file_link: '',
                             progress: 0,
                             updated_at: null,
                             isUnregistered: true,

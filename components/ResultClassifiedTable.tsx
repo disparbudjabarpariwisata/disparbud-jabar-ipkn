@@ -17,6 +17,7 @@ type ResultRow = {
     answer: string;
     group_label: string;
     keterangan: string;
+    file_link: string;
     progress: number;
     updated_at: string;
 };
@@ -93,6 +94,7 @@ export default function ResultClassifiedTable({ status, title, description }: Pr
             'Jawaban Pertanyaan': row.answer,
             'Label / Judul Grup': row.group_label || '',
             'Keterangan': row.keterangan || '',
+            'Link File Upload': row.file_link || '',
             'Persentase Progress': `${row.progress}%`,
             'Tanggal Update Survei': row.updated_at
                 ? new Date(row.updated_at).toLocaleString('id-ID', {
@@ -113,6 +115,7 @@ export default function ResultClassifiedTable({ status, title, description }: Pr
             { wch: 40 }, // Jawaban
             { wch: 50 }, // Label / Judul Grup
             { wch: 40 }, // Keterangan
+            { wch: 60 }, // Link File Upload
             { wch: 15 }, // Persentase
             { wch: 25 }, // Tanggal
         ];
@@ -195,6 +198,7 @@ export default function ResultClassifiedTable({ status, title, description }: Pr
                                     <th className="px-4 py-4 whitespace-nowrap">Jawaban</th>
                                     <th className="px-4 py-4 whitespace-nowrap">Label / Judul Grup</th>
                                     <th className="px-4 py-4 whitespace-nowrap">Keterangan</th>
+                                    <th className="px-4 py-4 whitespace-nowrap">Link File</th>
                                     <th className="px-4 py-4 whitespace-nowrap">Progress</th>
                                     <th className="px-4 py-4 whitespace-nowrap">Tanggal Update</th>
                                 </tr>
@@ -202,7 +206,7 @@ export default function ResultClassifiedTable({ status, title, description }: Pr
                             <tbody className="divide-y divide-gray-100">
                                 {isLoading ? (
                                     <tr>
-                                        <td colSpan={11} className="px-5 py-8 text-center text-gray-500">
+                                        <td colSpan={12} className="px-5 py-8 text-center text-gray-500">
                                             <div className="flex justify-center mb-2">
                                                 <Loader2 className="animate-spin text-[#10b981]" size={24} />
                                             </div>
@@ -211,7 +215,7 @@ export default function ResultClassifiedTable({ status, title, description }: Pr
                                     </tr>
                                 ) : results.length === 0 ? (
                                     <tr>
-                                        <td colSpan={11} className="px-5 py-8 text-center text-gray-500">
+                                        <td colSpan={12} className="px-5 py-8 text-center text-gray-500">
                                             Tidak ada data ditemukan untuk filter tersebut.
                                         </td>
                                     </tr>
@@ -257,6 +261,27 @@ export default function ResultClassifiedTable({ status, title, description }: Pr
                                             </td>
                                             <td className="px-4 py-3 min-w-[180px] text-xs text-gray-500 italic">
                                                 {row.keterangan || <span className="text-gray-300">-</span>}
+                                            </td>
+                                            <td className="px-4 py-3 min-w-[200px] text-xs">
+                                                {row.file_link ? (
+                                                    <div className="flex flex-col gap-1">
+                                                        {row.file_link.split(' | ').map((link: string, li: number) => (
+                                                            <a
+                                                                key={li}
+                                                                href={link.trim()}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-semibold hover:bg-indigo-100 border border-indigo-200 transition-colors truncate max-w-[250px]"
+                                                                title={link.trim()}
+                                                            >
+                                                                <ExternalLink size={13} />
+                                                                {link.includes('drive.google.com') ? 'Google Drive' : link.includes('supabase') ? 'Supabase Storage' : 'Buka File'}
+                                                            </a>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-gray-300">-</span>
+                                                )}
                                             </td>
                                             <td className="px-4 py-3 whitespace-nowrap">
                                                 <div className="flex items-center gap-2 w-28">
