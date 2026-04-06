@@ -8,6 +8,7 @@ import {
     PieChart, Pie, Cell, AreaChart, Area, Legend, LineChart, Line
 } from 'recharts';
 import { Activity, Map, Trophy, ShieldAlert, TrendingUp, Loader2 } from 'lucide-react';
+import KataKreatifChart from '@/components/KataKreatifChart';
 
 type DataMapRow = {
     city_name: string;
@@ -157,7 +158,7 @@ export default function DataStorySection() {
         { id: 'desa', label: 'Desa Wisata', icon: Map, color: 'text-amber-500', bg: 'bg-amber-50', activeBg: 'bg-amber-500', border: 'border-amber-200' },
         { id: 'olahraga', label: 'Sarana Olahraga', icon: Trophy, color: 'text-blue-500', bg: 'bg-blue-50', activeBg: 'bg-blue-500', border: 'border-blue-200' },
         { id: 'keamanan', label: 'Keamanan (Soon)', icon: ShieldAlert, color: 'text-gray-400', bg: 'bg-gray-50', activeBg: 'bg-gray-800', border: 'border-gray-200' },
-        { id: 'ekonomi', label: 'Ekonomi Kreatif (Soon)', icon: TrendingUp, color: 'text-gray-400', bg: 'bg-gray-50', activeBg: 'bg-gray-800', border: 'border-gray-200' },
+        { id: 'ekonomi', label: 'Ekonomi Kreatif', icon: TrendingUp, color: 'text-teal-500', bg: 'bg-teal-50', activeBg: 'bg-teal-600', border: 'border-teal-200' },
     ] as const;
 
     const renderCustomTooltip = ({ active, payload, label }: any) => {
@@ -394,17 +395,22 @@ export default function DataStorySection() {
                                     </div>
                                 )}
 
-                                {/* --- SOON TABS --- */}
-                                {(activeTab === 'keamanan' || activeTab === 'ekonomi') && (
+                                {/* --- KEAMANAN SOON TAB --- */}
+                                {activeTab === 'keamanan' && (
                                     <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center px-4">
                                         <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-6 border-2 border-dashed border-gray-200">
-                                            {activeTab === 'keamanan' ? <ShieldAlert size={32} className="text-gray-400" /> : <TrendingUp size={32} className="text-gray-400" />}
+                                            <ShieldAlert size={32} className="text-gray-400" />
                                         </div>
                                         <h3 className="text-xl font-bold text-gray-800 mb-2">Basis Data Sedang Dipersiapkan</h3>
                                         <p className="text-gray-500 max-w-md">
-                                            Integrasi agregasi intelijen data untuk sektor {activeTab === 'keamanan' ? 'Keamanan dan Kriminalitas' : 'Ekonomi Kreatif'} sedang dalam tahap sinkronisasi dengan pemangku kepentingan terkait.
+                                            Integrasi agregasi intelijen data untuk sektor Keamanan dan Kriminalitas sedang dalam tahap sinkronisasi dengan pemangku kepentingan terkait.
                                         </p>
                                     </div>
+                                )}
+
+                                {/* --- EKONOMI KREATIF TAB (LIVE) --- */}
+                                {activeTab === 'ekonomi' && (
+                                    <KataKreatifChart />
                                 )}
                             </motion.div>
                         </AnimatePresence>

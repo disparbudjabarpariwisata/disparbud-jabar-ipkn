@@ -20,7 +20,8 @@ export async function getAllTablesDataAction() {
             'data_map',
             'hero_slider',
             'seo_settings',
-            'users'
+            'users',
+            'kata_kreatif_jabar',
         ];
 
         const allData: Record<string, any[]> = {};
