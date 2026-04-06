@@ -146,58 +146,96 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Quick Links Section */}
+      {/* Quick Links Section -> Repositori Data */}
       <section className="px-6 md:px-16 py-20 mb-10">
         <div className="max-w-7xl mx-auto">
-          <h3 className="font-['Inter:Semi_Bold',sans-serif] font-semibold text-2xl md:text-3xl text-black mb-12 text-center">
-            Discover More
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white border-2 border-gray-200 rounded-2xl p-8 hover:border-[#2645cf] transition-colors">
-              <h4 className="font-['Inter:Semi_Bold',sans-serif] font-semibold text-xl text-black mb-4">
-                Video Gallery
-              </h4>
-              <p className="font-['Inter:Medium',sans-serif] font-medium text-base text-[rgba(0,0,0,0.55)] mb-6">
-                Watch exciting videos about West Java tourism
-              </p>
-              <Link
-                href="/videos"
-                prefetch={false}
-                className="inline-block bg-[#2645cf] hover:bg-[#1e37a8] transition-colors text-white px-6 py-3 rounded-lg text-sm"
-              >
-                View Videos
-              </Link>
-            </div>
+          <div className="text-center mb-16">
+            <h1 className="font-['Inter:Semi_Bold',sans-serif] font-bold text-3xl md:text-5xl text-gray-900 mb-4">
+              Data Pariwisata Jawa Barat
+            </h1>
+            <h2 className="font-['Inter:Medium',sans-serif] font-medium text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
+              Repositori data pendukung pengembangan pariwisata Jawa Barat
+            </h2>
+          </div>
 
-            <div className="bg-white border-2 border-gray-200 rounded-2xl p-8 hover:border-[#2645cf] transition-colors">
-              <h4 className="font-['Inter:Semi_Bold',sans-serif] font-semibold text-xl text-black mb-4">
-                Website Directory
-              </h4>
-              <p className="font-['Inter:Medium',sans-serif] font-medium text-base text-[rgba(0,0,0,0.55)] mb-6">
-                Access various tourism information resources in West Java
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="bg-white border-2 border-gray-100 rounded-3xl p-8 hover:border-[#2645cf] hover:shadow-xl transition-all duration-300 group flex flex-col">
+              <h3 className="font-['Inter:Semi_Bold',sans-serif] font-bold text-xl text-gray-900 mb-4 group-hover:text-[#2645cf] transition-colors">
+                Lingkungan Pendukung Pariwisata Jawa Barat
+              </h3>
+              <p className="font-['Inter:Medium',sans-serif] text-sm text-[rgba(0,0,0,0.65)] leading-relaxed mb-8 flex-grow">
+                Informasi komprehensif mengenai profil ekosistem, sosial, budaya, serta kesiapan lingkungan dari berbagai wilayah di seluruh kabupaten dan kota Jawa Barat. Data ini dirancang untuk mengukur daya saing wilayah dan kesiapan ruang publik dalam mendukung ekosistem wisata alam, buatan, dan keberlanjutan investasi industri pariwisata secara terpadu.
               </p>
               <Link
                 href="/directory"
                 prefetch={false}
-                className="inline-block bg-[#2645cf] hover:bg-[#1e37a8] transition-colors text-white px-6 py-3 rounded-lg text-sm"
+                className="inline-flex items-center justify-center bg-[#2645cf] hover:bg-[#1e37a8] transition-colors text-white px-6 py-3 rounded-xl text-sm font-semibold"
               >
-                View Directory
+                Lihat Direktori Lingkungan
               </Link>
             </div>
 
-            <div className="bg-white border-2 border-gray-200 rounded-2xl p-8 hover:border-[#2645cf] transition-colors">
-              <h4 className="font-['Inter:Semi_Bold',sans-serif] font-semibold text-xl text-black mb-4">
-                Rules & Regulations
-              </h4>
-              <p className="font-['Inter:Medium',sans-serif] font-medium text-base text-[rgba(0,0,0,0.55)] mb-6">
-                Tourism-related regulations in West Java
+            <div className="bg-white border-2 border-gray-100 rounded-3xl p-8 hover:border-[#2645cf] hover:shadow-xl transition-all duration-300 group flex flex-col">
+              <h3 className="font-['Inter:Semi_Bold',sans-serif] font-bold text-xl text-gray-900 mb-4 group-hover:text-[#2645cf] transition-colors">
+                Kondisi dan Kebijakan yang Mendukung Kepariwisataan Jawa Barat
+              </h3>
+              <p className="font-['Inter:Medium',sans-serif] text-sm text-[rgba(0,0,0,0.65)] leading-relaxed mb-8 flex-grow">
+                Kumpulan peraturan tata kelola pemerintah daerah (governance), perizinan investasi, standar operasional (SOP), pengembangan destinasi prioritas, hingga kebijakan pelestarian pariwisata budaya yang menciptakan iklim positif serta kepastian hukum pelindung keselamatan wisatawan.
               </p>
               <Link
                 href="/regulations"
                 prefetch={false}
-                className="inline-block bg-[#2645cf] hover:bg-[#1e37a8] transition-colors text-white px-6 py-3 rounded-lg text-sm"
+                className="inline-flex items-center justify-center bg-[#2645cf] hover:bg-[#1e37a8] transition-colors text-white px-6 py-3 rounded-xl text-sm font-semibold"
               >
-                View Regulations
+                Eksplorasi Kebijakan Wisata
+              </Link>
+            </div>
+
+            <div className="bg-white border-2 border-gray-100 rounded-3xl p-8 hover:border-[#2645cf] hover:shadow-xl transition-all duration-300 group flex flex-col">
+              <h3 className="font-['Inter:Semi_Bold',sans-serif] font-bold text-xl text-gray-900 mb-4 group-hover:text-[#2645cf] transition-colors">
+                Infrastruktur dan Pelayanan Jawa Barat
+              </h3>
+              <p className="font-['Inter:Medium',sans-serif] text-sm text-[rgba(0,0,0,0.65)] leading-relaxed mb-8 flex-grow">
+                Pusat data fasilitas dan infrastruktur pariwisata yang mencakup ketersediaan hotel akomodasi, indeks kemantapan jalan tol dan jalan lokal, kelengkapan transportasi darat dan udara, sarana olahraga, hingga rasio fasilitas pelayanan kesehatan medis darurat di sekitar destinasi pariwisata andalan.
+              </p>
+              <Link
+                href="/directory"
+                prefetch={false}
+                className="inline-flex items-center justify-center bg-[#2645cf] hover:bg-[#1e37a8] transition-colors text-white px-6 py-3 rounded-xl text-sm font-semibold"
+              >
+                Cek Data Infrastruktur Pelayanan
+              </Link>
+            </div>
+
+            <div className="bg-white border-2 border-gray-100 rounded-3xl p-8 hover:border-[#2645cf] hover:shadow-xl transition-all duration-300 group flex flex-col">
+              <h3 className="font-['Inter:Semi_Bold',sans-serif] font-bold text-xl text-gray-900 mb-4 group-hover:text-[#2645cf] transition-colors">
+                Pendorong Permintaan Perjalanan dan Pariwisata Jawa Barat
+              </h3>
+              <p className="font-['Inter:Medium',sans-serif] text-sm text-[rgba(0,0,0,0.65)] leading-relaxed mb-8 flex-grow">
+                Katalog daya tarik digital meliputi wisata kuliner ikonik, program desa wisata tematik (rintisan hingga mandiri), ekonomi kreatif, agenda pertunjukan budaya internasional, dan promosi media kreatif yang berperan sebagai pemicu utama lonjakan permintaan angka kunjungan turis domestik nusantara dan mancanegara ke The Smiling West Java.
+              </p>
+              <Link
+                href="/videos"
+                prefetch={false}
+                className="inline-flex items-center justify-center bg-[#2645cf] hover:bg-[#1e37a8] transition-colors text-white px-6 py-3 rounded-xl text-sm font-semibold"
+              >
+                Lihat Pendorong Permintaan Wisata
+              </Link>
+            </div>
+
+            <div className="bg-white border-2 border-gray-100 rounded-3xl p-8 hover:border-[#2645cf] hover:shadow-xl transition-all duration-300 group flex flex-col">
+              <h3 className="font-['Inter:Semi_Bold',sans-serif] font-bold text-xl text-gray-900 mb-4 group-hover:text-[#2645cf] transition-colors">
+                Keberlanjutan Lingkungan Dalam Kepariwisataan Jawa Barat
+              </h3>
+              <p className="font-['Inter:Medium',sans-serif] text-sm text-[rgba(0,0,0,0.65)] leading-relaxed mb-8 flex-grow">
+                Laporan dan pangkalan data pengelolaan pariwisata berkelanjutan (Green Tourism) dan upaya pelestarian. Pemantauan dampak tata guna lahan, efisiensi penanganan sampah, ekowisata, hingga mitigasi kerentanan terhadap risiko perubahan alam di titik pariwisata provinsi Jawa Barat.
+              </p>
+              <Link
+                href="/directory"
+                prefetch={false}
+                className="inline-flex items-center justify-center bg-[#2645cf] hover:bg-[#1e37a8] transition-colors text-white px-6 py-3 rounded-xl text-sm font-semibold"
+              >
+                Pelajari Data Keberlanjutan Wisata
               </Link>
             </div>
           </div>
