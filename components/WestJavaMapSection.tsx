@@ -37,6 +37,7 @@ export type MapDataItem = {
         spesialis_ratio: number;
     }>;
     desa_wisata_data?: any[];
+    sarpras_olahraga_data?: any[];
 };
 
 interface WestJavaMapSectionProps {

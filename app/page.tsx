@@ -24,13 +24,21 @@ export default async function Home() {
   const videos = await getLatestYouTubeVideos(10);
 
   // Fetch map data, health metrics, and desa wisata server-side for optimal SEO
-  const [mapRes, jknRes, bedRes, drRes, desaRes] = await Promise.all([
+  const [mapRes, jknRes, bedRes, drRes, desaRes, sarprasRes] = await Promise.all([
     supabaseAdmin.from('data_map').select('*').eq('active', true).order('city_name', { ascending: true }),
     supabaseAdmin.from('kesehatan_rasio_jkn').select('*'),
     supabaseAdmin.from('kesehatan_rasio_bedrs').select('*'),
     supabaseAdmin.from('kesehatan_rasio_drumum').select('*'),
-    supabaseAdmin.from('desawisata_jabar').select('*').order('no', { ascending: true })
+    supabaseAdmin.from('desawisata_jabar').select('*').order('no', { ascending: true }),
+    supabaseAdmin.from('data_sarpras_olahraga_jabar').select('*')
   ]);
+
+  if (mapRes.error) throw mapRes.error;
+  if (jknRes.error) throw jknRes.error;
+  if (bedRes.error) throw bedRes.error;
+  if (drRes.error) throw drRes.error;
+  if (desaRes.error) throw desaRes.error;
+  if (sarprasRes.error) throw sarprasRes.error;
 
   const mapData = mapRes.data || [];
 
@@ -70,8 +78,20 @@ export default async function Home() {
       potensi_buatan: d.potensi_buatan
     }));
 
+    // Match sarpras olahraga by city_name
+    const sarprasData = (sarprasRes.data || []).filter(s => {
+      const sName = s.city_name?.toUpperCase() || '';
+      return sName === nameSearch || sName === nameSearch.replace(/^(KABUPATEN |KOTA )/, '');
+    });
+
     const { medical_data, desa_wisata_data: _oldDesa, ...rest } = city;
-    return { ...rest, regional_health, desa_wisata_data: desaVillages };
+    
+    // Clean up old embedded json if it exists
+    if (rest.content && rest.content.sarana_olahraga) {
+        delete rest.content.sarana_olahraga;
+    }
+
+    return { ...rest, regional_health, desa_wisata_data: desaVillages, sarpras_olahraga_data: sarprasData };
   });
 
   // Build JSON-LD structured data for all tourism locations
@@ -277,6 +297,24 @@ export default async function Home() {
                 </p>
               )}
               
+              {/* Data Sarana Olahraga agar terindeks Google */}
+              {loc.sarpras_olahraga_data && loc.sarpras_olahraga_data.length > 0 && (
+                <div>
+                  <h4>Sarana & Prasarana Olahraga {loc.city_name}</h4>
+                  <ul>
+                    {loc.sarpras_olahraga_data.map((s: any, idx: number) => (
+                      <li key={idx}>
+                        <strong>{s.nama_fasilitas || `Sarana ${s.cabang_olahraga}`}</strong> - 
+                        Cabang: {s.cabang_olahraga}, 
+                        Kategori: {s.kategori_fasilitas || s.subkategori || '-'}, 
+                        Kualitas: {s.kelas_kualitas || '-'} 
+                        {s.jumlah_unit > 0 && ` (${s.jumlah_unit} Unit)`}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               {/* Data Desa Wisata agar terindeks Google */}
               {loc.desa_wisata_data && loc.desa_wisata_data.length > 0 && (
                 <div>
