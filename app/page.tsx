@@ -167,7 +167,7 @@ export default async function Home() {
                 Informasi komprehensif mengenai profil ekosistem, sosial, budaya, serta kesiapan lingkungan dari berbagai wilayah di seluruh kabupaten dan kota Jawa Barat. Data ini dirancang untuk mengukur daya saing wilayah dan kesiapan ruang publik dalam mendukung ekosistem wisata alam, buatan, dan keberlanjutan investasi industri pariwisata secara terpadu.
               </p>
               <Link
-                href="/directory"
+                href="/repository/lingkungan-pendukung"
                 prefetch={false}
                 className="inline-flex items-center justify-center bg-[#2645cf] hover:bg-[#1e37a8] transition-colors text-white px-6 py-3 rounded-xl text-sm font-semibold"
               >
@@ -183,7 +183,7 @@ export default async function Home() {
                 Kumpulan peraturan tata kelola pemerintah daerah (governance), perizinan investasi, standar operasional (SOP), pengembangan destinasi prioritas, hingga kebijakan pelestarian pariwisata budaya yang menciptakan iklim positif serta kepastian hukum pelindung keselamatan wisatawan.
               </p>
               <Link
-                href="/regulations"
+                href="/repository/kondisi-kebijakan"
                 prefetch={false}
                 className="inline-flex items-center justify-center bg-[#2645cf] hover:bg-[#1e37a8] transition-colors text-white px-6 py-3 rounded-xl text-sm font-semibold"
               >
@@ -199,7 +199,7 @@ export default async function Home() {
                 Pusat data fasilitas dan infrastruktur pariwisata yang mencakup ketersediaan hotel akomodasi, indeks kemantapan jalan tol dan jalan lokal, kelengkapan transportasi darat dan udara, sarana olahraga, hingga rasio fasilitas pelayanan kesehatan medis darurat di sekitar destinasi pariwisata andalan.
               </p>
               <Link
-                href="/directory"
+                href="/repository/infrastruktur-pelayanan"
                 prefetch={false}
                 className="inline-flex items-center justify-center bg-[#2645cf] hover:bg-[#1e37a8] transition-colors text-white px-6 py-3 rounded-xl text-sm font-semibold"
               >
@@ -215,7 +215,7 @@ export default async function Home() {
                 Katalog daya tarik digital meliputi wisata kuliner ikonik, program desa wisata tematik (rintisan hingga mandiri), ekonomi kreatif, agenda pertunjukan budaya internasional, dan promosi media kreatif yang berperan sebagai pemicu utama lonjakan permintaan angka kunjungan turis domestik nusantara dan mancanegara ke The Smiling West Java.
               </p>
               <Link
-                href="/videos"
+                href="/repository/pendorong-permintaan"
                 prefetch={false}
                 className="inline-flex items-center justify-center bg-[#2645cf] hover:bg-[#1e37a8] transition-colors text-white px-6 py-3 rounded-xl text-sm font-semibold"
               >
@@ -231,7 +231,7 @@ export default async function Home() {
                 Laporan dan pangkalan data pengelolaan pariwisata berkelanjutan (Green Tourism) dan upaya pelestarian. Pemantauan dampak tata guna lahan, efisiensi penanganan sampah, ekowisata, hingga mitigasi kerentanan terhadap risiko perubahan alam di titik pariwisata provinsi Jawa Barat.
               </p>
               <Link
-                href="/directory"
+                href="/repository/keberlanjutan-lingkungan"
                 prefetch={false}
                 className="inline-flex items-center justify-center bg-[#2645cf] hover:bg-[#1e37a8] transition-colors text-white px-6 py-3 rounded-xl text-sm font-semibold"
               >
