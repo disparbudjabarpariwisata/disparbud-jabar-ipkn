@@ -27,7 +27,7 @@ export default async function Home() {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
     name: 'Destinasi Wisata Jawa Barat',
-    description: 'Daftar 27 kota dan kabupaten destinasi wisata di Provinsi Jawa Barat, Indonesia.',
+    description: 'Cerita Data Pariwisata Jawa Barat: Daftar lengkap 27 kota dan kabupaten destinasi wisata, serta statistik kesehatan, desa wisata, olahraga, dan kata kreatif di Provinsi Jawa Barat, Indonesia.',
     numberOfItems: locations.length,
     itemListElement: locations.map((loc, index) => {
       // Match with static coordinates
