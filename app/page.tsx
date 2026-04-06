@@ -13,14 +13,41 @@ import { westJavaLocations } from '@/lib/westJavaLocations';
 export default async function Home() {
   const videos = await getLatestYouTubeVideos(10);
 
-  // Fetch map data server-side for optimal SEO
-  const { data: mapData } = await supabaseAdmin
-    .from('data_map')
-    .select('*')
-    .eq('active', true)
-    .order('city_name', { ascending: true });
+  // Fetch map data and health metrics server-side for optimal SEO
+  const [mapRes, jknRes, bedRes, drRes] = await Promise.all([
+    supabaseAdmin.from('data_map').select('*').eq('active', true).order('city_name', { ascending: true }),
+    supabaseAdmin.from('kesehatan_rasio_jkn').select('*'),
+    supabaseAdmin.from('kesehatan_rasio_bedrs').select('*'),
+    supabaseAdmin.from('kesehatan_rasio_drumum').select('*')
+  ]);
 
-  const locations: MapDataItem[] = mapData || [];
+  const mapData = mapRes.data || [];
+
+  const locations: MapDataItem[] = mapData.map((city) => {
+    const nameSearch = city.city_name.toUpperCase();
+    
+    const jkn = jknRes.data?.find(j => j.kabupaten_kota.toUpperCase() === nameSearch || j.kabupaten_kota.toUpperCase() === nameSearch.replace(/^(KABUPATEN |KOTA )/, ''));
+    const bed = bedRes.data?.find(b => b.kabupaten_kota.toUpperCase() === nameSearch || b.kabupaten_kota.toUpperCase() === nameSearch.replace(/^(KABUPATEN |KOTA )/, ''));
+    const dr = drRes.data?.find(d => d.kabupaten_kota.toUpperCase() === nameSearch || d.kabupaten_kota.toUpperCase() === nameSearch.replace(/^(KABUPATEN |KOTA )/, ''));
+
+    const regional_health = {
+        '2024': {
+            jkn_percent: jkn?.persen_uhc_2024 || 0,
+            bed_ratio: bed?.rasio_bed_rs_2024 || 0,
+            doctor_ratio: dr?.rasio_dokter_umum_2024 || 0,
+            spesialis_ratio: dr?.rasio_dokter_spesialis_2024 || 0
+        },
+        '2025': {
+            jkn_percent: jkn?.persen_uhc_2025 || 0,
+            bed_ratio: bed?.rasio_bed_rs_2025 || 0,
+            doctor_ratio: dr?.rasio_dokter_umum_2025 || 0,
+            spesialis_ratio: dr?.rasio_dokter_spesialis_2025 || 0
+        }
+    };
+
+    const { medical_data, ...rest } = city;
+    return { ...rest, regional_health };
+  });
 
   // Build JSON-LD structured data for all tourism locations
   const jsonLd = {

@@ -75,8 +75,8 @@ export default function DataStorySection() {
         const bedFinal = validBed > 0 ? avgBed / validBed : 0;
         const docFinal = validDoc > 0 ? avgDoc / validDoc : 0;
         
-        // Sort for Bar chart (Top 10 highest JKN)
-        const topCities = [...cityHealth].sort((a, b) => b.jkn - a.jkn).slice(0, 10);
+        // Sort for Bar chart (Top 10 highest Bed + Doc ratio)
+        const topCities = [...cityHealth].sort((a, b) => (b.bed + b.doc) - (a.bed + a.doc)).slice(0, 10);
         return { jknFinal, bedFinal, docFinal, topCities, allCities: cityHealth };
     }, [data]);
 
@@ -261,18 +261,16 @@ export default function DataStorySection() {
 
                                         <div className="lg:col-span-2 space-y-6">
                                             <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm h-[350px]">
-                                                <p className="text-sm font-bold text-gray-700 mb-4 text-center">Top 10 Daerah dengan Cakupan JKN Tertinggi (%)</p>
+                                                <p className="text-sm font-bold text-gray-700 mb-4 text-center">Fasilitas Medis per Kapita: Rasio Tempat Tidur & Dokter (Per 1k Pddk)</p>
                                                 <ResponsiveContainer width="100%" height="85%">
                                                     <BarChart data={healthData.topCities} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                                                         <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6B7280' }} />
-                                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6B7280' }} domain={[0, 100]} />
+                                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6B7280' }} />
                                                         <Tooltip content={renderCustomTooltip} />
-                                                        <Bar dataKey="jkn" name="Cakupan JKN" fill="#10b981" radius={[4, 4, 0, 0]} unit="%">
-                                                            {healthData.topCities.map((entry, index) => (
-                                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                                            ))}
-                                                        </Bar>
+                                                        <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '12px' }} iconType="circle" />
+                                                        <Bar dataKey="bed" name="Tempat Tidur RS" stackId="a" fill="#3b82f6" radius={[0, 0, 0, 0]} animationDuration={1500} unit=" Unit" />
+                                                        <Bar dataKey="doc" name="Tenaga Dokter" stackId="a" fill="#8b5cf6" radius={[4, 4, 0, 0]} animationDuration={1500} unit=" Orang" />
                                                     </BarChart>
                                                 </ResponsiveContainer>
                                             </div>
