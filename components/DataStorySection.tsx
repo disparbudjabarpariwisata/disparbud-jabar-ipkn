@@ -7,8 +7,9 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
     PieChart, Pie, Cell, AreaChart, Area, Legend, LineChart, Line
 } from 'recharts';
-import { Activity, Map, Trophy, ShieldAlert, TrendingUp, Loader2 } from 'lucide-react';
+import { Activity, Map, Trophy, ShieldAlert, TrendingUp, Loader2, MapPin } from 'lucide-react';
 import KataKreatifChart from '@/components/KataKreatifChart';
+import InfrastrukturChart from '@/components/InfrastrukturChart';
 
 type DataMapRow = {
     city_name: string;
@@ -21,7 +22,7 @@ type DataMapRow = {
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899'];
 
 export default function DataStorySection() {
-    const [activeTab, setActiveTab] = useState<'kesehatan' | 'desa' | 'olahraga' | 'keamanan' | 'ekonomi'>('kesehatan');
+    const [activeTab, setActiveTab] = useState<'kesehatan' | 'desa' | 'olahraga' | 'keamanan' | 'ekonomi' | 'infrastruktur'>('kesehatan');
     const [data, setData] = useState<DataMapRow[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -157,8 +158,9 @@ export default function DataStorySection() {
         { id: 'kesehatan', label: 'Kesehatan Wisatawan', icon: Activity, color: 'text-emerald-500', bg: 'bg-emerald-50', activeBg: 'bg-emerald-500', border: 'border-emerald-200' },
         { id: 'desa', label: 'Desa Wisata', icon: Map, color: 'text-amber-500', bg: 'bg-amber-50', activeBg: 'bg-amber-500', border: 'border-amber-200' },
         { id: 'olahraga', label: 'Sarana Olahraga', icon: Trophy, color: 'text-blue-500', bg: 'bg-blue-50', activeBg: 'bg-blue-500', border: 'border-blue-200' },
-        { id: 'keamanan', label: 'Keamanan (Soon)', icon: ShieldAlert, color: 'text-gray-400', bg: 'bg-gray-50', activeBg: 'bg-gray-800', border: 'border-gray-200' },
+        { id: 'infrastruktur', label: 'Infrastruktur', icon: MapPin, color: 'text-purple-500', bg: 'bg-purple-50', activeBg: 'bg-purple-600', border: 'border-purple-200' },
         { id: 'ekonomi', label: 'Ekonomi Kreatif', icon: TrendingUp, color: 'text-teal-500', bg: 'bg-teal-50', activeBg: 'bg-teal-600', border: 'border-teal-200' },
+        { id: 'keamanan', label: 'Keamanan (Soon)', icon: ShieldAlert, color: 'text-gray-400', bg: 'bg-gray-50', activeBg: 'bg-gray-800', border: 'border-gray-200' },
     ] as const;
 
     const renderCustomTooltip = ({ active, payload, label }: any) => {
@@ -411,6 +413,11 @@ export default function DataStorySection() {
                                 {/* --- EKONOMI KREATIF TAB (LIVE) --- */}
                                 {activeTab === 'ekonomi' && (
                                     <KataKreatifChart />
+                                )}
+
+                                {/* --- INFRASTRUKTUR TAB (LIVE) --- */}
+                                {activeTab === 'infrastruktur' && (
+                                    <InfrastrukturChart />
                                 )}
                             </motion.div>
                         </AnimatePresence>

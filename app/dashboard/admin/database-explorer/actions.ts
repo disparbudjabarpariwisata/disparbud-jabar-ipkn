@@ -21,10 +21,11 @@ export async function getAllTablesDataAction() {
             'hero_slider',
             'seo_settings',
             'users',
-            'kata_kreatif_jabar',
             'data_kesehatan_jabar',
             'data_desa_wisata_jabar',
             'data_sarpras_olahraga_jabar',
+            'infraparjabar-permukaan_jalan',
+            'infraparjabar-kemantapan_jalan',
         ];
 
         const allData: Record<string, any[]> = {};

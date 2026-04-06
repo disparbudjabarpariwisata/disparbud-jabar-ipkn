@@ -163,6 +163,8 @@ export default function DatabaseExplorerPage() {
                                     .replace('data_kesehatan_jabar', 'Data Kesehatan Jabar (Per Tahun)')
                                     .replace('data_desa_wisata_jabar', 'Daftar Desa Wisata Jabar')
                                     .replace('data_sarpras_olahraga_jabar', 'Sarana & Prasarana Olahraga Jabar')
+                                    .replace('infraparjabar-permukaan_jalan', 'Infrastruktur Pariwisata: Permukaan Jalan')
+                                    .replace('infraparjabar-kemantapan_jalan', 'Infrastruktur Pariwisata: Kemantapan Jalan')
                                     .replace(/_/g, ' ')
                                     .replace(/\b\w/g, l => l.toUpperCase());
 
