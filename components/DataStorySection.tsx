@@ -90,7 +90,7 @@ export default function DataStorySection() {
         const cityDesa: any[] = [];
 
         data.forEach(row => {
-            const villages = row.content?.desa_wisata || [];
+            const villages = row.desa_wisata_data || [];
             if (villages.length > 0) {
                 totalDesa += villages.length;
                 villages.forEach((v: any) => {

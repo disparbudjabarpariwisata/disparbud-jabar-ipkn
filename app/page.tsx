@@ -23,12 +23,13 @@ export const metadata: Metadata = {
 export default async function Home() {
   const videos = await getLatestYouTubeVideos(10);
 
-  // Fetch map data and health metrics server-side for optimal SEO
-  const [mapRes, jknRes, bedRes, drRes] = await Promise.all([
+  // Fetch map data, health metrics, and desa wisata server-side for optimal SEO
+  const [mapRes, jknRes, bedRes, drRes, desaRes] = await Promise.all([
     supabaseAdmin.from('data_map').select('*').eq('active', true).order('city_name', { ascending: true }),
     supabaseAdmin.from('kesehatan_rasio_jkn').select('*'),
     supabaseAdmin.from('kesehatan_rasio_bedrs').select('*'),
-    supabaseAdmin.from('kesehatan_rasio_drumum').select('*')
+    supabaseAdmin.from('kesehatan_rasio_drumum').select('*'),
+    supabaseAdmin.from('desawisata_jabar').select('*').order('no', { ascending: true })
   ]);
 
   const mapData = mapRes.data || [];
@@ -55,8 +56,22 @@ export default async function Home() {
         }
     };
 
-    const { medical_data, ...rest } = city;
-    return { ...rest, regional_health };
+    // Match desa wisata by kabupaten_kota
+    const desaVillages = (desaRes.data || []).filter(d => {
+      const dName = d.kabupaten_kota?.toUpperCase() || '';
+      return dName === nameSearch || dName === nameSearch.replace(/^(KABUPATEN |KOTA )/, '');
+    }).map(d => ({
+      nama: d.nama_desa_kampung_wisata,
+      desa_kelurahan: d.desa_kelurahan,
+      kecamatan: d.kecamatan,
+      status: d.status_desa_wisata,
+      potensi_alam: d.potensi_alam,
+      potensi_budaya: d.potensi_budaya,
+      potensi_buatan: d.potensi_buatan
+    }));
+
+    const { medical_data, desa_wisata_data: _oldDesa, ...rest } = city;
+    return { ...rest, regional_health, desa_wisata_data: desaVillages };
   });
 
   // Build JSON-LD structured data for all tourism locations
@@ -201,7 +216,7 @@ export default async function Home() {
           className="sr-only"
           aria-label="Data Kepariwisataan Jawa Barat"
         >
-          <h2>Informasi Wisata 27 Kota dan Kabupaten di Jawa Barat</h2>
+          <h2>Informasi Wisata 27 Kota dan Kabupaten di Jawa Barat dan Daftar Desa Wisata</h2>
           {locations.map((loc) => (
             <article key={loc.city_name}>
               <h3>{loc.city_name} — {loc.city_type}</h3>
@@ -222,6 +237,23 @@ export default async function Home() {
                     {loc.website_url}
                   </a>
                 </p>
+              )}
+              
+              {/* Data Desa Wisata agar terindeks Google */}
+              {loc.desa_wisata_data && loc.desa_wisata_data.length > 0 && (
+                <div>
+                  <h4>Daftar Desa Wisata {loc.city_name}</h4>
+                  <ul>
+                    {loc.desa_wisata_data.map((desa: any, idx: number) => (
+                      <li key={idx}>
+                        <strong>{desa.nama}</strong> - Desa/Kelurahan: {desa.desa_kelurahan}, Kecamatan: {desa.kecamatan} (Status: {desa.status})
+                        {desa.potensi_alam && ` | Potensi Alam: ${desa.potensi_alam}`}
+                        {desa.potensi_budaya && ` | Potensi Budaya: ${desa.potensi_budaya}`}
+                        {desa.potensi_buatan && ` | Potensi Buatan: ${desa.potensi_buatan}`}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               )}
             </article>
           ))}

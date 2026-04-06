@@ -280,7 +280,7 @@ export default function MapDataPanel({ data, cityName, onClose, allMapData = [] 
 
                     {/* Desa Wisata Section */}
                     {(() => {
-                        const villages = data.desa_wisata_data || data.content?.desa_wisata;
+                        const villages = data.desa_wisata_data;
                         
                         return (
                             <div className="mt-6 pt-6 border-t border-gray-100">
@@ -312,19 +312,19 @@ export default function MapDataPanel({ data, cityName, onClose, allMapData = [] 
                                                     <MapPin size={10} /> {desa.desa_kelurahan}, {desa.kecamatan}
                                                 </p>
                                                 <div className="grid grid-cols-1 gap-1">
-                                                    {desa.potensi?.alam_list?.length > 0 && (
+                                                    {desa.potensi_alam && (
                                                         <div className="text-[10px] text-gray-600">
-                                                            <span className="font-semibold text-emerald-600">Alam:</span> {desa.potensi.alam_list.join(', ')}
+                                                            <span className="font-semibold text-emerald-600">Alam:</span> {desa.potensi_alam}
                                                         </div>
                                                     )}
-                                                    {desa.potensi?.budaya_list?.length > 0 && (
+                                                    {desa.potensi_budaya && (
                                                         <div className="text-[10px] text-gray-600">
-                                                            <span className="font-semibold text-blue-600">Budaya:</span> {desa.potensi.budaya_list.join(', ')}
+                                                            <span className="font-semibold text-blue-600">Budaya:</span> {desa.potensi_budaya}
                                                         </div>
                                                     )}
-                                                    {desa.potensi?.buatan_list?.length > 0 && (
+                                                    {desa.potensi_buatan && (
                                                         <div className="text-[10px] text-gray-600">
-                                                            <span className="font-semibold text-amber-600">Buatan:</span> {desa.potensi.buatan_list.join(', ')}
+                                                            <span className="font-semibold text-amber-600">Buatan:</span> {desa.potensi_buatan}
                                                         </div>
                                                     )}
                                                 </div>

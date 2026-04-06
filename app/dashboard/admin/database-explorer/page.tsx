@@ -163,7 +163,7 @@ export default function DatabaseExplorerPage() {
                                     .replace('kesehatan_rasio_jkn', 'Kesehatan: Rasio Kepesertaan JKN')
                                     .replace('kesehatan_rasio_bedrs', 'Kesehatan: Rasio Tempat Tidur RS')
                                     .replace('kesehatan_rasio_drumum', 'Kesehatan: Rasio Dokter Umum')
-                                    .replace('data_desa_wisata_jabar', 'Daftar Desa Wisata Jabar')
+                                    .replace('desawisata_jabar', 'Desa Wisata Jawa Barat')
                                     .replace('data_sarpras_olahraga_jabar', 'Sarana & Prasarana Olahraga Jabar')
                                     .replace('infraparjabar-permukaan_jalan', 'Infrastruktur Pariwisata: Permukaan Jalan')
                                     .replace('infraparjabar-kemantapan_jalan', 'Infrastruktur Pariwisata: Kemantapan Jalan')

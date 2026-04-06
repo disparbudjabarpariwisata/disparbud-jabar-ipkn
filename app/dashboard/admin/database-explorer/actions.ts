@@ -24,7 +24,7 @@ export async function getAllTablesDataAction() {
             'kesehatan_rasio_jkn',
             'kesehatan_rasio_bedrs',
             'kesehatan_rasio_drumum',
-            'data_desa_wisata_jabar',
+            'desawisata_jabar',
             'data_sarpras_olahraga_jabar',
             'infraparjabar-permukaan_jalan',
             'infraparjabar-kemantapan_jalan',

@@ -36,6 +36,7 @@ export type MapDataItem = {
         doctor_ratio: number;
         spesialis_ratio: number;
     }>;
+    desa_wisata_data?: any[];
 };
 
 interface WestJavaMapSectionProps {
