@@ -31,9 +31,9 @@ export async function generateMetadata(): Promise<Metadata> {
     .limit(1)
     .single();
 
-  const title = seo?.app_name || "Smiling West Java - Portal Pariwisata Jawa Barat";
-  const description = seo?.meta_description || "Portal resmi pariwisata Jawa Barat. Jelajahi keindahan alam, budaya, dan kuliner khas Jawa Barat.";
-  const keywords = seo?.keywords || "pariwisata, jawa barat, tourism, west java";
+  const title = (seo?.app_name || "Smiling West Java") + " | Cerita Data Pariwisata Jawa Barat";
+  const description = (seo?.meta_description || "Portal resmi pariwisata Jawa Barat.") + " Terintegrasi dengan statistik Cerita Data Pariwisata Jawa Barat.";
+  const keywords = (seo?.keywords || "") + ", cerita data pariwisata jawa barat, pariwisata jawa barat";
   const ogName = seo?.og_name || title;
   const ogImage = seo?.og_image || "https://res.cloudinary.com/dsxpxdsc5/image/upload/v1771646461/smilingwestjava_fcx171.png";
 
