@@ -15,10 +15,10 @@ export default function DirectoryPage() {
     <main className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
       
-      <div className="flex-grow flex items-center justify-center pt-32 pb-20 px-6">
-        <div className="max-w-3xl w-full bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+      <div className="flex-grow flex items-center justify-center pt-32 pb-20 px-4 md:px-6">
+        <div className="max-w-5xl w-full bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
           
-          <div className="bg-gradient-to-r from-emerald-600 to-teal-500 p-10 md:p-16 text-center text-white relative overflow-hidden">
+          <div className="bg-gradient-to-r from-emerald-600 to-teal-500 p-10 md:p-12 text-center text-white relative overflow-hidden">
             <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 rounded-full bg-white/10 blur-2xl"></div>
             
             <div className="flex justify-center mb-6 relative z-10">
@@ -30,29 +30,35 @@ export default function DirectoryPage() {
             <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-4 relative z-10">
               Website Directory
             </h1>
-            <p className="text-emerald-100 text-lg md:text-xl font-medium max-w-xl mx-auto relative z-10">
+            <p className="text-emerald-100 text-lg md:text-xl font-medium max-w-2xl mx-auto relative z-10">
               Gerbang akses informasi terpadu dan direktori lengkap ekosistem kepariwisataan Jawa Barat.
             </p>
           </div>
 
-          <div className="p-10 md:p-14 text-center bg-white">
-            <p className="text-gray-600 mb-8 leading-relaxed max-w-2xl mx-auto">
-              Temukan berbagai sumber daya informasi, tautan resmi pemerintah, dokumen profil pengembang pariwisata, hingga basis data wilayah yang telah dikatalogkan dengan rapi pada repositori publik kami.
+          <div className="p-6 md:p-10 text-center bg-white flex flex-col items-center">
+            <p className="text-gray-600 mb-6 leading-relaxed max-w-3xl mx-auto">
+              Temukan berbagai sumber daya informasi, tautan resmi pemerintah, dokumen profil pengembang pariwisata, hingga basis data wilayah pada repositori publik kami.
             </p>
+
+            <div className="w-full h-[600px] border border-gray-200 rounded-xl overflow-hidden bg-gray-50 mb-4 shadow-inner">
+              <iframe 
+                src="https://drive.google.com/embeddedfolderview?id=1c1kTnrAQcu4fwqdsJMyYpuMM-cEVSyUp#grid" 
+                width="100%" 
+                height="100%" 
+                title="Google Drive Directory"
+                className="w-full h-full border-none"
+              ></iframe>
+            </div>
 
             <a 
               href={driveUrl} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 w-full md:w-auto group"
+              className="inline-flex items-center text-emerald-600 hover:text-emerald-800 font-medium text-sm gap-2 transition-colors"
             >
-              <span>Akses Direktori di Google Drive</span>
-              <ExternalLink size={20} className="group-hover:translate-x-1 transition-transform" />
+              <ExternalLink size={16} />
+              <span>Buka tab baru jika folder tidak termuat</span>
             </a>
-            
-            <p className="mt-6 text-sm text-gray-400">
-              Anda akan dialihkan ke layanan eksternal (Google Drive).
-            </p>
           </div>
           
         </div>
