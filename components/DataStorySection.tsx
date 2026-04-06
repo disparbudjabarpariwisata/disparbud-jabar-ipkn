@@ -115,34 +115,45 @@ export default function DataStorySection() {
     // 3. Sarana Olahraga
     const sportData = useMemo(() => {
         let totalStadion = 0;
-        let totalSarpras = 0;
+        let totalSarprasLainnya = 0;
         const cityStadiums: any[] = [];
 
         data.forEach(row => {
-            const profile = row.content?.sarana_olahraga?.profile;
-            const facilities = row.content?.sarana_olahraga?.facilities || [];
+            const facilities = row.sarpras_olahraga_data || [];
             
-            if (profile) {
-                totalStadion += (profile.stadion_total || 0);
-                totalSarpras += ((profile.total_availability_units || 0) - (profile.stadion_total || 0));
+            let cityStadion = 0;
+            let cityTotal = 0;
+
+            facilities.forEach((f: any) => {
+                const amount = f.jumlah_unit || 0;
+                cityTotal += amount;
                 
-                if (profile.stadion_total > 0) {
-                     cityStadiums.push({
-                         name: row.city_name.replace(/(Kabupaten |Kota )/g, ''),
-                         stadion: profile.stadion_total
-                     });
+                const cat = (f.kategori_fasilitas || '').toLowerCase();
+                const subCat = (f.subkategori || '').toLowerCase();
+                if (cat.includes('stadion') || subCat.includes('stadion')) {
+                    cityStadion += amount;
                 }
+            });
+
+            totalStadion += cityStadion;
+            totalSarprasLainnya += (cityTotal - cityStadion);
+
+            if (cityStadion > 0) {
+                 cityStadiums.push({
+                     name: row.city_name.replace(/(Kabupaten |Kota )/g, ''),
+                     stadion: cityStadion
+                 });
             }
         });
 
         const pieData = [
             { name: 'Stadion Utama', value: totalStadion },
-            { name: 'Sarpras Olahraga Lainnya', value: Math.max(0, totalSarpras) }
+            { name: 'Sarpras Olahraga Lainnya', value: Math.max(0, totalSarprasLainnya) }
         ];
 
         const topStadiumCities = [...cityStadiums].sort((a, b) => b.stadion - a.stadion).slice(0, 8);
 
-        return { totalStadion, totalSarpras: totalStadion + totalSarpras, pieData, topStadiumCities };
+        return { totalStadion, totalSarpras: totalStadion + totalSarprasLainnya, pieData, topStadiumCities };
     }, [data]);
 
 

@@ -52,7 +52,7 @@ export default function AdminDataMapPage() {
     const [form, setForm] = useState<typeof emptyForm>({ ...emptyForm });
     const [isSaving, setIsSaving] = useState(false);
     const [message, setMessage] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState<'Kesehatan' | 'Pariwisata' | 'Desa Wisata' | 'Sarana Olahraga'>('Kesehatan');
+    const [selectedCategory, setSelectedCategory] = useState<'Kesehatan' | 'Pariwisata' | 'Desa Wisata'>('Kesehatan');
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -384,302 +384,7 @@ export default function AdminDataMapPage() {
                             </div>
                         )}
 
-                        {selectedCategory === 'Sarana Olahraga' && (
-                            <div className="space-y-4">
-                                <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100 flex flex-col mb-4">
-                                    <h3 className="text-sm font-bold text-blue-800 mb-1">Data Profil Sarana Olahraga</h3>
-                                    <p className="text-xs text-blue-600 mb-4">Anda dapat mengubah ringkasan data sarana olahraga di bawah ini secara manual. Perubahan ini aman dan disimpan dalam format JSONB.</p>
-                                    
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-[11px] font-bold text-blue-700 mb-1">Total Unit Sarpras</label>
-                                            <input type="number" 
-                                                value={form.content?.sarana_olahraga?.profile?.total_availability_units || 0} 
-                                                onChange={e => {
-                                                    const val = parseInt(e.target.value) || 0;
-                                                    setForm(prev => {
-                                                        const newContent = { ...(prev.content || {}) };
-                                                        if (!newContent.sarana_olahraga) newContent.sarana_olahraga = { profile: {} };
-                                                        if (!newContent.sarana_olahraga.profile) newContent.sarana_olahraga.profile = {};
-                                                        newContent.sarana_olahraga.profile.total_availability_units = val;
-                                                        return { ...prev, content: newContent };
-                                                    });
-                                                }}
-                                                className="w-full px-4 py-2.5 rounded-xl border border-blue-200 bg-white text-sm focus:border-blue-500 outline-none" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[11px] font-bold text-blue-700 mb-1">Total Stadion</label>
-                                            <input type="number" 
-                                                value={form.content?.sarana_olahraga?.profile?.stadion_total || 0} 
-                                                onChange={e => {
-                                                    const val = parseInt(e.target.value) || 0;
-                                                    setForm(prev => {
-                                                        const newContent = { ...(prev.content || {}) };
-                                                        if (!newContent.sarana_olahraga) newContent.sarana_olahraga = { profile: {} };
-                                                        if (!newContent.sarana_olahraga.profile) newContent.sarana_olahraga.profile = {};
-                                                        newContent.sarana_olahraga.profile.stadion_total = val;
-                                                        return { ...prev, content: newContent };
-                                                    });
-                                                }}
-                                                className="w-full px-4 py-2.5 rounded-xl border border-blue-200 bg-white text-sm focus:border-blue-500 outline-none" />
-                                        </div>
-                                        <div className="md:col-span-2">
-                                            <label className="block text-[11px] font-bold text-blue-700 mb-1">Cabang Olahraga (Pisahkan dengan koma)</label>
-                                            <input type="text" 
-                                                value={(form.content?.sarana_olahraga?.profile?.sport_branches_available || []).join(', ')} 
-                                                onChange={e => {
-                                                    const val = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
-                                                    setForm(prev => {
-                                                        const newContent = { ...(prev.content || {}) };
-                                                        if (!newContent.sarana_olahraga) newContent.sarana_olahraga = { profile: {} };
-                                                        if (!newContent.sarana_olahraga.profile) newContent.sarana_olahraga.profile = {};
-                                                        newContent.sarana_olahraga.profile.sport_branches_available = val;
-                                                        return { ...prev, content: newContent };
-                                                    });
-                                                }}
-                                                placeholder="Sepak Bola, Basket, Renang..."
-                                                className="w-full px-4 py-2.5 rounded-xl border border-blue-200 bg-white text-sm focus:border-blue-500 outline-none" />
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                {/* Facilities Array Editor */}
-                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 flex flex-col mt-4">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h3 className="text-sm font-bold text-gray-800">Daftar Fasilitas & Sarpras</h3>
-                                        <button 
-                                            type="button"
-                                            onClick={() => {
-                                                setForm(prev => {
-                                                    const newContent = { ...(prev.content || {}) };
-                                                    if (!newContent.sarana_olahraga) newContent.sarana_olahraga = { facilities: [] };
-                                                    if (!Array.isArray(newContent.sarana_olahraga.facilities)) newContent.sarana_olahraga.facilities = [];
-                                                    const newFacility = { 
-                                                        facility_category: 'sarpras', 
-                                                        sport_branch_name: 'Cabang Baru',
-                                                        quality_class: 'Tidak disebutkan',
-                                                        availability_count: 1,
-                                                        named_facilities_count: 0,
-                                                        named_facilities: [],
-                                                        notes: []
-                                                    };
-                                                    newContent.sarana_olahraga.facilities = [...newContent.sarana_olahraga.facilities, newFacility];
-                                                    return { ...prev, content: newContent };
-                                                });
-                                            }}
-                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors"
-                                        >
-                                            <PlusCircle size={14} /> Tambah Sarana
-                                        </button>
-                                    </div>
-                                    
-                                    <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-                                        {(Array.isArray(form.content?.sarana_olahraga?.facilities) ? form.content.sarana_olahraga.facilities : []).map((f: any, fIdx: number) => (
-                                            <div key={`f-${fIdx}`} className="p-4 bg-white rounded-xl border border-gray-200 shadow-sm relative group space-y-4">
-                                                <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-                                                    <span className="text-xs font-bold text-gray-500 uppercase">Fasilitas #{fIdx + 1}</span>
-                                                    <button 
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setForm(prev => {
-                                                                const newContent = { ...(prev.content || {}) };
-                                                                newContent.sarana_olahraga.facilities = newContent.sarana_olahraga.facilities.filter((_: any, idx: number) => idx !== fIdx);
-                                                                return { ...prev, content: newContent };
-                                                            });
-                                                        }}
-                                                        className="p-1 px-2 text-red-500 hover:bg-red-50 rounded-md text-xs font-semibold flex items-center gap-1"
-                                                    >
-                                                        <Trash2 size={12} /> Hapus
-                                                    </button>
-                                                </div>
-                                                
-                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                                                    <div>
-                                                        <label className="block text-[10px] font-bold text-gray-500 mb-1">Cabang Olahraga</label>
-                                                        <input 
-                                                            value={f.sport_branch_name || ''} 
-                                                            onChange={e => {
-                                                                const val = e.target.value;
-                                                                setForm(prev => {
-                                                                    const newContent = { ...(prev.content || {}) };
-                                                                    newContent.sarana_olahraga.facilities[fIdx].sport_branch_name = val;
-                                                                    return { ...prev, content: newContent };
-                                                                });
-                                                            }}
-                                                            className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs focus:border-[#10b981] outline-none"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-[10px] font-bold text-gray-500 mb-1">Kategori (stadion/sarpras)</label>
-                                                        <select 
-                                                            value={f.facility_category || 'sarpras'} 
-                                                            onChange={e => {
-                                                                const val = e.target.value;
-                                                                setForm(prev => {
-                                                                    const newContent = { ...(prev.content || {}) };
-                                                                    newContent.sarana_olahraga.facilities[fIdx].facility_category = val;
-                                                                    return { ...prev, content: newContent };
-                                                                });
-                                                            }}
-                                                            className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs focus:border-[#10b981] outline-none"
-                                                        >
-                                                            <option value="sarpras">Sarpras</option>
-                                                            <option value="stadion">Stadion</option>
-                                                        </select>
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-[10px] font-bold text-gray-500 mb-1">Kelas / Kualitas</label>
-                                                        <input 
-                                                            value={f.quality_class || ''} 
-                                                            onChange={e => {
-                                                                const val = e.target.value;
-                                                                setForm(prev => {
-                                                                    const newContent = { ...(prev.content || {}) };
-                                                                    newContent.sarana_olahraga.facilities[fIdx].quality_class = val;
-                                                                    return { ...prev, content: newContent };
-                                                                });
-                                                            }}
-                                                            className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs focus:border-[#10b981] outline-none"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-[10px] font-bold text-gray-500 mb-1">Total Unit</label>
-                                                        <input 
-                                                            type="number"
-                                                            value={f.availability_count || 0} 
-                                                            onChange={e => {
-                                                                const val = parseInt(e.target.value) || 0;
-                                                                setForm(prev => {
-                                                                    const newContent = { ...(prev.content || {}) };
-                                                                    newContent.sarana_olahraga.facilities[fIdx].availability_count = val;
-                                                                    return { ...prev, content: newContent };
-                                                                });
-                                                            }}
-                                                            className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs focus:border-[#10b981] outline-none"
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div className="w-full">
-                                                    <label className="block text-[10px] font-bold text-gray-500 mb-1">Catatan Umum (Jika tanpa Tempat Spesifik)</label>
-                                                    <input 
-                                                        value={(f.notes || []).join(', ')} 
-                                                        onChange={e => {
-                                                            const val = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
-                                                            setForm(prev => {
-                                                                const newContent = { ...(prev.content || {}) };
-                                                                newContent.sarana_olahraga.facilities[fIdx].notes = val;
-                                                                return { ...prev, content: newContent };
-                                                            });
-                                                        }}
-                                                        placeholder="Misal: SOR Anggrek, Kolam Renang ABC..."
-                                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-xs focus:border-[#10b981] outline-none"
-                                                    />
-                                                </div>
 
-                                                {/* Nested Named Facilities Editor */}
-                                                <div className="p-3 bg-gray-50/80 rounded-lg border-l-4 border-indigo-200 space-y-3">
-                                                    <div className="flex items-center justify-between mb-1">
-                                                        <label className="block text-[11px] font-bold text-indigo-700">Daftar Tempat Spesifik (Named Facilities)</label>
-                                                        <button 
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setForm(prev => {
-                                                                    const newContent = { ...(prev.content || {}) };
-                                                                    if (!Array.isArray(newContent.sarana_olahraga.facilities[fIdx].named_facilities)) {
-                                                                        newContent.sarana_olahraga.facilities[fIdx].named_facilities = [];
-                                                                    }
-                                                                    newContent.sarana_olahraga.facilities[fIdx].named_facilities.push({ facility_name: '', quality_class: '', category_name: '' });
-                                                                    newContent.sarana_olahraga.facilities[fIdx].named_facilities_count = newContent.sarana_olahraga.facilities[fIdx].named_facilities.length;
-                                                                    return { ...prev, content: newContent };
-                                                                });
-                                                            }}
-                                                            className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
-                                                        >
-                                                            <Plus size={12} /> Tambah Tempat
-                                                        </button>
-                                                    </div>
-                                                    
-                                                    {(!f.named_facilities || f.named_facilities.length === 0) ? (
-                                                        <div className="text-[10px] text-gray-400 italic">Tidak ada tempat spesifik yang direkam.</div>
-                                                    ) : (
-                                                        <div className="space-y-2">
-                                                            {f.named_facilities.map((nf: any, nfIdx: number) => (
-                                                                <div key={`nf-${nfIdx}`} className="flex flex-col md:flex-row gap-2 bg-white p-2 rounded-md border border-gray-200 items-start md:items-center">
-                                                                    <div className="flex-1 w-full relative">
-                                                                        <input 
-                                                                            value={nf.facility_name || ''} 
-                                                                            onChange={e => {
-                                                                                const val = e.target.value;
-                                                                                setForm(prev => {
-                                                                                    const newContent = { ...(prev.content || {}) };
-                                                                                    newContent.sarana_olahraga.facilities[fIdx].named_facilities[nfIdx].facility_name = val;
-                                                                                    return { ...prev, content: newContent };
-                                                                                });
-                                                                            }}
-                                                                            placeholder="Nama Tempat (e.g. Stadion Si Jalak Harupat)"
-                                                                            className="w-full px-2 py-1.5 rounded border border-gray-200 bg-white text-xs focus:border-indigo-500 outline-none"
-                                                                        />
-                                                                    </div>
-                                                                    <div className="w-full md:w-32 relative">
-                                                                        <input 
-                                                                            value={nf.quality_class || ''} 
-                                                                            onChange={e => {
-                                                                                const val = e.target.value;
-                                                                                setForm(prev => {
-                                                                                    const newContent = { ...(prev.content || {}) };
-                                                                                    newContent.sarana_olahraga.facilities[fIdx].named_facilities[nfIdx].quality_class = val;
-                                                                                    return { ...prev, content: newContent };
-                                                                                });
-                                                                            }}
-                                                                            placeholder="Kelas"
-                                                                            className="w-full px-2 py-1.5 rounded border border-gray-200 bg-white text-xs focus:border-indigo-500 outline-none"
-                                                                        />
-                                                                    </div>
-                                                                    <div className="w-full md:w-48 relative">
-                                                                        <input 
-                                                                            value={nf.category_name || ''} 
-                                                                            onChange={e => {
-                                                                                const val = e.target.value;
-                                                                                setForm(prev => {
-                                                                                    const newContent = { ...(prev.content || {}) };
-                                                                                    newContent.sarana_olahraga.facilities[fIdx].named_facilities[nfIdx].category_name = val;
-                                                                                    return { ...prev, content: newContent };
-                                                                                });
-                                                                            }}
-                                                                            placeholder="Keterangan Lanjut"
-                                                                            className="w-full px-2 py-1.5 rounded border border-gray-200 bg-white text-xs focus:border-indigo-500 outline-none"
-                                                                        />
-                                                                    </div>
-                                                                    <button 
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            setForm(prev => {
-                                                                                const newContent = { ...(prev.content || {}) };
-                                                                                newContent.sarana_olahraga.facilities[fIdx].named_facilities = newContent.sarana_olahraga.facilities[fIdx].named_facilities.filter((_: any, idx: number) => idx !== nfIdx);
-                                                                                newContent.sarana_olahraga.facilities[fIdx].named_facilities_count = newContent.sarana_olahraga.facilities[fIdx].named_facilities.length;
-                                                                                return { ...prev, content: newContent };
-                                                                            });
-                                                                        }}
-                                                                        className="p-1.5 text-red-500 hover:bg-red-50 rounded"
-                                                                    >
-                                                                        <Trash2 size={12} />
-                                                                    </button>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    {(Array.isArray(form.content?.sarana_olahraga?.facilities) ? form.content.sarana_olahraga.facilities : []).length === 0 && (
-                                        <div className="text-center py-8 bg-white rounded-xl border border-dashed border-gray-300">
-                                            <p className="text-xs text-gray-400 font-medium">Belum ada daftar sarana/prasarana direkam.</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
 
                         <div className="flex items-center">
                             <label className="flex items-center gap-2 cursor-pointer">
@@ -705,13 +410,12 @@ export default function AdminDataMapPage() {
                     <h3 className="font-semibold text-gray-700 text-sm">Data Wilayah</h3>
                     <select
                         value={selectedCategory}
-                        onChange={(e) => setSelectedCategory(e.target.value as 'Kesehatan' | 'Pariwisata' | 'Desa Wisata' | 'Sarana Olahraga')}
+                        onChange={(e) => setSelectedCategory(e.target.value as 'Kesehatan' | 'Pariwisata' | 'Desa Wisata')}
                         className="px-4 py-2 border border-gray-200 rounded-xl text-sm bg-gray-50 text-gray-700 font-medium focus:outline-none focus:border-[#10b981] cursor-pointer"
                     >
                         <option value="Kesehatan">Kategori: Kesehatan</option>
                         <option value="Pariwisata">Kategori: Pariwisata Umum</option>
                         <option value="Desa Wisata">Kategori: Desa Wisata</option>
-                        <option value="Sarana Olahraga">Kategori: Sarana Olahraga</option>
                     </select>
                 </div>
 
@@ -730,12 +434,6 @@ export default function AdminDataMapPage() {
                                         <>
                                             <th className="px-4 py-4">Total Desa</th>
                                             <th className="px-4 py-4">Status & Potensi</th>
-                                        </>
-                                    ) : selectedCategory === 'Sarana Olahraga' ? (
-                                        <>
-                                            <th className="px-4 py-4 text-center">Total Unit</th>
-                                            <th className="px-4 py-4 text-center">Total Stadion</th>
-                                            <th className="px-4 py-4">Cabang Olahraga Tersedia</th>
                                         </>
                                     ) : (
                                         <>
@@ -782,18 +480,6 @@ export default function AdminDataMapPage() {
                                                         }, {});
                                                         return Object.entries(statusCounts).map(([s, c]) => `${s}: ${c}`).join(', ');
                                                     })()}
-                                                </td>
-                                            </>
-                                        ) : selectedCategory === 'Sarana Olahraga' ? (
-                                            <>
-                                                <td className="px-4 py-3 text-xs text-gray-500 font-medium text-center">
-                                                    {row.content?.sarana_olahraga?.profile?.total_availability_units || 0}
-                                                </td>
-                                                <td className="px-4 py-3 text-xs text-gray-500 font-medium text-center">
-                                                    {row.content?.sarana_olahraga?.profile?.stadion_total || 0}
-                                                </td>
-                                                <td className="px-4 py-3 text-[10px] text-gray-500">
-                                                    {row.content?.sarana_olahraga?.profile?.sport_branches_available?.join(', ') || '-'}
                                                 </td>
                                             </>
                                         ) : (

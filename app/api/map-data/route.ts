@@ -6,12 +6,13 @@ export const revalidate = 0;
 
 export async function GET() {
     try {
-        const [mapRes, jknRes, bedRes, drRes, desaRes] = await Promise.all([
+        const [mapRes, jknRes, bedRes, drRes, desaRes, sarprasRes] = await Promise.all([
             supabaseAdmin.from('data_map').select('*').eq('active', true).order('city_name', { ascending: true }),
             supabaseAdmin.from('kesehatan_rasio_jkn').select('*'),
             supabaseAdmin.from('kesehatan_rasio_bedrs').select('*'),
             supabaseAdmin.from('kesehatan_rasio_drumum').select('*'),
-            supabaseAdmin.from('desawisata_jabar').select('*').order('no', { ascending: true })
+            supabaseAdmin.from('desawisata_jabar').select('*').order('no', { ascending: true }),
+            supabaseAdmin.from('data_sarpras_olahraga_jabar').select('*')
         ]);
 
         if (mapRes.error) throw mapRes.error;
@@ -19,6 +20,7 @@ export async function GET() {
         if (bedRes.error) throw bedRes.error;
         if (drRes.error) throw drRes.error;
         if (desaRes.error) throw desaRes.error;
+        if (sarprasRes.error) throw sarprasRes.error;
 
         const combinedData = (mapRes.data || []).map(city => {
             const nameSearch = city.city_name.toUpperCase();
@@ -67,12 +69,24 @@ export async function GET() {
                 potensi_buatan: d.potensi_buatan
             }));
 
+            // Match sarpras olahraga by city_name
+            const sarpras_olahraga_data = (sarprasRes.data || []).filter(s => {
+                const sName = s.city_name?.toUpperCase() || '';
+                return sName === nameSearch || sName === nameSearch.replace(/^(KABUPATEN |KOTA )/, '');
+            });
+
             const { medical_data, desa_wisata_data: _oldDesa, ...rest } = city;
+            
+            // Clean up old embedded json if it exists in response
+            if (rest.content && rest.content.sarana_olahraga) {
+                delete rest.content.sarana_olahraga;
+            }
 
             return {
                 ...rest,
                 regional_health,
-                desa_wisata_data
+                desa_wisata_data,
+                sarpras_olahraga_data
             };
         });
 
