@@ -155,7 +155,7 @@ export default function DataStorySection() {
     // --- RENDERING ---
 
     const tabs = [
-        { id: 'kesehatan', label: 'Kesehatan Wisatawan', icon: Activity, color: 'text-emerald-500', bg: 'bg-emerald-50', activeBg: 'bg-emerald-500', border: 'border-emerald-200' },
+        { id: 'kesehatan', label: 'Kesehatan', icon: Activity, color: 'text-emerald-500', bg: 'bg-emerald-50', activeBg: 'bg-emerald-500', border: 'border-emerald-200' },
         { id: 'desa', label: 'Desa Wisata', icon: Map, color: 'text-amber-500', bg: 'bg-amber-50', activeBg: 'bg-amber-500', border: 'border-amber-200' },
         { id: 'olahraga', label: 'Sarana Olahraga', icon: Trophy, color: 'text-blue-500', bg: 'bg-blue-50', activeBg: 'bg-blue-500', border: 'border-blue-200' },
         { id: 'infrastruktur', label: 'Infrastruktur', icon: MapPin, color: 'text-purple-500', bg: 'bg-purple-50', activeBg: 'bg-purple-600', border: 'border-purple-200' },
