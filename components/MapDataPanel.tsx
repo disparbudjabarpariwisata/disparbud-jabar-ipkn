@@ -15,7 +15,12 @@ type MapDataItem = {
     transportation: string;
     image_url: string;
     website_url: string;
-    medical_data?: Record<string, any>;
+    regional_health?: Record<string, {
+        jkn_percent: number;
+        bed_ratio: number;
+        doctor_ratio: number;
+        spesialis_ratio: number;
+    }>;
     desa_wisata_data?: any[];
     content?: any;
 };
@@ -29,9 +34,9 @@ interface MapDataPanelProps {
 
 export default function MapDataPanel({ data, cityName, onClose, allMapData = [] }: MapDataPanelProps) {
     const availableYears = useMemo(() => {
-        if (!data?.medical_data) return [];
-        return Object.keys(data.medical_data).sort((a, b) => Number(b) - Number(a));
-    }, [data?.medical_data]);
+        if (!data?.regional_health) return [];
+        return Object.keys(data.regional_health).sort((a, b) => Number(b) - Number(a));
+    }, [data?.regional_health]);
 
     const latestYearOptional = availableYears.length > 0 ? availableYears[0] : null;
 
@@ -51,12 +56,9 @@ export default function MapDataPanel({ data, cityName, onClose, allMapData = [] 
     }, [availableYears, data?.city_name]);
 
     const latestHealthData = useMemo(() => {
-        if (!data?.medical_data || !selectedYear) return null;
-        return {
-            year: selectedYear,
-            datasets: data.medical_data[selectedYear].datasets || {}
-        };
-    }, [data?.medical_data, selectedYear]);
+        if (!data?.regional_health || !selectedYear) return null;
+        return data.regional_health[selectedYear];
+    }, [data?.regional_health, selectedYear]);
 
     // Calculate provincial averages for the selected year
     const provincialAverages = useMemo(() => {
@@ -65,27 +67,27 @@ export default function MapDataPanel({ data, cityName, onClose, allMapData = [] 
         let totalJkn = 0, countJkn = 0;
         let totalBed = 0, countBed = 0;
         let totalDoc = 0, countDoc = 0;
-        let totalDbg = 0, countDbg = 0;
+        let totalSpesialis = 0, countSpesialis = 0;
 
         allMapData.forEach(city => {
-            const cityDataYear = city.medical_data?.[selectedYear]?.datasets;
-            if (!cityDataYear) return;
+            const healthYear = city.regional_health?.[selectedYear];
+            if (!healthYear) return;
 
-            if (cityDataYear['JKN']?.jkn_coverage_ratio !== undefined) {
-                totalJkn += cityDataYear['JKN'].jkn_coverage_ratio;
+            if (healthYear.jkn_percent !== undefined) {
+                totalJkn += healthYear.jkn_percent;
                 countJkn++;
             }
-            if (cityDataYear['Rasio Tempat Tidur']?.hospital_bed_ratio_per_1000_population !== undefined) {
-                totalBed += cityDataYear['Rasio Tempat Tidur'].hospital_bed_ratio_per_1000_population;
+            if (healthYear.bed_ratio !== undefined) {
+                totalBed += healthYear.bed_ratio;
                 countBed++;
             }
-            if (cityDataYear['Rasio Dokter']?.doctor_ratio_per_1000_population !== undefined) {
-                totalDoc += cityDataYear['Rasio Dokter'].doctor_ratio_per_1000_population;
+            if (healthYear.doctor_ratio !== undefined) {
+                totalDoc += healthYear.doctor_ratio;
                 countDoc++;
             }
-            if (cityDataYear['Penyakit Menular']?.dengue_cases !== undefined) {
-                totalDbg += cityDataYear['Penyakit Menular'].dengue_cases;
-                countDbg++;
+            if (healthYear.spesialis_ratio !== undefined) {
+                totalSpesialis += healthYear.spesialis_ratio;
+                countSpesialis++;
             }
         });
 
@@ -93,30 +95,29 @@ export default function MapDataPanel({ data, cityName, onClose, allMapData = [] 
             jkn: countJkn > 0 ? totalJkn / countJkn : 0,
             bed: countBed > 0 ? totalBed / countBed : 0,
             doc: countDoc > 0 ? totalDoc / countDoc : 0,
-            dbg: countDbg > 0 ? totalDbg / countDbg : 0,
+            spesialis: countSpesialis > 0 ? totalSpesialis / countSpesialis : 0,
         };
     }, [selectedYear, allMapData]);
 
     const chartData = useMemo(() => {
         if (!latestHealthData || !provincialAverages) return null;
-        const ds = latestHealthData.datasets;
         
         return {
             jkn: [
-                { name: cityName, value: ds['JKN'] ? Number((ds['JKN'].jkn_coverage_ratio * 100).toFixed(1)) : 0, fill: '#10b981' },
-                { name: 'Rata-rata Jabar', value: Number((provincialAverages.jkn * 100).toFixed(1)), fill: '#94a3b8' }
+                { name: cityName, value: Number(latestHealthData.jkn_percent.toFixed(1)), fill: '#10b981' },
+                { name: 'Rata-rata Jabar', value: Number(provincialAverages.jkn.toFixed(1)), fill: '#94a3b8' }
             ],
             bed: [
-                { name: cityName, value: ds['Rasio Tempat Tidur'] ? Number(ds['Rasio Tempat Tidur'].hospital_bed_ratio_per_1000_population.toFixed(2)) : 0, fill: '#3b82f6' },
+                { name: cityName, value: Number(latestHealthData.bed_ratio.toFixed(2)), fill: '#3b82f6' },
                 { name: 'Rata-rata Jabar', value: Number(provincialAverages.bed.toFixed(2)), fill: '#94a3b8' }
             ],
             doc: [
-                { name: cityName, value: ds['Rasio Dokter'] ? Number(ds['Rasio Dokter'].doctor_ratio_per_1000_population.toFixed(2)) : 0, fill: '#6366f1' },
+                { name: cityName, value: Number(latestHealthData.doctor_ratio.toFixed(2)), fill: '#6366f1' },
                 { name: 'Rata-rata Jabar', value: Number(provincialAverages.doc.toFixed(2)), fill: '#94a3b8' }
             ],
-            dbg: [
-                { name: cityName, value: ds['Penyakit Menular'] ? ds['Penyakit Menular'].dengue_cases : 0, fill: '#f43f5e' },
-                { name: 'Rata-rata Jabar', value: Number(provincialAverages.dbg.toFixed(0)), fill: '#94a3b8' }
+            spesialis: [
+                { name: cityName, value: Number(latestHealthData.spesialis_ratio.toFixed(2)), fill: '#8b5cf6' },
+                { name: 'Rata-rata Jabar', value: Number(provincialAverages.spesialis.toFixed(2)), fill: '#94a3b8' }
             ]
         };
     }, [latestHealthData, provincialAverages, cityName]);
@@ -202,7 +203,7 @@ export default function MapDataPanel({ data, cityName, onClose, allMapData = [] 
                     </div>
 
                     {/* Medical Tourism Data Section */}
-                    {latestHealthData && Object.keys(latestHealthData.datasets).length > 0 && (
+                    {latestHealthData && (
                         <div className="mt-6 pt-6 border-t border-gray-100">
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center gap-2">
@@ -246,20 +247,19 @@ export default function MapDataPanel({ data, cityName, onClose, allMapData = [] 
                                 )}
                                 {chartData?.doc && chartData.doc[0].value > 0 && (
                                     <ChartCard 
-                                        title="Ketersediaan Dokter (per 1.000 pddk)" 
+                                        title="Ketersediaan Dokter Umum (per 1.000 pddk)" 
                                         icon={<Stethoscope size={16} className="text-indigo-500" />}
                                         data={chartData.doc} 
                                         color="#6366f1"
                                         delay={0.3}
                                     />
                                 )}
-                                {chartData?.dbg && chartData.dbg[0].value > 0 && (
+                                {chartData?.spesialis && chartData.spesialis[0].value > 0 && (
                                     <ChartCard 
-                                        title="Kasus Dengue (DBD)" 
-                                        icon={<Activity size={16} className="text-rose-500" />}
-                                        data={chartData.dbg} 
-                                        color="#f43f5e"
-                                        formatter={(val) => val.toLocaleString('id-ID')}
+                                        title="Ketersediaan Dr Spesialis (per 1.000 pddk)" 
+                                        icon={<Activity size={16} className="text-purple-500" />}
+                                        data={chartData.spesialis} 
+                                        color="#8b5cf6"
                                         delay={0.4}
                                     />
                                 )}

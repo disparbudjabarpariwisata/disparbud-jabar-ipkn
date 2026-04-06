@@ -30,7 +30,12 @@ export type MapDataItem = {
     transportation: string;
     image_url: string;
     website_url: string;
-    medical_data?: Record<string, any>;
+    regional_health?: Record<string, {
+        jkn_percent: number;
+        bed_ratio: number;
+        doctor_ratio: number;
+        spesialis_ratio: number;
+    }>;
 };
 
 interface WestJavaMapSectionProps {

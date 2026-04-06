@@ -47,43 +47,37 @@ export default function DataStorySection() {
 
     // 1. Kesehatan
     const healthData = useMemo(() => {
-        let totalDengue = 0;
-        let avgJkn = 0;
-        let validJknCount = 0;
-        const cityHealth: any[] = []; // for bar chart
+        let avgJkn = 0, validJkn = 0;
+        let avgBed = 0, validBed = 0;
+        let avgDoc = 0, validDoc = 0;
+        const cityHealth: any[] = [];
 
         data.forEach(row => {
-            if (row.medical_data) {
-                // Get most recent year usually
-                const years = Object.keys(row.medical_data).sort((a, b) => Number(b) - Number(a));
-                if (years.length > 0) {
-                    const md = row.medical_data[years[0]]?.datasets;
-                    
-                    const dengue = md?.['Penyakit Menular']?.dengue_cases || 0;
-                    const jkn = md?.['JKN']?.jkn_coverage_ratio || 0;
-                    
-                    totalDengue += dengue;
-                    if (jkn > 0) {
-                        avgJkn += jkn;
-                        validJknCount++;
-                    }
-
-                    cityHealth.push({
-                        name: row.city_name.replace(/(Kabupaten |Kota )/g, ''),
-                        type: row.city_type,
-                        dengue,
-                        jkn: parseFloat((jkn * 100).toFixed(1))
-                    });
+            const h = row.regional_health?.['2025'] || row.regional_health?.['2024'];
+            if (h) {
+                if (h.jkn_percent > 0) { avgJkn += h.jkn_percent; validJkn++; }
+                if (h.bed_ratio > 0) { avgBed += h.bed_ratio; validBed++; }
+                if (h.doctor_ratio > 0 || h.spesialis_ratio > 0) { 
+                    avgDoc += (h.doctor_ratio + h.spesialis_ratio); 
+                    validDoc++; 
                 }
+
+                cityHealth.push({
+                    name: row.city_name.replace(/(Kabupaten |Kota )/g, ''),
+                    jkn: parseFloat(h.jkn_percent.toFixed(1)),
+                    bed: parseFloat(h.bed_ratio.toFixed(2)),
+                    doc: parseFloat((h.doctor_ratio + h.spesialis_ratio).toFixed(2))
+                });
             }
         });
 
-        const jknFinal = validJknCount > 0 ? (avgJkn / validJknCount) * 100 : 0;
+        const jknFinal = validJkn > 0 ? avgJkn / validJkn : 0;
+        const bedFinal = validBed > 0 ? avgBed / validBed : 0;
+        const docFinal = validDoc > 0 ? avgDoc / validDoc : 0;
         
-        // Sort for Bar chart (Top 10 highest dengue)
-        const topDengue = [...cityHealth].sort((a, b) => b.dengue - a.dengue).slice(0, 10);
-
-        return { totalDengue, jknFinal, topDengue };
+        // Sort for Bar chart (Top 10 highest JKN)
+        const topCities = [...cityHealth].sort((a, b) => b.jkn - a.jkn).slice(0, 10);
+        return { jknFinal, bedFinal, docFinal, topCities, allCities: cityHealth };
     }, [data]);
 
 
@@ -244,21 +238,22 @@ export default function DataStorySection() {
                                             <div>
                                                 <h3 className="text-2xl font-bold text-gray-900 mb-3">Faktor <span className="text-emerald-500">Kesehatan</span> Destinasi</h3>
                                                 <p className="text-gray-500 text-sm leading-relaxed">
-                                                    Keamanan kesehatan merupakan pendorong utama mobilitas wisatawan. Data menunjukkan komitmen Jawa Barat dalam pemerataan Jaminan Kesehatan Nasional (JKN) untuk perlindungan warga dan kenyamanan pelancong.
+                                                    Infrastruktur klinis di sekitar destinasi amat krusial bagi wisatawan. Data ini menyoroti cakupan jaminan kesehatan (JKN) serta rasio ketersediaan tempat tidur RS dan dokter sebagai pelindung wisatawan jika terjadi darurat medis.
                                                 </p>
                                             </div>
                                             
                                             <div className="grid grid-cols-2 gap-4">
-                                                <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
-                                                    <p className="text-emerald-800 text-xs font-bold uppercase tracking-wide mb-1">Rata-rata JKN</p>
-                                                    <div className="text-3xl font-black text-emerald-600">
+                                                <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 flex flex-col">
+                                                    <p className="text-emerald-800 text-[10px] font-bold uppercase tracking-wide mb-1">Rata-rata Cakupan JKN</p>
+                                                    <div className="text-3xl font-black text-emerald-600 mt-auto">
                                                         <CountUp end={healthData.jknFinal} decimals={1} duration={2.5} />%
                                                     </div>
                                                 </div>
-                                                <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100">
-                                                    <p className="text-orange-800 text-xs font-bold uppercase tracking-wide mb-1">Kasus DBD Terdata</p>
-                                                    <div className="text-3xl font-black text-orange-600">
-                                                        <CountUp end={healthData.totalDengue} duration={2} separator="." />
+                                                <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex flex-col">
+                                                    <p className="text-blue-800 text-[10px] font-bold uppercase tracking-wide mb-1">Rasio Bed RS</p>
+                                                    <div className="text-3xl font-black text-blue-600 mt-auto">
+                                                        <CountUp end={healthData.bedFinal} decimals={2} duration={2.5} />
+                                                        <span className="text-xs font-medium text-blue-500/80 ml-1">/1k pddk</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -266,21 +261,46 @@ export default function DataStorySection() {
 
                                         <div className="lg:col-span-2 space-y-6">
                                             <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm h-[350px]">
-                                                <p className="text-sm font-bold text-gray-700 mb-4 text-center">10 Daerah dengan Kasus Demam Berdarah Tertinggi (Potensi Perhatian Khusus)</p>
+                                                <p className="text-sm font-bold text-gray-700 mb-4 text-center">Top 10 Daerah dengan Cakupan JKN Tertinggi (%)</p>
                                                 <ResponsiveContainer width="100%" height="85%">
-                                                    <BarChart data={healthData.topDengue} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                                    <BarChart data={healthData.topCities} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                                                         <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6B7280' }} />
-                                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6B7280' }} />
+                                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6B7280' }} domain={[0, 100]} />
                                                         <Tooltip content={renderCustomTooltip} />
-                                                        <Bar dataKey="dengue" name="Kasus DBD" fill="#f97316" radius={[4, 4, 0, 0]} unit=" Jiwa">
-                                                            {healthData.topDengue.map((entry, index) => (
+                                                        <Bar dataKey="jkn" name="Cakupan JKN" fill="#10b981" radius={[4, 4, 0, 0]} unit="%">
+                                                            {healthData.topCities.map((entry, index) => (
                                                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                                             ))}
                                                         </Bar>
                                                     </BarChart>
                                                 </ResponsiveContainer>
                                             </div>
+                                        </div>
+
+                                        {/* SEO Tables & GEO Data Schema */}
+                                        <div className="sr-only">
+                                            <table>
+                                                <caption>Data Indikator Kesehatan dan Fasilitas Medis Wilayah Jawa Barat</caption>
+                                                <thead>
+                                                    <tr>
+                                                        <th>Wilayah / Kabupaten / Kota</th>
+                                                        <th>Persentase Cakupan JKN Universal Health Coverage (%)</th>
+                                                        <th>Rasio Tempat Tidur Rumah Sakit per 1.000 Penduduk</th>
+                                                        <th>Rasio Kesiapan Tenaga Dokter Tersedia per 1.000 Penduduk</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {healthData.allCities.map((r, i) => (
+                                                        <tr key={i}>
+                                                            <td>{r.name}</td>
+                                                            <td>{r.jkn}%</td>
+                                                            <td>{r.bed}</td>
+                                                            <td>{r.doc}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
                                         </div>
                                     </div>
                                 )}
